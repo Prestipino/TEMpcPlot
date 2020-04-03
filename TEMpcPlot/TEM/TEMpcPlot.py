@@ -24,7 +24,7 @@ from . import d3plot
 # import  scipy.optimize  as opt
 plt.ion()
 
-# from skimage.measure import LineModelND, ransac
+# from skimage.measure import LineModelND, ransa
 
 
 def sind(x):
@@ -1228,7 +1228,6 @@ class EwaldPeaks(object):
         self.set_cell(self.axes, self._axes_std)
         return np.degrees(res_1.x[9:]), np.degrees(error[9:])
 
-
     def refine_angles(self, axes=None, tollerance=0.1):
         """refine reciprocal cell basis
         refine the reciprocal cell basis in respect to data that are
@@ -1278,7 +1277,6 @@ class EwaldPeaks(object):
                 error.append(75.00)
 
         return np.degrees(res_1.x), np.degrees(error)
-
 
     def __calibrate(self):
         """calibrate

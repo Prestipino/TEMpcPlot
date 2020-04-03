@@ -20,7 +20,15 @@ class D3plot(object):
         # list in whic pos are sotred for each image
         self.pos_i = EwPePos.pos[:]  # positions after rotation
         self.r0 = R.from_rotvec([0, 0, 0])  # rotation from the start
+        if hasattr(EwPePos, '_rot_vect'):
+            self.__angle = np.arccos(np.dot(EwPePos._rot_vect[0],
+                                            [0, 1, 0]))
+            self.__angle *= 180 / np.pi      # angle to start good
+
         self.axes = {}
+        if hasattr(EwPePos, 'axes'):
+            for abc, i in enumerate('abc'):
+                    self.axes[abc] = LineAxes(abc, 1, axis=EwPePos.axes.T[i])
 
         plt.rcParams['toolbar'] = 'None'
         self.fig = plt.figure()
@@ -43,13 +51,17 @@ class D3plot(object):
         self.__axylim = (-y, y)
         self.ax.set_xlim(self.__axxlim)
         self.ax.set_ylim(self.__axylim)
+
+
+
+        if hasattr(EwPePos, '_rot_vect')
+
+        # ---------------------------------------------
         plt.draw()
         self.plot_hist()
+        # ----------------------------------------------
 
-        if hasattr(EwPePos, '_rot_vect'):
-            self.__angle = np.arccos(np.dot(EwPePos._rot_vect[0],
-                                            [0, 1, 0]))
-            self.__angle *= 180 / np.pi
+
         self.__cid = self.fig.canvas.mpl_connect('button_press_event',
                                                  self.main_click)
 
@@ -244,26 +256,48 @@ class D3plot(object):
         assert abc in 'abc', 'only three axis a, b, c '
         self.fig.canvas.mpl_disconnect(self.__cid)
         self.axes[abc] = LineAxes(abc, m)
+        self.axes[abc]._graph_init_()
         plt.waitforbuttonpress(65)
-        self.axes[abc].pos = self.r0.inv().apply(self.axes[abc].pos_i)
-        print(self.axes[abc].pos)
+        self.axes[abc].calc_axis(self.r0)
+        print(self.axes[abc].axis)
         self.__cid = self.fig.canvas.mpl_connect('button_press_event',
                                                  self.main_click)
 
     def legend(self):
         self.ax.legend()
 
+
 class LineAxes:
-    def __init__(self, abc, m):
-        fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k', }
+    def __init__(self, abc, m, axis=None, rot=None):
+        self.m = m
+        self.abc = abc
+        fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k'}
         self.line, = plt.plot([0], [0], fmt[abc])
+        if axis is not None:
+            self.axis = axis
+            self.mod = np.sqrt(self.axis @ self.axis.T)
+            self.inv_mod = 1 / self.mod
+            if rot is not None:
+                self.pos_i = rot.apply(self.pos_i)[:2]
+            else:
+                self.pos_i = self.axis[:2]
+            datax = np.linspace(0, self.pos_i[0] * m, m + 1)
+            datay = np.linspace(0, self.pos_i[1] * m, m + 1)
+            self.line.set_data(datax, datay)
+            self.line.axes.draw_artist(self.line)
+
+    def calc_axis(self, r0):
+        self.axis = r0.inv().apply(self.pos_i)
+
+    def _graph_init_(self):
+        m = self.m
         text = plt.text(0, 0, '')
         canv = self.line.figure.canvas
 
         def endpick(event):
             self.pos_i = np.array([event.xdata / m,
                                    event.ydata / m, 0])
-            #print(self.pos_i)
+            # print(self.pos_i)
             self.inv_mod = m / np.sqrt(self.pos_i[0]**2 + self.pos_i[1]**2)
             canv.mpl_disconnect(self.__cid)
             canv.mpl_disconnect(self.__mid)
@@ -296,6 +330,7 @@ class LineAxes:
             self.line.figure.canvas.mpl_disconnect(self.mid)
         if hasattr(self, '__rid'):
             self.line.figure.canvas.mpl_disconnect(self.rid)
-        self.line.remove()
+        if hasattr(self, 'line'):
+            self.line.remove()
         # plt.legend()
         return
