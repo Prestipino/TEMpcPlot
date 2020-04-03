@@ -292,6 +292,7 @@ class PeakL(list):
         if hasattr(self, 'int'):
             self.int = np.delete(self.int, n)
         if hasattr(self, 'lp'):
+            self.lp.set_data(self[1], self[0])                                              
             self.lp.figure.canvas.draw()
 
     @classmethod
@@ -798,7 +799,7 @@ class SeqIm(list):
             >>> Exp1.plot(True)
             >>> Exp1.plot(1)
             >>> Exp1.plot(0)
-            >>> Exp1.plot()
+            >>> Exp1.plot(vmin = 10, )
         '''
         fig = plt.figure()
         ax = plt.axes([0.1, 0.15, 0.8, 0.75])
@@ -833,6 +834,9 @@ class SeqIm(list):
 
         def Del_p():
             self.ima.Peaks.del_PlotPeak()
+
+        def DelR_p():
+            self.ima.Peaks.del_PlotRange()
 
         def lenght():
             if hasattr(self.ima, 'line'):
@@ -872,7 +876,7 @@ class SeqIm(list):
         a = fig.canvas.toolbar.addAction(_icon('up.png'),
                                          'foward', lambda: UP_DO(1))
         a.setToolTip('Next image')
-
+        fig.canvas.toolbar.addSeparator()
         a = fig.canvas.toolbar.addAction(_icon('PlotP.png'),
                                          'Peaks', Plot_p)
         a.setToolTip('Peaks On/Off')
@@ -880,6 +884,12 @@ class SeqIm(list):
                                          'Del P',
                                          Del_p)
         a.setToolTip('Delete Peaks')
+        a = fig.canvas.toolbar.addAction(_icon('RanP.png'),
+                                         'DelR P',
+                                         DelR_p)
+        a.setToolTip('Delete Peaks in range')
+
+        fig.canvas.toolbar.addSeparator()
         a = fig.canvas.toolbar.addAction(_icon('lenght.png'),
                                          'len',
                                          lenght)
