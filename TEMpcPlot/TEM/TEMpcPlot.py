@@ -1002,7 +1002,6 @@ class EwaldPeaks(object):
         """
         self.graph = d3plot.D3plot(self)
 
-
     def plot_int(self):
         intens = np.hstack([i for i in self.int])
         plt.figure()
@@ -1027,7 +1026,7 @@ class EwaldPeaks(object):
         return
 
     def save(self, filename):
-        """ 
+        """ save EwP
             formats available:
                None: pickel format good for python
                Idx : for Ind_x
@@ -1042,11 +1041,23 @@ class EwaldPeaks(object):
                        footer=footer, fmt='%10.5f', comments='')
             return
         else:
-            if hasattr(self, 'graph'):
-                del self.graph
+            if '.' not in filename:
+                filename += '.ewp'
             with open(filename, 'wb') as filesave:
-                pickle.dump(self, filesave)
+                dict_data = dict(zip(['pos', 'int', 'rot_vect'],
+                                     [self.pos, self.int, self._rot_vect]))
+                if hasattr(self, 'axes'):
+                    dict_data['axes'] = self.axes
+                pickle.dump(dict_data, filesave)
             return
+
+    @classmethod
+    def load(cls, filename):
+        dd = pickle.load(open(filename, 'rb'))
+        z = EwaldPeaks(dd['pos'], dd['int'], dd['rot_vect'])
+        if 'axes' in dd.keys():
+            z.set_cell(dd['axes'])
+        return z
 
     def __add__(self, other):
         pos = self.pos + other.pos[1:]
@@ -1055,10 +1066,6 @@ class EwaldPeaks(object):
         if cond:
             rot_vect = self._rot_vect + other._rot_vect
         return EwaldPeaks(pos, inte, rot_vect)
-
-    @classmethod
-    def load(cls, filename):
-        return pickle.load(open(filename, 'rb'))
 
     def fil_gt_int(self, i_lim=None):
         pos = []
@@ -1095,7 +1102,7 @@ class EwaldPeaks(object):
         '''
         if axes is None:
             assert len(self.graph.axes) == 3, 'not prperly defined axes'
-            self.axes = np.array([self.graph.axes[i].pos for i in 'abc']).T
+            self.axes = np.array([self.graph.axes[i].axis for i in 'abc']).T
         else:
             self.axes = axes
 
@@ -1173,7 +1180,7 @@ class EwaldPeaks(object):
         #print('pippo')
         self._axes_std = np.array(error).reshape(3, 3)
         self.set_cell(self.axes, self._axes_std)
-        return res_1
+        return res_1.success, res_1.njev
 
     def refine_axang(self, axes=None, tollerance=0.1):
         """refine reciprocal cell basis
@@ -1215,7 +1222,6 @@ class EwaldPeaks(object):
             return resx.sum(0)
 
         axes_ang = list(axes.flatten()) + [0] * (len(self.pos) - 1)
-        print(axes_ang[9:])
         res_1 = least_squares(res, axes_ang, verbose=1)
 
         # chi square
@@ -1229,9 +1235,14 @@ class EwaldPeaks(object):
                 error.append(75.00)
 
         self.axes = np.array(res_1.x[:9]).reshape(3, 3)
-        print('pippo')
         self._axes_std = np.array(error)[:9].reshape(3, 3)
+
+        for i, pos_f_i in enumerate(self.pos[1:]):
+            r = R.from_rotvec(self._rot_vect[i + 1] * res_1.x[9+i])
+            self.pos[i + 1] = r.apply(pos_f_i)
+
         self.set_cell(self.axes, self._axes_std)
+        print(res_1.success, res_1.njev)
         return np.degrees(res_1.x[9:]), np.degrees(error[9:])
 
     def refine_angles(self, axes=None, tollerance=0.1):
@@ -1282,6 +1293,12 @@ class EwaldPeaks(object):
             except:
                 error.append(75.00)
 
+        # change the angles
+        for i, pos_f_i in enumerate(self.pos[1:]):
+                r = R.from_rotvec(self._rot_vect[i + 1] * res_1.x[i])
+                self.pos[i + 1] = r.apply(pos_f_i)
+
+        self.__calibrate()
         return np.degrees(res_1.x), np.degrees(error)
 
     def __calibrate(self):

@@ -71,7 +71,7 @@ class D3plot(object):
         pos_i = []
         for i_pos, i_inte in zip(self._EwPePos.pos, self._EwPePos.int):
             pos_i.append(self.r0.apply(i_pos[lcond(i_inte)]))
-        self.pos_i = [self.r0.apply(i) for i in pos_i]
+        self.pos_i = pos_i
         self.plot_ax()
         self.plot_hist()
 
@@ -197,6 +197,7 @@ class D3plot(object):
         r = self.r0.inv()
         self.__rotate(r)
         self.__stab_rot(r)
+        print(self.r0)
         self.rotatez(self.__angle)
 
     def _c_allign(self, abc):
@@ -209,7 +210,6 @@ class D3plot(object):
         r = R.from_rotvec(rot_vec_n)
         self.__rotate(r)
         self.__stab_rot(r)
-        self.plot_hist()
 
     def allign_a(self):
         self._c_allign('a')
@@ -265,7 +265,6 @@ class D3plot(object):
         self.axes[abc]._graph_init_()
         plt.waitforbuttonpress(65)
         self.axes[abc].calc_axis(self.r0)
-        print(self.axes[abc].axis)
         self.__cid = self.fig.canvas.mpl_connect('button_press_event',
                                                  self.main_click)
 
