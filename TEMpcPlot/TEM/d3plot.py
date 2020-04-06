@@ -17,6 +17,7 @@ class D3plot(object):
 
     def __init__(self, EwPePos, size='o'):
         self.__size = size
+        self._EwPePos = EwPePos
         # list in whic pos are sotred for each image
         self.pos_i = EwPePos.pos[:]  # positions after rotation
         self.r0 = R.from_rotvec([0, 0, 0])  # rotation from the start
@@ -25,10 +26,12 @@ class D3plot(object):
                                             [0, 1, 0]))
             self.__angle *= 180 / np.pi      # angle to start good
 
+        # -----------define axis if already present
         self.axes = {}
         if hasattr(EwPePos, 'axes'):
-            for abc, i in enumerate('abc'):
+            for i, abc in enumerate('abc'):
                     self.axes[abc] = LineAxes(abc, 1, axis=EwPePos.axes.T[i])
+        # -----------------------------------------------
 
         plt.rcParams['toolbar'] = 'None'
         self.fig = plt.figure()
@@ -45,22 +48,8 @@ class D3plot(object):
                     size='x-large', weight='bold')
 
         self.plot_ax()
-        x = abs(np.array(self.ax.get_xlim())).argmax()
-        y = abs(np.array(self.ax.get_ylim())).argmax()
-        self.__axxlim = (-x, x)
-        self.__axylim = (-y, y)
-        self.ax.set_xlim(self.__axxlim)
-        self.ax.set_ylim(self.__axylim)
-
-
-
-        if hasattr(EwPePos, '_rot_vect')
-
         # ---------------------------------------------
-        plt.draw()
-        self.plot_hist()
         # ----------------------------------------------
-
 
         self.__cid = self.fig.canvas.mpl_connect('button_press_event',
                                                  self.main_click)
@@ -70,6 +59,23 @@ class D3plot(object):
             self.plot_hist()
         self.__res = self.fig.canvas.mpl_connect('resize_event',
                                                  lambda event: rezize_g())
+
+
+    def filter_int(self, operator=None, lim=None):
+        if operator == '>':
+            def lcond(x):
+                return x > lim
+        elif operator == '<':
+            def lcond(x):
+                return x < lim
+        pos_i = []
+        for i_pos, i_inte in zip(self._EwPePos.pos, self._EwPePos.int):
+            pos_i.append(self.r0.apply(i_pos[lcond(i_inte)]))
+        self.pos_i = [self.r0.apply(i) for i in pos_i]
+        self.plot_ax()
+        self.plot_hist()
+
+
 
     def plot_ax(self):
         self.ax.cla()
@@ -81,16 +87,21 @@ class D3plot(object):
         for j, i in enumerate(self.pos_i):
             self.m_planes.extend(self.ax.plot(*i.T[:2], self.__size, label=str(j)))
         self.zer, = self.ax.plot([0], [0], 'xr', markersize=20)
-        fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k', }
-        for abc, i in self.axes.items():
-            i.line, = self.ax.plot([0, i.pos_i[0]], [0, i.pos_i[1]], fmt[abc])
-        self.ax.set_axis_off()
-        self.ax.set_frame_on(False)
+        for axis in self.axes.values():
+            axis.plot()
+        self.ax.set_axis_off()        ################
+        self.ax.set_frame_on(False)      # ###############
 
         # legend
         plt.rcParams['toolbar'] = 'toolbar2'
-        self.__axxlim = self.ax.get_xlim()
-        self.__axylim = self.ax.get_ylim()
+
+        x = abs(np.array(self.ax.get_xlim())).max()
+        y = abs(np.array(self.ax.get_ylim())).max()
+        self.__axxlim = (-x, x)
+        self.__axylim = (-y, y)
+        self.ax.set_xlim(*self.__axxlim)
+        self.ax.set_ylim(*self.__axylim)
+        self.ax.set_xlim(*self.__axxlim)
 
     def plot_hist(self):
         self.ax_x.cla()
@@ -101,18 +112,22 @@ class D3plot(object):
                                   bins=100, rwidth=4, orientation='horizontal')
         self.ax_x.set_autoscalex_on(False)
         self.ax_y.set_autoscalex_on(False)
-        self.ax_x.set_xlim(self.__axxlim)
-        self.ax_y.set_ylim(self.__axylim)
+        self.ax_x.set_xlim(*self.ax.get_xlim())
+        self.ax_y.set_ylim(*self.ax.get_ylim())
         plt.draw()
 
     def zoom(self, event):
+        if event is not None:
+            zoom_m = np.sqrt(np.sum(np.array([self.__c_x0, self.__c_y0])**2))
+            zoom_m /= np.sqrt(np.sum(np.array([event.xdata, event.ydata])**2))
+        else:
+            zoom_m = 1
         self.fig.canvas.restore_region(self.bkg_cache)
-        zoom_m = np.sqrt(np.sum(np.array([self.__c_x0, self.__c_y0])**2))
-        zoom_m /= np.sqrt(np.sum(np.array([event.xdata, event.ydata])**2))
-        self.__axxlim = (self.__axxlim[0] * zoom_m, self.__axxlim[1] * zoom_m)
-        self.__axylim = (self.__axylim[0] * zoom_m, self.__axylim[1] * zoom_m)
-        self.ax.set_xlim(self.__axxlim)
-        self.ax.set_ylim(self.__axylim)
+        self.__axxlim = (self.ax.get_xlim())
+        self.__axylim = (self.ax.get_ylim())
+        self.ax.set_xlim(self.__axxlim[0] * zoom_m, self.__axxlim[1] * zoom_m)
+        self.ax.set_ylim(self.__axylim[0] * zoom_m, self.__axylim[1] * zoom_m)
+
         # for n_pos, i_pos in enumerate(self.pos_i):
         #    self.ax.draw_artist(self.m_planes[n_pos])
         # if len(self.axes_i) > 0:
@@ -147,7 +162,8 @@ class D3plot(object):
         self.fig.canvas.blit(self.ax.bbox)
 
     def __stab_rot(self, r):
-        """track all rotation ...
+        """track all rotation 
+        track the rotatyion when mouse is released...
         """
         self.r0 = r * self.r0
         for i, j in enumerate(self.pos_i):
@@ -159,23 +175,23 @@ class D3plot(object):
         r = self.__find_rot(event)
         self.__rotate(r)
 
-    def rotatex(self, deg=90):
-        rot_vec = np.array((np.radians(deg), 0, 0))
+    def _c_rotate(self, xyz, deg):
+        """command rotate
+        """
+        rot_vec = np.array([np.radians(deg) if i in xyz else 0 for i in 'xyz'])
         r = R.from_rotvec(rot_vec)
         self.__rotate(r)
         self.__stab_rot(r)
+        self.plot_hist()
+
+    def rotatex(self, deg=90):
+        self._c_rotate('x', deg)
 
     def rotatey(self, deg=90):
-        rot_vec = np.array((0, np.radians(deg), 0))
-        r = R.from_rotvec(rot_vec)
-        self.__rotate(r)
-        self.__stab_rot(r)
+        self._c_rotate('y', deg)
 
     def rotatez(self, deg=90):
-        rot_vec = np.array((0, 0, np.radians(deg)))
-        r = R.from_rotvec(rot_vec)
-        self.__rotate(r)
-        self.__stab_rot(r)
+        self._c_rotate('z', deg)
 
     def rotate_0(self):
         r = self.r0.inv()
@@ -183,42 +199,32 @@ class D3plot(object):
         self.__stab_rot(r)
         self.rotatez(self.__angle)
 
-    def allign_a(self):
-        rot_vec = np.cross(self.axes['a'].pos_i, np.array([0, 0, 1]))
+    def _c_allign(self, abc):
+        """command allign to an axis
+        """
+        rot_vec = np.cross(self.axes[abc].pos_i, np.array([0, 0, 1]))
         r_mod = np.sqrt(rot_vec @ rot_vec)
-        a_mod = np.sqrt(self.axes['a'].pos_i @ self.axes['a'].pos_i)
         rot_vec_n = rot_vec / r_mod
-        rot_vec_n *= -np.arcsin(r_mod / a_mod)
+        rot_vec_n *= -np.arcsin(r_mod / self.axes[abc].mod)
         r = R.from_rotvec(rot_vec_n)
         self.__rotate(r)
         self.__stab_rot(r)
+        self.plot_hist()
+
+    def allign_a(self):
+        self._c_allign('a')
 
     def allign_b(self):
-        rot_vec = np.cross(self.axes['b'].pos_i, np.array([0, 0, 1]))
-        r_mod = np.sqrt(rot_vec @ rot_vec)
-        a_mod = np.sqrt(self.axes['b'].pos_i @ self.axes['b'].pos_i)
-        rot_vec_n = rot_vec / r_mod
-        rot_vec_n *= -np.arcsin(r_mod / a_mod)
-        r = R.from_rotvec(rot_vec_n)
-        self.__rotate(r)
-        self.__stab_rot(r)
+        self._c_allign('b')
 
     def allign_c(self):
-        rot_vec = np.cross(self.axes['c'].pos_i, np.array([0, 0, 1]))
-        r_mod = np.sqrt(rot_vec @ rot_vec)
-        a_mod = np.sqrt(self.axes['c'].pos_i @ self.axes['c'].pos_i)
-        rot_vec_n = rot_vec / r_mod
-        rot_vec_n *= -np.arcsin(r_mod / a_mod)
-        r = R.from_rotvec(rot_vec_n)
-        self.__rotate(r)
-        self.__stab_rot(r)
+        self._c_allign('c')
 
     def main_click(self, event):
         if event.inaxes != self.ax:
             return
         self.fig.canvas.mpl_disconnect(self.__cid)
         canv = self.fig.canvas
-
         def endpick(event):
             if event.button == 1:
                 r = self.__find_rot(event)
@@ -234,9 +240,9 @@ class D3plot(object):
             self.__cid = canv.mpl_connect('button_press_event',
                                           self.main_click)
             return
-
         self.__c_x0 = event.xdata
         self.__c_y0 = event.ydata
+
         if event.button == 1:
             self.__mid = canv.mpl_connect('motion_notify_event',
                                           self.__m_rotate)
@@ -272,22 +278,30 @@ class LineAxes:
         self.m = m
         self.abc = abc
         fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k'}
-        self.line, = plt.plot([0], [0], fmt[abc])
         if axis is not None:
             self.axis = axis
             self.mod = np.sqrt(self.axis @ self.axis.T)
             self.inv_mod = 1 / self.mod
             if rot is not None:
-                self.pos_i = rot.apply(self.pos_i)[:2]
+                self.pos_i = rot.apply(self.pos_i)
             else:
-                self.pos_i = self.axis[:2]
-            datax = np.linspace(0, self.pos_i[0] * m, m + 1)
-            datay = np.linspace(0, self.pos_i[1] * m, m + 1)
-            self.line.set_data(datax, datay)
-            self.line.axes.draw_artist(self.line)
+                self.pos_i = self.axis
+        else:
+            self.line, = plt.plot([0], [0], fmt[abc])
+
+    def plot(self):
+        fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k'}
+        self.line, = plt.plot([0], [0], fmt[self.abc])
+        datax = np.linspace(0, self.pos_i[0] * self.m, self.m + 1)
+        datay = np.linspace(0, self.pos_i[1] * self.m, self.m + 1)
+        self.line.set_data(datax, datay)
+        self.line.axes.draw_artist(self.line)
+
 
     def calc_axis(self, r0):
         self.axis = r0.inv().apply(self.pos_i)
+        self.mod = np.sqrt(self.axis @ self.axis.T)
+        self.inv_mod = 1 / self.mod
 
     def _graph_init_(self):
         m = self.m

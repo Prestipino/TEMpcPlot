@@ -1002,6 +1002,12 @@ class EwaldPeaks(object):
         """
         self.graph = d3plot.D3plot(self)
 
+
+    def plot_int(self):
+        intens = np.hstack([i for i in self.int])
+        plt.figure()
+        plt.hist(sorted(intens), bins=100, rwidth=4)
+
     def plot_reduce(self, tollerance=0.1):
         """plot collapsed reciprocal space
         """
