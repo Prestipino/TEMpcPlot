@@ -475,7 +475,6 @@ class Mimage():
     self.info gives info
     self.center = center of the image (pixel)
     self.rad  = radius of central peak > satur*max(image)
-    self.Peaks = Class containing peaks
     self.scale = scale
     self.Peaks = PeakL object containing the peaks
     ----------------------------------------------------------
@@ -921,6 +920,7 @@ class SeqIm(list):
         out.filename = [i.info.filename for i in self]
         out.filesangle = self.__filesangle
         if hasattr(self, 'EwP'):
+
             out.EwP = {'pos': self.EwP.pos,
                        'int': self.EwP.int,
                        'rot_vect': self.EwP._rot_vect}
@@ -986,7 +986,7 @@ class EwaldPeaks(object):
 
     """
 
-    def __init__(self, positions, intensity, rot_vect=None):
+    def __init__(self, positions, intensity, rot_vect=None, axes=None):
         # list in whic pos are sotred for each image
         self.pos = positions
         self.int = intensity
@@ -996,6 +996,16 @@ class EwaldPeaks(object):
             self._rot_vect = rot_vect
         else:
             self._rot_vect = [rot_vect] * len(self.int)
+        if axes is not None:
+            self.set_cell(axes)
+
+    def __add__(self, other):
+        pos = self.pos + other.pos[1:]
+        inte = self.int + other.int[1:]
+        cond = hasattr(self, '_rot_vect') and hasattr(other, '_rot_vect')
+        if cond:
+            rot_vect = self._rot_vect + other._rot_vect
+        return EwaldPeaks(pos, inte, rot_vect)
 
     def plot(self):
         """open a D3plot graph
@@ -1007,312 +1017,48 @@ class EwaldPeaks(object):
         plt.figure()
         plt.hist(sorted(intens), bins=100, rwidth=4)
 
-    def plot_reduce(self, tollerance=0.1):
+    def plot_proj_int(self):
+        pos = np.hstack([i for i in self.pos_cal])
+        pos = np.fmod(pos, 1)
+        pos = np.where(pos < 0, pos + 1, pos)
+
+        fig = plt.figure()
+        gs = fig.add_gridspec(3, 1, hspace=0.50)
+        pa = fig.add_subplot(gs[0, 0])
+        pb = fig.add_subplot(gs[1, 0])
+        pc = fig.add_subplot(gs[2, 0])
+        print(np.sort(pos[:, 0]))
+        pa.hist(pos[0, :], bins=100, rwidth=4)
+        pa.set_title('a')
+        pb.hist(pos[1, :], bins=100, rwidth=4)
+        pb.set_title('b')
+        pc.hist(pos[2, :], bins=100, rwidth=4)
+        pc.set_title('c')
+        plt.draw()
+
+    def plot_reduce(self, tollerance=0.1, condition=None):
         """plot collapsed reciprocal space
         """
         pos = np.hstack([i for i in self.pos_cal])
-        pos = np.where(pos > 1 + tollerance, np.fmod(pos, 1), pos)
-        pos = np.where(pos < -1 - tollerance, np.fmod(pos, 1), pos)
-        pos = np.where(pos < -tollerance, pos + 1, pos)
+        pos = np.fmod(pos, 1)
+        pos = np.where(pos < 0, pos + 1, pos)
 
         pos_c = np.where(pos > 0.5, pos - 1, pos)
         pos_c = np.where(pos_c < -0.5, pos_c + 1, pos_c)
         cond = abs(pos_c).max(axis=0) > tollerance
+
         pos = pos - 0.5
         pos = (self.axes @ pos).T
+        orig = (self.axes @ [-0.5, -0.5, -0.5])
+        print(orig)
         inte_o = np.hstack([i for i in self.int])
-        self.reduce = d3plot.D3plot(EwaldPeaks([pos[cond], pos[~cond]],
-                                               [inte_o[cond], inte_o[~cond]]))
+        self.reduce = d3plot.D3plotr(EwaldPeaks([pos[cond], pos[~cond]],
+                                                [inte_o[cond], inte_o[~cond]],
+                                                rot_vect=self._rot_vect,
+                                                axes=self.axes),
+                                     origin=orig)
+        self.reduce.rotate_0()
         return
-
-    def save(self, filename):
-        """ save EwP
-            formats available:
-               None: pickel format good for python
-               Idx : for Ind_x
-        """
-        if filename[-3:].lower() == 'idx':
-            pos = np.vstack([i for i in self.pos]) / 10
-            header = '_NumberOfReflections\n     {:d}'.format(pos.shape[0])
-            header += '\n_Reflections'
-            footer = '_MinMaxVolumeOfPrimitiveCell\n     5.0  1000.0\n'
-            footer += '_TheMainCriterion \n 0.25'
-            np.savetxt(filename, pos, header=header,
-                       footer=footer, fmt='%10.5f', comments='')
-            return
-        else:
-            if '.' not in filename:
-                filename += '.ewp'
-            with open(filename, 'wb') as filesave:
-                dict_data = dict(zip(['pos', 'int', 'rot_vect'],
-                                     [self.pos, self.int, self._rot_vect]))
-                if hasattr(self, 'axes'):
-                    dict_data['axes'] = self.axes
-                pickle.dump(dict_data, filesave)
-            return
-
-    @classmethod
-    def load(cls, filename):
-        dd = pickle.load(open(filename, 'rb'))
-        z = EwaldPeaks(dd['pos'], dd['int'], dd['rot_vect'])
-        if 'axes' in dd.keys():
-            z.set_cell(dd['axes'])
-        return z
-
-    def __add__(self, other):
-        pos = self.pos + other.pos[1:]
-        inte = self.int + other.int[1:]
-        cond = hasattr(self, '_rot_vect') and hasattr(other, '_rot_vect')
-        if cond:
-            rot_vect = self._rot_vect + other._rot_vect
-        return EwaldPeaks(pos, inte, rot_vect)
-
-    def fil_gt_int(self, i_lim=None):
-        pos = []
-        inte = []
-        for i, j in enumerate(self.int):
-            idx = j > i_lim
-            pos.append(self.pos[i][idx])
-            inte.append(j[idx])
-        return EwaldPeaks(pos, inte)
-
-    def set_cell(self, axes=None, axes_std=None):
-        ''' calculation of the cell
-        effect the calculation to obtain the cell 
-        Args:
-            axis (np.array 3,3): the new reciprocal basis to be used in the format
-                         | np.array[[a1, b1, c1],
-                         |         [a2, b2, c2],
-                         |         [a3, b3, c3]]
-                if axis is not inoput the programm seach if a new basis
-                has been defined graphically
-
-        return:
-                nothing
-
-        Attributes:
-            self.rMT   (np.array) : reciprocal metric tensor
-            self.cell   (dict)    : a dictionary witht the value of
-                                        real space cell
-
-        """
-            self.rMT    : reciprocal metric tensor
-           self.cell   : a dictionary witht the value of
-                         real space cell
-        '''
-        if axes is None:
-            assert len(self.graph.axes) == 3, 'not prperly defined axes'
-            self.axes = np.array([self.graph.axes[i].axis for i in 'abc']).T
-        else:
-            self.axes = axes
-
-        # reciprocal metric tensor
-        self.rMT = self.axes.T @ self.axes
-        # metric tensor
-        self.MT = inv(self.rMT)
-
-        self.__calibrate()
-        # def calc_cell(axesflat):
-        #     ax = axesflat.reshape(3, 3)
-        #     MT = inv(ax.T @ ax)
-        #     a, b, c = np.sqrt(np.diagonal(MT))
-        #     al, bt, gm = acosd([MT[2, 1] / (b * c),
-        #                         MT[2][0] / (a * c),
-        #                         MT[0, 1] / a * b])
-        #     return a, b, c, al, bt, gm
-        from uncertainties import unumpy
-
-        def calc_cell(axesflat):
-            ax = axesflat.reshape(3, 3)
-            MT = unumpy.ulinalg.inv(np.dot(ax.T, ax))
-            a, b, c = unumpy.sqrt(np.diagonal(MT))
-            al, bt, gm = 180. * unumpy.arccos([MT[2, 1] / (b * c),
-                                               MT[2][0] / (a * c),
-                                               MT[0, 1] / a * b]) / np.pi
-            return a, b, c, al, bt, gm
-
-        if axes_std is None:
-            self.cell = dict(zip(['a', 'b', 'c', 'alpha', 'beta', 'gammma'],
-                                 calc_cell(self.axes.flatten())))
-        else:
-            self._axes_std = axes_std
-            axes = unumpy.uarray(self.axes, self._axes_std)
-            self.cell = dict(zip(['a', 'b', 'c', 'alpha', 'beta', 'gammma'],
-                                 calc_cell(axes.flatten())))
-        return
-
-    def refine_axes(self, axes=None, tollerance=0.1):
-        """refine reciprocal cell basis
-        refine the reciprocal cell basis in respect to data that are
-        indexed in the tollerance range.
-        """
-        if axes is None:
-            axes = self.axes
-
-        data = np.vstack([i for i in self.pos]).T
-        P = inv(axes)
-        resx = abs(P @ data) % 1
-        resx = np.where(resx > 0.5, 1 - resx, resx)
-        cond = np.sum(resx < tollerance, 0) > 2
-        data = np.compress(cond, data, axis=1)
-
-
-        def res(axesr):
-            axesr = np.array(axesr).reshape(3, 3)
-            P = inv(axesr)
-            resx = abs(P @ data) % 1
-            resx = np.where(resx > 0.5, 1 - resx, resx)
-            return resx.sum(0)
-
-        res_1 = least_squares(res, axes.flatten(), verbose=1)
-
-        # chi square
-        s_sq = (res(res_1.x)**2).sum() / (data.shape[1] - len(res_1.x))
-        #fvariance covariance matrix
-        pcov = inv(res_1.jac.T @ res_1.jac) * s_sq
-        error = []
-        for i in range(len(res_1.x)):
-            try:
-                error.append(np.absolute(pcov[i][i]) ** 0.5)
-            except:
-                error.append(0.00)
-        self.axes = np.array(res_1.x).reshape(3, 3)
-        #print('pippo')
-        self._axes_std = np.array(error).reshape(3, 3)
-        self.set_cell(self.axes, self._axes_std)
-        return res_1.success, res_1.njev
-
-    def refine_axang(self, axes=None, tollerance=0.1):
-        """refine reciprocal cell basis
-        refine the reciprocal cell basis in respect to data that are
-        indexed in the tollerance range.
-        """
-        """refine reciprocal cell basis
-        refine the reciprocal cell basis in respect to data that are
-        indexed in the tollerance range.
-        """
-        if axes is None:
-            axes = self.axes
-
-        # Filter position in tollerance
-        pos_f = []
-        P = inv(axes)
-        n_peak = 0
-        for i, pos_i in enumerate(self.pos):
-            resx = abs(P @ pos_i.T) % 1
-            resx = np.where(resx > 0.5, 1 - resx, resx)
-            cond = np.sum(resx < tollerance, 0) > 2
-            n_peak += len(cond)
-            pos_f.append(np.compress(cond, pos_i, axis=0))
-
-        pass
-
-        def res(axes_ang):
-            axesr = axes_ang[:9]
-            angles = axes_ang[9:]
-            pos = [pos_f[0]]
-            for i, pos_f_i in enumerate(pos_f[1:]):
-                r = R.from_rotvec(self._rot_vect[i + 1] * angles[i])
-                pos.append(r.apply(pos_f_i))
-            data = np.vstack([i for i in pos]).T
-            axesr = np.array(axesr).reshape(3, 3)
-            P = inv(axesr)
-            resx = abs(P @ data) % 1
-            resx = np.where(resx > 0.5, 1 - resx, resx)
-            return resx.sum(0)
-
-        axes_ang = list(axes.flatten()) + [0] * (len(self.pos) - 1)
-        res_1 = least_squares(res, axes_ang, verbose=1)
-
-        # chi square
-        s_sq = (res(res_1.x)**2).sum() / (n_peak * 3 - len(res_1.x))
-        pcov = inv(res_1.jac.T @ res_1.jac) * s_sq
-        error = []
-        for i in range(len(res_1.x)):
-            try:
-                error.append(np.absolute(pcov[i][i]) ** 0.5)
-            except:
-                error.append(75.00)
-
-        self.axes = np.array(res_1.x[:9]).reshape(3, 3)
-        self._axes_std = np.array(error)[:9].reshape(3, 3)
-
-        for i, pos_f_i in enumerate(self.pos[1:]):
-            r = R.from_rotvec(self._rot_vect[i + 1] * res_1.x[9+i])
-            self.pos[i + 1] = r.apply(pos_f_i)
-
-        self.set_cell(self.axes, self._axes_std)
-        print(res_1.success, res_1.njev)
-        return np.degrees(res_1.x[9:]), np.degrees(error[9:])
-
-    def refine_angles(self, axes=None, tollerance=0.1):
-        """refine reciprocal cell basis
-        refine the reciprocal cell basis in respect to data that are
-        indexed in the tollerance range.
-        """
-        """refine reciprocal cell basis
-        refine the reciprocal cell basis in respect to data that are
-        indexed in the tollerance range.
-        """
-        if axes is None:
-            axes = self.axes
-
-        # Filter position in tollerance
-        pos_f = []
-        P = inv(axes)
-        n_peak = 0
-        for i, pos_i in enumerate(self.pos):
-            resx = abs(P @ pos_i.T) % 1
-            resx = np.where(resx > 0.5, 1 - resx, resx)
-            cond = np.sum(resx < tollerance, 0) > 2
-            n_peak += len(cond)
-            pos_f.append(np.compress(cond, pos_i, axis=0))
-
-        pass
-
-        def res(angles):
-            pos = []  # pos_f[0]
-            for i, pos_f_i in enumerate(pos_f[1:]):
-                r = R.from_rotvec(self._rot_vect[i + 1] * angles[i])
-                pos.append(r.apply(pos_f_i))
-            data = np.vstack([i for i in pos]).T
-            resx = abs(P @ data) % 1
-            resx = np.where(resx > 0.5, 1 - resx, resx)
-            return resx.sum(0)
-
-        angles = [0] * (len(self.pos) - 1)
-        res_1 = least_squares(res, angles, verbose=1)
-
-        # chi square
-        s_sq = (res(res_1.x)**2).sum() / (n_peak * 3 - len(res_1.x))
-        pcov = inv(res_1.jac.T @ res_1.jac) * s_sq
-        error = []
-        for i in range(len(res_1.x)):
-            try:
-                error.append(np.absolute(pcov[i][i]) ** 0.5)
-            except:
-                error.append(75.00)
-
-        # change the angles
-        for i, pos_f_i in enumerate(self.pos[1:]):
-                r = R.from_rotvec(self._rot_vect[i + 1] * res_1.x[i])
-                self.pos[i + 1] = r.apply(pos_f_i)
-
-        self.__calibrate()
-        return np.degrees(res_1.x), np.degrees(error)
-
-    def __calibrate(self):
-        """calibrate
-        given a set of axis reindex the peaks with
-        the new basis and calculate the cell
-        calculated the attribute:
-                self.pos_cal  (list): array witht the position in the new basis
-        """
-        # paasage to axes base
-        P = inv(self.axes)
-        self.pos_cal = []
-        for i in self.pos:
-            self.pos_cal.append(np.round(P @ i.T, 2))
 
     def create_layer(self, hkl, n, size=0.25, toll=0.15, mir=0, spg=None):
         """create a specific layer
@@ -1439,3 +1185,299 @@ class EwaldPeaks(object):
         plt.xlabel('%s (1/nm)' % 'HKL'[o1], weight='bold')
         plt.ylabel('%s (1/nm)' % 'HKL'[o2], weight='bold')
         plt.draw()
+
+    def __apply_cond(self, lcond):
+        pos = []
+        inte = []
+        for i_pos, i_inte in zip(self.pos, self.int):
+            pos.append(i_pos[lcond(i_pos, i_inte)])
+            inte.append(i_inte[lcond(i_pos, i_inte)])
+        return pos, inte
+
+    def cr_cond(self, operator=None, lim=None):
+        if operator == '>':
+            def lcond(x):
+                return x > lim
+        elif operator == '<':
+            def lcond(x):
+                return x < lim
+        return lcond
+
+    def refine_axes(self, axes=None, tollerance=0.1):
+        """refine reciprocal cell basis
+        refine the reciprocal cell basis in respect to data that are
+        indexed in the tollerance range.
+        """
+        if axes is None:
+            axes = self.axes
+
+        data = np.vstack([i for i in self.pos]).T
+        P = inv(axes)
+        resx = abs(P @ data) % 1
+        resx = np.where(resx > 0.5, 1 - resx, resx)
+        cond = np.sum(resx < tollerance, 0) > 2
+        data = np.compress(cond, data, axis=1)
+
+
+        def res(axesr):
+            axesr = np.array(axesr).reshape(3, 3)
+            P = inv(axesr)
+            resx = abs(P @ data) % 1
+            resx = np.where(resx > 0.5, 1 - resx, resx)
+            return resx.sum(0)
+
+        res_1 = least_squares(res, axes.flatten(), verbose=1)
+
+        # chi square
+        s_sq = (res(res_1.x)**2).sum() / (data.shape[1] - len(res_1.x))
+        #fvariance covariance matrix
+        pcov = inv(res_1.jac.T @ res_1.jac) * s_sq
+        error = []
+        for i in range(len(res_1.x)):
+            try:
+                error.append(np.absolute(pcov[i][i]) ** 0.5)
+            except:
+                error.append(0.00)
+        self.axes = np.array(res_1.x).reshape(3, 3)
+        #print('pippo')
+        self._axes_std = np.array(error).reshape(3, 3)
+        self.set_cell(self.axes, self._axes_std)
+        return res_1.success, res_1.njev
+
+    def refine_axang(self, axes=None, tollerance=0.1):
+        """refine reciprocal cell basis
+        refine the reciprocal cell basis in respect to data that are
+        indexed in the tollerance range.
+        """
+        """refine reciprocal cell basis
+        refine the reciprocal cell basis in respect to data that are
+        indexed in the tollerance range.
+        """
+        if axes is None:
+            axes = self.axes
+
+        assert hasattr(self, '_rot_vect'), \
+            'angle refinement impossible without rotation axes'
+        # Filter position in tollerance
+        pos_f = []
+        P = inv(axes)
+        n_peak = 0
+        for i, pos_i in enumerate(self.pos):
+            resx = abs(P @ pos_i.T) % 1
+            resx = np.where(resx > 0.5, 1 - resx, resx)
+            cond = np.sum(resx < tollerance, 0) > 2
+            n_peak += len(cond)
+            pos_f.append(np.compress(cond, pos_i, axis=0))
+
+        pass
+
+        def res(axes_ang):
+            axesr = axes_ang[:9]
+            angles = axes_ang[9:]
+            pos = [pos_f[0]]
+            for i, pos_f_i in enumerate(pos_f[1:]):
+                r = R.from_rotvec(self._rot_vect[i + 1] * angles[i])
+                pos.append(r.apply(pos_f_i))
+            data = np.vstack([i for i in pos]).T
+            axesr = np.array(axesr).reshape(3, 3)
+            P = inv(axesr)
+            resx = abs(P @ data) % 1
+            resx = np.where(resx > 0.5, 1 - resx, resx)
+            return resx.sum(0)
+
+        axes_ang = list(axes.flatten()) + [0] * (len(self.pos) - 1)
+        res_1 = least_squares(res, axes_ang, verbose=1)
+
+        # chi square
+        s_sq = (res(res_1.x)**2).sum() / (n_peak * 3 - len(res_1.x))
+        pcov = inv(res_1.jac.T @ res_1.jac) * s_sq
+        error = []
+        for i in range(len(res_1.x)):
+            try:
+                error.append(np.absolute(pcov[i][i]) ** 0.5)
+            except:
+                error.append(75.00)
+
+        self.axes = np.array(res_1.x[:9]).reshape(3, 3)
+        self._axes_std = np.array(error)[:9].reshape(3, 3)
+
+        for i, pos_f_i in enumerate(self.pos[1:]):
+            r = R.from_rotvec(self._rot_vect[i + 1] * res_1.x[9+i])
+            self.pos[i + 1] = r.apply(pos_f_i)
+
+        self.set_cell(self.axes, self._axes_std)
+        print(res_1.success, res_1.njev)
+        return np.degrees(res_1.x[9:]), np.degrees(error[9:])
+
+    def refine_angles(self, axes=None, tollerance=0.1):
+        """refine reciprocal cell basis
+        refine the reciprocal cell basis in respect to data that are
+        indexed in the tollerance range.
+        """
+        """refine reciprocal cell basis
+        refine the reciprocal cell basis in respect to data that are
+        indexed in the tollerance range.
+        """
+        if axes is None:
+            axes = self.axes
+
+        assert hasattr(self, '_rot_vect'), \
+            'angle refinement impossible without rotation axes'
+        # Filter position in tollerance
+        pos_f = []
+        P = inv(axes)
+        n_peak = 0
+        for i, pos_i in enumerate(self.pos):
+            resx = abs(P @ pos_i.T) % 1
+            resx = np.where(resx > 0.5, 1 - resx, resx)
+            cond = np.sum(resx < tollerance, 0) > 2
+            n_peak += len(cond)
+            pos_f.append(np.compress(cond, pos_i, axis=0))
+
+        pass
+
+        def res(angles):
+            pos = []  # pos_f[0]
+            for i, pos_f_i in enumerate(pos_f[1:]):
+                r = R.from_rotvec(self._rot_vect[i + 1] * angles[i])
+                pos.append(r.apply(pos_f_i))
+            data = np.vstack([i for i in pos]).T
+            resx = abs(P @ data) % 1
+            resx = np.where(resx > 0.5, 1 - resx, resx)
+            return resx.sum(0)
+
+        angles = [0] * (len(self.pos) - 1)
+        res_1 = least_squares(res, angles, verbose=1)
+
+        # chi square
+        s_sq = (res(res_1.x)**2).sum() / (n_peak * 3 - len(res_1.x))
+        pcov = inv(res_1.jac.T @ res_1.jac) * s_sq
+        error = []
+        for i in range(len(res_1.x)):
+            try:
+                error.append(np.absolute(pcov[i][i]) ** 0.5)
+            except:
+                error.append(75.00)
+
+        # change the angles
+        for i, pos_f_i in enumerate(self.pos[1:]):
+                r = R.from_rotvec(self._rot_vect[i + 1] * res_1.x[i])
+                self.pos[i + 1] = r.apply(pos_f_i)
+
+        self.__calibrate()
+        return np.degrees(res_1.x), np.degrees(error)
+
+    def set_cell(self, axes=None, axes_std=None):
+        ''' calculation of the cell
+        effect the calculation to obtain the cell 
+        Args:
+            axis (np.array 3,3): the new reciprocal basis to be used in the format
+                         | np.array[[a1, b1, c1],
+                         |         [a2, b2, c2],
+                         |         [a3, b3, c3]]
+                if axis is not inoput the programm seach if a new basis
+                has been defined graphically
+
+        return:
+                nothing
+
+        Attributes:
+            self.rMT   (np.array) : reciprocal metric tensor
+            self.cell   (dict)    : a dictionary witht the value of
+                                        real space cell
+
+        """
+            self.rMT    : reciprocal metric tensor
+           self.cell   : a dictionary witht the value of
+                         real space cell
+        '''
+        if axes is None:
+            assert len(self.graph.axes) == 3, 'not prperly defined axes'
+            self.axes = np.array([self.graph.axes[i].axis for i in 'abc']).T
+        else:
+            self.axes = axes
+
+        # reciprocal metric tensor
+        self.rMT = self.axes.T @ self.axes
+        # metric tensor
+        self.MT = inv(self.rMT)
+
+        self.__calibrate()
+        # def calc_cell(axesflat):
+        #     ax = axesflat.reshape(3, 3)
+        #     MT = inv(ax.T @ ax)
+        #     a, b, c = np.sqrt(np.diagonal(MT))
+        #     al, bt, gm = acosd([MT[2, 1] / (b * c),
+        #                         MT[2][0] / (a * c),
+        #                         MT[0, 1] / a * b])
+        #     return a, b, c, al, bt, gm
+        from uncertainties import unumpy
+
+        def calc_cell(axesflat):
+            ax = axesflat.reshape(3, 3)
+            MT = unumpy.ulinalg.inv(np.dot(ax.T, ax))
+            a, b, c = unumpy.sqrt(np.diagonal(MT))
+            al, bt, gm = 180. * unumpy.arccos([MT[2, 1] / (b * c),
+                                               MT[2][0] / (a * c),
+                                               MT[0, 1] / a * b]) / np.pi
+            return a, b, c, al, bt, gm
+
+        if axes_std is None:
+            self.cell = dict(zip(['a', 'b', 'c', 'alpha', 'beta', 'gammma'],
+                                 calc_cell(self.axes.flatten())))
+        else:
+            self._axes_std = axes_std
+            axes = unumpy.uarray(self.axes, self._axes_std)
+            self.cell = dict(zip(['a', 'b', 'c', 'alpha', 'beta', 'gammma'],
+                                 calc_cell(axes.flatten())))
+        return
+
+    def __calibrate(self):
+        """calibrate
+        given a set of axis reindex the peaks with
+        the new basis and calculate the cell
+        calculated the attribute:
+                self.pos_cal  (list): array witht the position in the new basis
+        """
+        # paasage to axes base
+        P = inv(self.axes)
+        self.pos_cal = []
+        for i in self.pos:
+            self.pos_cal.append(np.round(P @ i.T, 2))
+
+    def save(self, filename, dictionary=False):
+        """ save EwP
+            formats available:
+               None: pickel format good for python
+               Idx : for Ind_x
+        """
+        if filename[-3:].lower() == 'idx':
+            pos = np.vstack([i for i in self.pos]) / 10
+            header = '_NumberOfReflections\n     {:d}'.format(pos.shape[0])
+            header += '\n_Reflections'
+            footer = '_MinMaxVolumeOfPrimitiveCell\n     5.0  1000.0\n'
+            footer += '_TheMainCriterion \n 0.25'
+            np.savetxt(filename, pos, header=header,
+                       footer=footer, fmt='%10.5f', comments='')
+            return
+
+        dict_data = dict(zip(['pos', 'int', 'rot_vect'],
+                             [self.pos, self.int, self._rot_vect]))
+        if hasattr(self, 'axes'):
+            dict_data['axes'] = self.axes
+        if dictionary:
+            return dict_data
+
+        if '.' not in filename:
+            filename += '.ewp'
+        with open(filename, 'wb') as filesave:
+            pickle.dump(dict_data, filesave)
+        return
+
+    @classmethod
+    def load(cls, filename):
+        dd = pickle.load(open(filename, 'rb'))
+        z = EwaldPeaks(dd['pos'], dd['int'], dd['rot_vect'])
+        if 'axes' in dd.keys():
+            z.set_cell(dd['axes'])
+        return z

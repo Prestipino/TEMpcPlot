@@ -60,7 +60,6 @@ class D3plot(object):
         self.__res = self.fig.canvas.mpl_connect('resize_event',
                                                  lambda event: rezize_g())
 
-
     def filter_int(self, operator=None, lim=None):
         if operator == '>':
             def lcond(x):
@@ -75,8 +74,6 @@ class D3plot(object):
         self.plot_ax()
         self.plot_hist()
 
-
-
     def plot_ax(self):
         self.ax.cla()
         self.ax.set_aspect(aspect='equal', adjustable='datalim')
@@ -85,11 +82,12 @@ class D3plot(object):
         # list with the graph
         self.m_planes = list()
         for j, i in enumerate(self.pos_i):
-            self.m_planes.extend(self.ax.plot(*i.T[:2], self.__size, label=str(j)))
+            self.m_planes.extend(self.ax.plot(*i.T[:2], self.__size,
+                                              label=str(j), picker=5))
         self.zer, = self.ax.plot([0], [0], 'xr', markersize=20)
         for axis in self.axes.values():
             axis.plot()
-        self.ax.set_axis_off()        ################
+        self.ax.set_axis_off()        # ###############
         self.ax.set_frame_on(False)      # ###############
 
         # legend
@@ -101,7 +99,6 @@ class D3plot(object):
         self.__axylim = (-y, y)
         self.ax.set_xlim(*self.__axxlim)
         self.ax.set_ylim(*self.__axylim)
-        self.ax.set_xlim(*self.__axxlim)
 
     def plot_hist(self):
         self.ax_x.cla()
@@ -153,11 +150,10 @@ class D3plot(object):
             z = r.apply(i_pos)
             self.m_planes[n_pos].set_data(z[:, 0], z[:, 1])
             self.ax.draw_artist(self.m_planes[n_pos])
-        if len(self.axes) > 0:
-            for i in self.axes.keys():
-                z = r.apply(self.axes[i].pos_i)
-                self.axes[i].line.set_data([0, z[0]], [0, z[1]])
-                self.ax.draw_artist(self.axes[i].line)
+
+        for axis in self.axes.values():
+            axis.rotate(r)
+
         self.ax.draw_artist(self.zer)
         self.fig.canvas.blit(self.ax.bbox)
 
@@ -168,8 +164,8 @@ class D3plot(object):
         self.r0 = r * self.r0
         for i, j in enumerate(self.pos_i):
             self.pos_i[i] = r.apply(j)
-        for i in self.axes.keys():
-            self.axes[i].pos_i = r.apply(self.axes[i].pos_i)
+        for axis in self.axes.values():
+            axis.rotate(r)
 
     def __m_rotate(self, event):
         r = self.__find_rot(event)
@@ -225,14 +221,15 @@ class D3plot(object):
             return
         self.fig.canvas.mpl_disconnect(self.__cid)
         canv = self.fig.canvas
+
         def endpick(event):
             if event.button == 1:
                 r = self.__find_rot(event)
                 self.r0 = r * self.r0
                 for i, j in enumerate(self.pos_i):
                     self.pos_i[i] = r.apply(j)
-                for i in self.axes.keys():
-                    self.axes[i].pos_i = r.apply(self.axes[i].pos_i)
+                for axis in self.axes.values():
+                    axis.rotate(r)
             self.plot_hist()
             canv.mpl_disconnect(self.__mid)
             canv.mpl_disconnect(self.__rid)
@@ -296,6 +293,10 @@ class LineAxes:
         self.line.set_data(datax, datay)
         self.line.axes.draw_artist(self.line)
 
+    def rotate(self, r):
+        self.pos_i = r.apply(self.pos_i)
+        self.line.set_data([0, self.pos_i[0]], [0, self.pos_i[1]])
+        self.line.axes.draw_artist(self.line)
 
     def calc_axis(self, r0):
         self.axis = r0.inv().apply(self.pos_i)
@@ -347,3 +348,139 @@ class LineAxes:
             self.line.remove()
         # plt.legend()
         return
+
+
+class D3plotr(D3plot):
+    def __init__(self, EwPePos, origin, size='o'):
+        self._D3plot__size = size
+        self._D3plot__EwPePos = EwPePos
+        # list in whic pos are sotred for each image
+        self.pos_i = EwPePos.pos[:]  # positions after rotation
+        self.r0 = R.from_rotvec([0, 0, 0])  # rotation from the start
+        if hasattr(EwPePos, '_rot_vect'):
+            __angle = np.arccos(np.dot(EwPePos._rot_vect[0], [0, 1, 0]))
+            self._D3plot__angle = __angle * 180 / np.pi      # angle to start good
+        # -----------define axis if already present
+        self.axes = {}
+        if hasattr(EwPePos, 'axes'):
+            for i, abc in enumerate('abc'):
+                    self.axes[abc] = LineAxesr(abc, 1,
+                                               axis=EwPePos.axes.T[i],
+                                               origin=origin)
+        # -----------------------------------------------
+
+        plt.rcParams['toolbar'] = 'None'
+        self.fig = plt.figure()
+
+        gs = self.fig.add_gridspec(4, 4)
+        self.ax_x = self.fig.add_subplot(gs[0:1, 3])
+        self.ax_y = self.fig.add_subplot(gs[1:2, 3])
+        self.ax_z = self.fig.add_subplot(gs[2:3, 3])
+        self.ax = self.fig.add_subplot(gs[0:4, 0:3])
+        plt.figtext(0.2, 0.22, '- a', color='green',
+                    size='x-large', weight='bold')
+        plt.figtext(0.2, 0.17, '- b', color='blue',
+                    size='x-large', weight='bold')
+        plt.figtext(0.2, 0.12, '- c', color='black',
+                    size='x-large', weight='bold')
+
+        self.plot_ax()
+        # ---------------------------------------------
+        # ----------------------------------------------
+
+        self._D3plot__cid = self.fig.canvas.mpl_connect('button_press_event',
+                                                 self.main_click)
+
+        def rezize_g():
+            self.plot_ax()
+            self.plot_hist()
+        self.__res = self.fig.canvas.mpl_connect('resize_event',
+                                                 lambda event: rezize_g())    
+
+    def plot_hist(self):
+        self.ax_x.cla()
+        self.ax_y.cla()
+        self.ax_z.cla()
+        self.ax_x.hist(np.concatenate(self.pos_i)[:, 0], bins=50, rwidth=4)
+        plt.xlabel('x')
+        self.ax_y.hist(np.concatenate(self.pos_i)[:, 1], bins=50, rwidth=4)
+        plt.xlabel('y')
+        self.ax_z.hist(np.concatenate(self.pos_i)[:, 2], bins=50, rwidth=4)
+        plt.xlabel('z')
+        plt.draw()
+
+
+class LineAxesr(LineAxes):
+    def __init__(self, abc, m, origin=[-0.5, -0.5, -0.5], axis=None, rot=None):
+        self.m = m
+        self.abc = abc        
+        if axis is not None:
+            self.axis = axis
+            self.mod = np.sqrt(self.axis @ self.axis.T)
+            self.inv_mod = 1 / self.mod
+            self.ori = np.array(origin)
+            self.pos_i = self.axis - self.ori
+            if rot is not None:
+                self.pos_i = rot.apply(self.pos_i)
+            else:
+                self.pos_i = self.axis
+        else:
+            if self.abc in 'abc':
+                fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k'}
+                self.line, = plt.plot([0], [0], fmt[self.abc])
+            else:
+                self.line, = plt.plot([0], [0])
+
+    def _graph_init_(self):
+        m = self.m
+        text = plt.text(0, 0, '')
+        canv = self.line.figure.canvas
+
+        def endpick(event):
+            self.pos_i = np.array([event.xdata / m,
+                                   event.ydata / m, 0])
+            # print(self.pos_i)
+            self.inv_mod = m / np.sqrt(self.pos_i[0]**2 + self.pos_i[1]**2)
+            canv.mpl_disconnect(self.__cid)
+            canv.mpl_disconnect(self.__mid)
+            text.remove()
+            return
+
+        def move_m(event):
+            if event.inaxes != self.line.axes:
+                return
+            # canv.restore_region(self.bkg_cache)
+            datax = np.linspace(self.ori[0], event.xdata, m + 1)
+            datay = np.linspace(self.ori[1], event.ydata, m + 1)
+            inv_mod = round(m / np.sqrt(event.xdata**2 + event.ydata**2), 2)
+            self.line.set_data(datax, datay)
+            self.line.axes.draw_artist(self.line)
+            text.set_position((event.xdata, event.ydata))
+            text.set_text(f'{inv_mod:3.2f} ')
+            self.line.axes.draw_artist(text)
+            # canv.blit(self.line.axes.bbox)
+            plt.draw()
+            return
+
+        # self.bkg_cache = canv.copy_from_bbox(self.line.axes.bbox.padded(0))
+        self.__mid = canv.mpl_connect('motion_notify_event', move_m)
+        self.__cid = canv.mpl_connect('button_press_event', endpick)
+        return
+
+    def plot(self):
+        fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k'}
+        if self.abc in 'abc':
+            self.line, = plt.plot([0], [0], fmt[self.abc])
+        else:
+            self.line, = plt.plot([0], [0])
+        datax = np.linspace(self.ori[0], self.pos_i[0] * self.m, self.m + 1)
+        datay = np.linspace(self.ori[1], self.pos_i[1] * self.m, self.m + 1)
+        self.line.set_data(datax, datay)
+        self.line.axes.draw_artist(self.line)
+
+    def rotate(self, r):
+        self.pos_i = r.apply(self.pos_i)
+        self.ori = r.apply(self.ori)
+        self.line.set_data([self.ori[0], self.pos_i[0]],
+                           [self.ori[1], self.pos_i[1]])
+        self.line.axes.draw_artist(self.line)
