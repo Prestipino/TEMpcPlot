@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+from numpy.linalg import inv
 
 plt.ion()
 
@@ -152,7 +153,7 @@ class D3plot(object):
             self.ax.draw_artist(self.m_planes[n_pos])
 
         for axis in self.axes.values():
-            axis.rotate(r)
+            axis.rotate(r, store=False)
 
         self.ax.draw_artist(self.zer)
         self.fig.canvas.blit(self.ax.bbox)
@@ -165,7 +166,7 @@ class D3plot(object):
         for i, j in enumerate(self.pos_i):
             self.pos_i[i] = r.apply(j)
         for axis in self.axes.values():
-            axis.rotate(r)
+            axis.rotate(r, store=True)
 
     def __m_rotate(self, event):
         r = self.__find_rot(event)
@@ -193,7 +194,6 @@ class D3plot(object):
         r = self.r0.inv()
         self.__rotate(r)
         self.__stab_rot(r)
-        print(self.r0)
         self.rotatez(self.__angle)
 
     def _c_allign(self, abc):
@@ -229,7 +229,7 @@ class D3plot(object):
                 for i, j in enumerate(self.pos_i):
                     self.pos_i[i] = r.apply(j)
                 for axis in self.axes.values():
-                    axis.rotate(r)
+                    axis.rotate(r, store=True)
             self.plot_hist()
             canv.mpl_disconnect(self.__mid)
             canv.mpl_disconnect(self.__rid)
@@ -293,10 +293,12 @@ class LineAxes:
         self.line.set_data(datax, datay)
         self.line.axes.draw_artist(self.line)
 
-    def rotate(self, r):
-        self.pos_i = r.apply(self.pos_i)
-        self.line.set_data([0, self.pos_i[0]], [0, self.pos_i[1]])
+    def rotate(self, r, store=False):
+        z = r.apply(self.pos_i)
+        self.line.set_data([0, z[0]], [0, z[1]])
         self.line.axes.draw_artist(self.line)
+        if store:
+            self.pos_i = z
 
     def calc_axis(self, r0):
         self.axis = r0.inv().apply(self.pos_i)
@@ -354,6 +356,7 @@ class D3plotr(D3plot):
     def __init__(self, EwPePos, origin, size='o'):
         self._D3plot__size = size
         self._D3plot__EwPePos = EwPePos
+        self.origin = origin
         # list in whic pos are sotred for each image
         self.pos_i = EwPePos.pos[:]  # positions after rotation
         self.r0 = R.from_rotvec([0, 0, 0])  # rotation from the start
@@ -377,11 +380,11 @@ class D3plotr(D3plot):
         self.ax_y = self.fig.add_subplot(gs[1:2, 3])
         self.ax_z = self.fig.add_subplot(gs[2:3, 3])
         self.ax = self.fig.add_subplot(gs[0:4, 0:3])
-        plt.figtext(0.2, 0.22, '- a', color='green',
+        plt.figtext(0.8, 0.22, '- a', color='green',
                     size='x-large', weight='bold')
-        plt.figtext(0.2, 0.17, '- b', color='blue',
+        plt.figtext(0.8, 0.17, '- b', color='blue',
                     size='x-large', weight='bold')
-        plt.figtext(0.2, 0.12, '- c', color='black',
+        plt.figtext(0.8, 0.12, '- c', color='black',
                     size='x-large', weight='bold')
 
         self.plot_ax()
@@ -389,47 +392,63 @@ class D3plotr(D3plot):
         # ----------------------------------------------
 
         self._D3plot__cid = self.fig.canvas.mpl_connect('button_press_event',
-                                                 self.main_click)
+                                                        self.main_click)
 
         def rezize_g():
             self.plot_ax()
             self.plot_hist()
         self.__res = self.fig.canvas.mpl_connect('resize_event',
-                                                 lambda event: rezize_g())    
+                                                 lambda event: rezize_g())
 
     def plot_hist(self):
         self.ax_x.cla()
         self.ax_y.cla()
         self.ax_z.cla()
         self.ax_x.hist(np.concatenate(self.pos_i)[:, 0], bins=50, rwidth=4)
-        plt.xlabel('x')
+        plt.ylabel('x')
         self.ax_y.hist(np.concatenate(self.pos_i)[:, 1], bins=50, rwidth=4)
-        plt.xlabel('y')
+        plt.ylabel('y')
         self.ax_z.hist(np.concatenate(self.pos_i)[:, 2], bins=50, rwidth=4)
-        plt.xlabel('z')
+        plt.ylabel('z')
         plt.draw()
+
+    def define_axis(self, abc, m, origin):
+        """define axis
+        define axis graphically tracing a line
+
+        Args:
+            abc (str): name of the axis
+            m (int): multiple that will be traCED
+        """
+        self.fig.canvas.mpl_disconnect(self._D3plot__cid)
+        self.axes[abc] = LineAxesr(abc, m, origin=origin, rot=self.r0)
+        self.axes[abc]._graph_init_()
+        plt.waitforbuttonpress(65)
+        self.axes[abc].calc_axis(self.r0)
+        self.axes[abc].vect = inv(self._D3plot__EwPePos.axes) @ self.axes[abc].axis
+        self._D3plotr__cid = self.fig.canvas.mpl_connect('button_press_event',
+                                                 self.main_click)
+
 
 
 class LineAxesr(LineAxes):
     def __init__(self, abc, m, origin=[-0.5, -0.5, -0.5], axis=None, rot=None):
         self.m = m
-        self.abc = abc        
+        self.abc = abc
+        self.ori = np.array(origin)
+        if rot is not None:
+            self.ori = rot.apply(self.ori)
         if axis is not None:
             self.axis = axis
             self.mod = np.sqrt(self.axis @ self.axis.T)
             self.inv_mod = 1 / self.mod
-            self.ori = np.array(origin)
-            self.pos_i = self.axis - self.ori
+            self.pos_i = self.axis + self.ori
             if rot is not None:
-                self.pos_i = rot.apply(self.pos_i)
-            else:
-                self.pos_i = self.axis
+                self.pos_i = rot.apply(self.pos_i) - self.ori
         else:
-            if self.abc in 'abc':
-                fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k'}
-                self.line, = plt.plot([0], [0], fmt[self.abc])
-            else:
-                self.line, = plt.plot([0], [0])
+            fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k',
+                   'd': '*--r', 'e': '*--m'}
+            self.line, = plt.plot([self.ori[0]], [self.ori[1]], fmt[self.abc])
 
     def _graph_init_(self):
         m = self.m
@@ -437,9 +456,8 @@ class LineAxesr(LineAxes):
         canv = self.line.figure.canvas
 
         def endpick(event):
-            self.pos_i = np.array([event.xdata / m,
-                                   event.ydata / m, 0])
-            # print(self.pos_i)
+            evdat = np.array([event.xdata, event.ydata, self.ori[2]])
+            self.pos_i = (evdat - self.ori) / m + self.ori
             self.inv_mod = m / np.sqrt(self.pos_i[0]**2 + self.pos_i[1]**2)
             canv.mpl_disconnect(self.__cid)
             canv.mpl_disconnect(self.__mid)
@@ -468,19 +486,32 @@ class LineAxesr(LineAxes):
         return
 
     def plot(self):
-        fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k'}
-        if self.abc in 'abc':
-            self.line, = plt.plot([0], [0], fmt[self.abc])
-        else:
-            self.line, = plt.plot([0], [0])
+        fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k',
+               'd': '*--r', 'e': '*--m'}
+        self.line, = plt.plot([0], [0], fmt[self.abc])
         datax = np.linspace(self.ori[0], self.pos_i[0] * self.m, self.m + 1)
         datay = np.linspace(self.ori[1], self.pos_i[1] * self.m, self.m + 1)
         self.line.set_data(datax, datay)
         self.line.axes.draw_artist(self.line)
 
-    def rotate(self, r):
-        self.pos_i = r.apply(self.pos_i)
-        self.ori = r.apply(self.ori)
-        self.line.set_data([self.ori[0], self.pos_i[0]],
-                           [self.ori[1], self.pos_i[1]])
+    def rotate(self, r, store=False):
+        p = r.apply(self.pos_i)
+        z = r.apply(self.ori)
+        evdat = (p - z) * self.m + z
+        datax = np.linspace(z[0], evdat[0], self.m + 1)
+        datay = np.linspace(z[1], evdat[1], self.m + 1)
+        self.line.set_data(datax, datay)
         self.line.axes.draw_artist(self.line)
+        if store:
+            self.ori, self.pos_i = z, p
+
+    def calc_axis(self, r0):
+        print(self.pos_i)
+        print(self.ori)
+        self.axis = self.pos_i - self.ori
+        print(self.axis)
+        self.axis = r0.inv().apply(self.axis)
+        print(self.axis)
+        self.mod = np.sqrt(self.axis @ self.axis.T)
+        self.inv_mod = 1 / self.mod
+

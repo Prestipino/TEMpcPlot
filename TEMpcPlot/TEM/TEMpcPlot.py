@@ -1049,15 +1049,14 @@ class EwaldPeaks(object):
 
         pos = pos - 0.5
         pos = (self.axes @ pos).T
-        orig = (self.axes @ [-0.5, -0.5, -0.5])
-        print(orig)
+        orig = (self.axes @ [-0.5, -0.5, -0.5]).T
         inte_o = np.hstack([i for i in self.int])
         self.reduce = d3plot.D3plotr(EwaldPeaks([pos[cond], pos[~cond]],
                                                 [inte_o[cond], inte_o[~cond]],
                                                 rot_vect=self._rot_vect,
                                                 axes=self.axes),
                                      origin=orig)
-        self.reduce.rotate_0()
+        #self.reduce.rotate_0()
         return
 
     def create_layer(self, hkl, n, size=0.25, toll=0.15, mir=0, spg=None):
@@ -1289,7 +1288,7 @@ class EwaldPeaks(object):
         res_1 = least_squares(res, axes_ang, verbose=1)
 
         # chi square
-        s_sq = (res(res_1.x)**2).sum() / (n_peak * 3 - len(res_1.x))
+        s_sq = (res(res_1.x)**2).sum() / (n_peak - len(res_1.x))
         pcov = inv(res_1.jac.T @ res_1.jac) * s_sq
         error = []
         for i in range(len(res_1.x)):
@@ -1403,14 +1402,7 @@ class EwaldPeaks(object):
         self.MT = inv(self.rMT)
 
         self.__calibrate()
-        # def calc_cell(axesflat):
-        #     ax = axesflat.reshape(3, 3)
-        #     MT = inv(ax.T @ ax)
-        #     a, b, c = np.sqrt(np.diagonal(MT))
-        #     al, bt, gm = acosd([MT[2, 1] / (b * c),
-        #                         MT[2][0] / (a * c),
-        #                         MT[0, 1] / a * b])
-        #     return a, b, c, al, bt, gm
+
         from uncertainties import unumpy
 
         def calc_cell(axesflat):
@@ -1428,7 +1420,14 @@ class EwaldPeaks(object):
         else:
             self._axes_std = axes_std
             axes = unumpy.uarray(self.axes, self._axes_std)
-            self.cell = dict(zip(['a', 'b', 'c', 'alpha', 'beta', 'gammma'],
+
+            class cell(dict):
+                def __str__(self):
+                    z = f''
+                    for k, v in self.items():
+                        z += f'{k} = {v}\n'
+                    return z
+            self.cell = cell(zip(['a', 'b', 'c', 'alpha', 'beta', 'gammma'],
                                  calc_cell(axes.flatten())))
         return
 
