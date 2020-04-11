@@ -199,7 +199,8 @@ class D3plot(object):
     def _c_allign(self, abc):
         """command allign to an axis
         """
-        rot_vec = np.cross(self.axes[abc].pos_i, np.array([0, 0, 1]))
+        rot_vec = np.cross(self.axes[abc].pos_i - self.axes[abc].ori,
+                           np.array([0, 0, 1]))
         r_mod = np.sqrt(rot_vec @ rot_vec)
         rot_vec_n = rot_vec / r_mod
         rot_vec_n *= -np.arcsin(r_mod / self.axes[abc].mod)
@@ -370,6 +371,10 @@ class D3plotr(D3plot):
                     self.axes[abc] = LineAxesr(abc, 1,
                                                axis=EwPePos.axes.T[i],
                                                origin=origin)
+
+                    self.axes['g' + abc] = LineAxesr('g', 1,
+                                                     axis=-EwPePos.axes.T[i],
+                                                     origin=-origin)
         # -----------------------------------------------
 
         plt.rcParams['toolbar'] = 'None'
@@ -378,7 +383,7 @@ class D3plotr(D3plot):
         gs = self.fig.add_gridspec(4, 4)
         self.ax_x = self.fig.add_subplot(gs[0:1, 3])
         self.ax_y = self.fig.add_subplot(gs[1:2, 3])
-        self.ax_z = self.fig.add_subplot(gs[2:3, 3])
+        self.ax_z = self.fig.add_subplot(gs[2:3, 3])        
         self.ax = self.fig.add_subplot(gs[0:4, 0:3])
         plt.figtext(0.8, 0.22, '- a', color='green',
                     size='x-large', weight='bold')
@@ -404,23 +409,26 @@ class D3plotr(D3plot):
         self.ax_x.cla()
         self.ax_y.cla()
         self.ax_z.cla()
+        self.ax_x.set_title('x', x=0.5, y=.7)
+        self.ax_y.set_title('y', x=0.5, y=.7)
+        self.ax_z.set_title('z', x=0.5, y=.7)
         self.ax_x.hist(np.concatenate(self.pos_i)[:, 0], bins=50, rwidth=4)
-        plt.ylabel('x')
         self.ax_y.hist(np.concatenate(self.pos_i)[:, 1], bins=50, rwidth=4)
-        plt.ylabel('y')
         self.ax_z.hist(np.concatenate(self.pos_i)[:, 2], bins=50, rwidth=4)
-        plt.ylabel('z')
         plt.draw()
 
-    def define_axis(self, abc, m, origin):
+    def define_axis(self, abc, m, origin=[0, 0, 0]):
         """define axis
         define axis graphically tracing a line
 
         Args:
             abc (str): name of the axis
             m (int): multiple that will be traCED
+            origin np.array(shape = 3): whic origin [0, 0 ,0]
+                                        or [0,1,0] for an another corner
         """
         self.fig.canvas.mpl_disconnect(self._D3plot__cid)
+        origin = np.where(np.array(origin) == 1, -self.origin, self.origin)
         self.axes[abc] = LineAxesr(abc, m, origin=origin, rot=self.r0)
         self.axes[abc]._graph_init_()
         plt.waitforbuttonpress(65)
@@ -430,9 +438,11 @@ class D3plotr(D3plot):
                                                  self.main_click)
 
 
-
 class LineAxesr(LineAxes):
     def __init__(self, abc, m, origin=[-0.5, -0.5, -0.5], axis=None, rot=None):
+        """origin format:
+           vectorial position of the origin
+        """
         self.m = m
         self.abc = abc
         self.ori = np.array(origin)
@@ -488,7 +498,10 @@ class LineAxesr(LineAxes):
     def plot(self):
         fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k',
                'd': '*--r', 'e': '*--m'}
-        self.line, = plt.plot([0], [0], fmt[self.abc])
+        if self.abc in fmt.keys():
+            self.line, = plt.plot([0], [0], fmt[self.abc])
+        else:
+            self.line, = plt.plot([0], [0], color=(0.3, 0.3, 0.3))
         datax = np.linspace(self.ori[0], self.pos_i[0] * self.m, self.m + 1)
         datay = np.linspace(self.ori[1], self.pos_i[1] * self.m, self.m + 1)
         self.line.set_data(datax, datay)
@@ -506,12 +519,7 @@ class LineAxesr(LineAxes):
             self.ori, self.pos_i = z, p
 
     def calc_axis(self, r0):
-        print(self.pos_i)
-        print(self.ori)
         self.axis = self.pos_i - self.ori
-        print(self.axis)
         self.axis = r0.inv().apply(self.axis)
-        print(self.axis)
         self.mod = np.sqrt(self.axis @ self.axis.T)
         self.inv_mod = 1 / self.mod
-

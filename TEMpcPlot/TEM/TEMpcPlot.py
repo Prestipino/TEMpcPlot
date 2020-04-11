@@ -27,35 +27,37 @@ plt.ion()
 # from skimage.measure import LineModelND, ransa
 
 
+rpd = np.pi / 180.0
+RSQ2PI = 1. / np.sqrt(2. * np.pi)
+SQ2 = np.sqrt(2.)
+RSQPI = 1. / np.sqrt(np.pi)
+R2pisq = 1. / (2. * np.pi**2)
+
+
 def sind(x):
-    return np.sin(x * np.pi / 180.)
+    return np.sin(x * rpd)
 
 
 def asind(x):
-    return 180. * np.arcsin(x) / np.pi
-
+    return np.arcsin(x) / rpd
 
 def tand(x):
-    return np.tan(x * np.pi / 180.)
+    return np.tan(x * rpd)
 
 
 def cosd(x):
-    return np.cos(x * np.pi / 180.)
+    return np.cos(x * rpd)
 
 
 def acosd(x):
-    return 180. * np.arccos(x) / np.pi
+    return np.arccos(x) / rpd 
 
 
 def rdsq2d(x, p):
     return round(1.0 / np.sqrt(x), p)
 
 
-rpd = np.pi / 180.
-RSQ2PI = 1. / np.sqrt(2. * np.pi)
-SQ2 = np.sqrt(2.)
-RSQPI = 1. / np.sqrt(np.pi)
-R2pisq = 1. / (2. * np.pi**2)
+
 
 
 class Object(object):
@@ -405,7 +407,7 @@ class PeakL(list):
         if line.error:
             return
         canv = line.line.figure.canvas
-        angle = np.arctan2(*line.vect) / np.pi * 180
+        angle = np.arctan2(*line.vect) / rpd 
 
         width = 0
         Rleft = plt.Rectangle((np.flip(line.origin)),
@@ -986,7 +988,8 @@ class EwaldPeaks(object):
 
     """
 
-    def __init__(self, positions, intensity, rot_vect=None, axes=None):
+    def __init__(self, positions, intensity, rot_vect=None, axes=None,
+                 set_cell=True):
         # list in whic pos are sotred for each image
         self.pos = positions
         self.int = intensity
@@ -997,7 +1000,10 @@ class EwaldPeaks(object):
         else:
             self._rot_vect = [rot_vect] * len(self.int)
         if axes is not None:
-            self.set_cell(axes)
+            if set_cell:
+                self.set_cell(axes)
+            else:
+                self.axes = axes
 
     def __add__(self, other):
         pos = self.pos + other.pos[1:]
@@ -1039,24 +1045,26 @@ class EwaldPeaks(object):
     def plot_reduce(self, tollerance=0.1, condition=None):
         """plot collapsed reciprocal space
         """
-        pos = np.hstack([i for i in self.pos_cal])
+        pos = np.vstack([i for i in self.pos_cal])
+
         pos = np.fmod(pos, 1)
         pos = np.where(pos < 0, pos + 1, pos)
 
         pos_c = np.where(pos > 0.5, pos - 1, pos)
         pos_c = np.where(pos_c < -0.5, pos_c + 1, pos_c)
-        cond = abs(pos_c).max(axis=0) > tollerance
+        cond = abs(pos_c).max(axis=1) > tollerance
 
         pos = pos - 0.5
-        pos = (self.axes @ pos).T
+        pos = (pos @ self.axes.T)
         orig = (self.axes @ [-0.5, -0.5, -0.5]).T
         inte_o = np.hstack([i for i in self.int])
         self.reduce = d3plot.D3plotr(EwaldPeaks([pos[cond], pos[~cond]],
                                                 [inte_o[cond], inte_o[~cond]],
                                                 rot_vect=self._rot_vect,
-                                                axes=self.axes),
+                                                axes=self.axes,
+                                                set_cell=False),
                                      origin=orig)
-        #self.reduce.rotate_0()
+        self.reduce.rotate_0()
         return
 
     def create_layer(self, hkl, n, size=0.25, toll=0.15, mir=0, spg=None):
@@ -1087,7 +1095,7 @@ class EwaldPeaks(object):
         mod = np.sqrt(np.sum(self.axes**2, axis=0))
         cos_a = (self.axes[:, o1]  @ self.axes[:, o2]) / (mod[o1] * mod[o2])
         print('degree between the axis',
-              np.round(180.0 * np.arccos(cos_a) / np.pi, 2), '\n')
+              np.round(np.arccos(cos_a) / rpd, 2), '\n')
         sin_a = np.sin(np.arccos(cos_a))
         Ort_mat = np.array([[mod[o1], mod[o2] * cos_a],
                             [0, mod[o2] * sin_a]])
@@ -1100,9 +1108,9 @@ class EwaldPeaks(object):
         # create a set of theoretical reflection
         if spg:
             spgo = GII.SpcGroup(spg)[1]
-            layer_pos = np.hstack([i for i in self.pos_cal])
-            cond = app_cond(layer_pos)
-            layer_pos = layer_pos.T[cond].T
+            layer_pos = np.vstack([i for i in self.pos_cal])
+            cond = app_cond(layer_pos.T)
+            layer_pos = layer_pos[cond].T
             inte_o = np.hstack([i for i in self.int])[cond]
             # print(layer_pos[[o1, o2]].shape)
             pos_o = Ort_mat @ layer_pos[[o1, o2]]
@@ -1153,10 +1161,10 @@ class EwaldPeaks(object):
             pos_o = []      # list with coordinate  for image
             max_inte = 0
             for pos_i, inte_i in zip(self.pos_cal, self.int):
-                cond = app_cond(pos_i)
+                cond = app_cond(pos_i.T)
                 inte_o.append(inte_i[cond])
                 max_inte = max(max_inte, inte_i.max())
-                pos_o.append(Ort_mat @ pos_i.T[cond].T[[o1, o2]])
+                pos_o.append(Ort_mat @ pos_i[cond].T[[o1, o2]])
             layer_pos = np.hstack(pos_o)
             plt.figure()
             ax = plt.subplot(aspect='equal')
@@ -1185,21 +1193,21 @@ class EwaldPeaks(object):
         plt.ylabel('%s (1/nm)' % 'HKL'[o2], weight='bold')
         plt.draw()
 
-    def __apply_cond(self, lcond):
-        pos = []
-        inte = []
-        for i_pos, i_inte in zip(self.pos, self.int):
-            pos.append(i_pos[lcond(i_pos, i_inte)])
-            inte.append(i_inte[lcond(i_pos, i_inte)])
-        return pos, inte
-
     def cr_cond(self, operator=None, lim=None):
         if operator == '>':
-            def lcond(x):
-                return x > lim
+            def lcond(pos, inte):
+                return inte > lim
+
         elif operator == '<':
-            def lcond(x):
-                return x < lim
+            def lcond(pos, inte):
+                return inte < lim
+
+        elif operator == 'tollerance':
+            # to use with calibrated position
+            def lcond(pos, inte):
+                resx = abs(pos) % 1
+                resx = np.where(resx > 0.5, 1 - resx, resx)
+                return np.sum(resx < lim, 1) > 2
         return lcond
 
     def refine_axes(self, axes=None, tollerance=0.1):
@@ -1209,27 +1217,41 @@ class EwaldPeaks(object):
         """
         if axes is None:
             axes = self.axes
+        else:
+            self.axes = axes
+            self.__calibrate()
+        filt = self.cr_cond('tollerance', tollerance)
 
-        data = np.vstack([i for i in self.pos]).T
-        P = inv(axes)
-        resx = abs(P @ data) % 1
-        resx = np.where(resx > 0.5, 1 - resx, resx)
-        cond = np.sum(resx < tollerance, 0) > 2
-        data = np.compress(cond, data, axis=1)
-
+        def setup():
+            cond = filt(np.vstack(self.pos_cal), 0)
+            data = np.compress(cond, np.vstack(self.pos), axis=0)
+            n_peaks = sum(cond)
+            return n_peaks, data
 
         def res(axesr):
-            axesr = np.array(axesr).reshape(3, 3)
-            P = inv(axesr)
-            resx = abs(P @ data) % 1
+            axes = np.array(axesr[:9]).reshape(3, 3)
+            origin = np.array(axesr[9:])
+            P = inv(axes)
+            resx = abs(P @ (data - origin).T) % 1
             resx = np.where(resx > 0.5, 1 - resx, resx)
             return resx.sum(0)
 
-        res_1 = least_squares(res, axes.flatten(), verbose=1)
+        n_peaks, data = setup()
+        axesr = np.append(axes.flatten(), [0, 0, 0])
+        while True:
+            res_1 = least_squares(res, axesr, verbose=1)
+            self.axes = np.array(res_1.x[:9]).reshape(3, 3)
+            self.pos = [i - res_1.x[9:] for i in self.pos]
+            self.__calibrate()
+            n, new_data = setup()
+            if n == n_peaks:
+                break
+            else:
+                n_peaks, data = n, new_data
 
         # chi square
-        s_sq = (res(res_1.x)**2).sum() / (data.shape[1] - len(res_1.x))
-        #fvariance covariance matrix
+        s_sq = (res(res_1.x)**2).sum() / (n_peaks - len(res_1.x))
+        # fvariance covariance matrix
         pcov = inv(res_1.jac.T @ res_1.jac) * s_sq
         error = []
         for i in range(len(res_1.x)):
@@ -1237,11 +1259,10 @@ class EwaldPeaks(object):
                 error.append(np.absolute(pcov[i][i]) ** 0.5)
             except:
                 error.append(0.00)
-        self.axes = np.array(res_1.x).reshape(3, 3)
-        #print('pippo')
-        self._axes_std = np.array(error).reshape(3, 3)
+
+        self._axes_std = np.array(error[:9]).reshape(3, 3)
         self.set_cell(self.axes, self._axes_std)
-        return res_1.success, res_1.njev
+        return res_1.x[9:]  # res_1.success, res_1.njev,
 
     def refine_axang(self, axes=None, tollerance=0.1):
         """refine reciprocal cell basis
@@ -1254,41 +1275,46 @@ class EwaldPeaks(object):
         """
         if axes is None:
             axes = self.axes
+        else:
+            self.axes = axes
+            self.__calibrate()
 
         assert hasattr(self, '_rot_vect'), \
             'angle refinement impossible without rotation axes'
         # Filter position in tollerance
         pos_f = []
-        P = inv(axes)
-        n_peak = 0
-        for i, pos_i in enumerate(self.pos):
-            resx = abs(P @ pos_i.T) % 1
-            resx = np.where(resx > 0.5, 1 - resx, resx)
-            cond = np.sum(resx < tollerance, 0) > 2
-            n_peak += len(cond)
-            pos_f.append(np.compress(cond, pos_i, axis=0))
+        n_peak = []
+        for i, pos_i in enumerate(self.pos_cal):
+            filt = self.cr_cond('tollerance', tollerance)
+            cond = filt(pos_i, 0)
+            pos_f.append(np.compress(cond, self.pos[i], axis=0))
+            n_peak.append(sum(cond))
+        ref_planes, = np.where(np.array(n_peak) > 0)[:1]
 
-        pass
 
         def res(axes_ang):
-            axesr = axes_ang[:9]
-            angles = axes_ang[9:]
-            pos = [pos_f[0]]
-            for i, pos_f_i in enumerate(pos_f[1:]):
-                r = R.from_rotvec(self._rot_vect[i + 1] * angles[i])
-                pos.append(r.apply(pos_f_i))
-            data = np.vstack([i for i in pos]).T
-            axesr = np.array(axesr).reshape(3, 3)
+            # angles part
+            origin = axes_ang[9:12]
+            angles = axes_ang[12:]
+            axesr = axes_ang[:9].reshape(3, 3)
+
+            pos = pos_f[:]
+            for i, i_pla in enumerate(ref_planes):
+                r = R.from_rotvec(self._rot_vect[i_pla] * angles[i])
+                pos[i_pla] = r.apply(pos_f[i_pla] - origin)
+            data = np.vstack(pos)
+
+            # axes part
             P = inv(axesr)
-            resx = abs(P @ data) % 1
+            resx = abs(P @ data.T) % 1
             resx = np.where(resx > 0.5, 1 - resx, resx)
             return resx.sum(0)
 
-        axes_ang = list(axes.flatten()) + [0] * (len(self.pos) - 1)
+        axes_ang = list(axes.flatten()) + [0] * 3 + [0] * len(ref_planes)
         res_1 = least_squares(res, axes_ang, verbose=1)
 
         # chi square
-        s_sq = (res(res_1.x)**2).sum() / (n_peak - len(res_1.x))
+        s_sq = (res(res_1.x)**2).sum() / (sum(n_peak) - len(res_1.x))
         pcov = inv(res_1.jac.T @ res_1.jac) * s_sq
         error = []
         for i in range(len(res_1.x)):
@@ -1300,13 +1326,17 @@ class EwaldPeaks(object):
         self.axes = np.array(res_1.x[:9]).reshape(3, 3)
         self._axes_std = np.array(error)[:9].reshape(3, 3)
 
-        for i, pos_f_i in enumerate(self.pos[1:]):
-            r = R.from_rotvec(self._rot_vect[i + 1] * res_1.x[9+i])
-            self.pos[i + 1] = r.apply(pos_f_i)
+        # change origin
+        self.pos = [i - res_1.x[9:12] for i in self.pos]
+
+        # change the angles
+        for i, i_pla in enumerate(ref_planes):
+                r = R.from_rotvec(self._rot_vect[i_pla] * res_1.x[12 + i])
+                self.pos[i_pla] = r.apply(self.pos[i_pla])
 
         self.set_cell(self.axes, self._axes_std)
-        print(res_1.success, res_1.njev)
-        return np.degrees(res_1.x[9:]), np.degrees(error[9:])
+
+        return ref_planes, np.degrees(res_1.x), np.degrees(error)
 
     def refine_angles(self, axes=None, tollerance=0.1):
         """refine reciprocal cell basis
@@ -1319,33 +1349,36 @@ class EwaldPeaks(object):
         """
         if axes is None:
             axes = self.axes
+        else:
+            self.axes = axes
+            self.__calibrate()
 
         assert hasattr(self, '_rot_vect'), \
             'angle refinement impossible without rotation axes'
         # Filter position in tollerance
         pos_f = []
+        n_peak = []
+        for i, pos_i in enumerate(self.pos_cal):
+            filt = self.cr_cond('tollerance', tollerance)
+            cond = filt(pos_i, 0)
+            pos_f.append(np.compress(cond, self.pos[i], axis=0))
+            n_peak.append(sum(cond))
+        ref_planes, = np.where(np.array(n_peak) > 0)[:1]
+        n_peak = sum(n_peak) - n_peak[0]
+        angles = [0 for i in ref_planes]
+
         P = inv(axes)
-        n_peak = 0
-        for i, pos_i in enumerate(self.pos):
-            resx = abs(P @ pos_i.T) % 1
-            resx = np.where(resx > 0.5, 1 - resx, resx)
-            cond = np.sum(resx < tollerance, 0) > 2
-            n_peak += len(cond)
-            pos_f.append(np.compress(cond, pos_i, axis=0))
-
-        pass
-
         def res(angles):
-            pos = []  # pos_f[0]
-            for i, pos_f_i in enumerate(pos_f[1:]):
-                r = R.from_rotvec(self._rot_vect[i + 1] * angles[i])
-                pos.append(r.apply(pos_f_i))
-            data = np.vstack([i for i in pos]).T
-            resx = abs(P @ data) % 1
+            pos = pos_f[:]
+            for i, i_pla in enumerate(ref_planes):
+                r = R.from_rotvec(self._rot_vect[i_pla] * angles[i])
+                pos[i_pla] = r.apply(pos_f[i_pla])
+            data = np.vstack(pos)
+            resx = abs(P @ data.T) % 1
             resx = np.where(resx > 0.5, 1 - resx, resx)
             return resx.sum(0)
 
-        angles = [0] * (len(self.pos) - 1)
+
         res_1 = least_squares(res, angles, verbose=1)
 
         # chi square
@@ -1359,16 +1392,16 @@ class EwaldPeaks(object):
                 error.append(75.00)
 
         # change the angles
-        for i, pos_f_i in enumerate(self.pos[1:]):
-                r = R.from_rotvec(self._rot_vect[i + 1] * res_1.x[i])
-                self.pos[i + 1] = r.apply(pos_f_i)
+        for i, i_pla in enumerate(ref_planes):
+                r = R.from_rotvec(self._rot_vect[i_pla] * res_1.x[i])
+                self.pos[i_pla] = r.apply(self.pos[i_pla])
 
-        self.__calibrate()
-        return np.degrees(res_1.x), np.degrees(error)
+        self.set_cell(self.axes)
+        return ref_planes, np.degrees(res_1.x), np.degrees(error)
 
-    def set_cell(self, axes=None, axes_std=None):
+    def set_cell(self, axes=None, axes_std=None, tollerance=0.1, cond=None):
         ''' calculation of the cell
-        effect the calculation to obtain the cell 
+        effect the calculation to obtain the cell
         Args:
             axis (np.array 3,3): the new reciprocal basis to be used in the format
                          | np.array[[a1, b1, c1],
@@ -1391,8 +1424,12 @@ class EwaldPeaks(object):
                          real space cell
         '''
         if axes is None:
-            assert len(self.graph.axes) == 3, 'not prperly defined axes'
-            self.axes = np.array([self.graph.axes[i].axis for i in 'abc']).T
+            try:
+                assert len(self.graph.axes) == 3, 'not prperly defined axes'
+                self.axes = np.array([self.graph.axes[i].axis for i in 'abc']).T
+            except:
+                print('\nusing old cell')
+                pass
         else:
             self.axes = axes
 
@@ -1409,9 +1446,9 @@ class EwaldPeaks(object):
             ax = axesflat.reshape(3, 3)
             MT = unumpy.ulinalg.inv(np.dot(ax.T, ax))
             a, b, c = unumpy.sqrt(np.diagonal(MT))
-            al, bt, gm = 180. * unumpy.arccos([MT[2, 1] / (b * c),
-                                               MT[2][0] / (a * c),
-                                               MT[0, 1] / a * b]) / np.pi
+            al, bt, gm =  unumpy.arccos([MT[2, 1] / (b * c),
+                                         MT[2][0] / (a * c),
+                                         MT[0, 1] / a * b]) / rpd
             return a, b, c, al, bt, gm
 
         if axes_std is None:
@@ -1429,6 +1466,14 @@ class EwaldPeaks(object):
                     return z
             self.cell = cell(zip(['a', 'b', 'c', 'alpha', 'beta', 'gammma'],
                                  calc_cell(axes.flatten())))
+
+        data = np.vstack([i for i in self.pos_cal])
+        if cond is not None:
+            data = np.compress(cond(data, np.hstack([i for i in self.int])),
+                               data, axis=0)
+        filt = self.cr_cond(operator='tollerance', lim=tollerance)
+        indexed = sum(filt(data, 0)) / data.shape[0] * 100
+        print(f'\n{sum(filt(data, 0))} indexed peaks, {round(indexed, 2)}%\n')
         return
 
     def __calibrate(self):
@@ -1442,7 +1487,7 @@ class EwaldPeaks(object):
         P = inv(self.axes)
         self.pos_cal = []
         for i in self.pos:
-            self.pos_cal.append(np.round(P @ i.T, 2))
+            self.pos_cal.append(np.round(P @ i.T, 2).T)
 
     def save(self, filename, dictionary=False):
         """ save EwP
