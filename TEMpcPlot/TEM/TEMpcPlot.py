@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 # import skimage
 from matplotlib.backends.qt_compat import QtGui
+from matplotlib.widgets import Cursor
 # from matplotlib.widgets import Slider
 # from matplotlib.backend_tools import ToolBase
 # plt.rcParams['toolbar'] = 'toolmanager'
@@ -55,9 +56,6 @@ def acosd(x):
 
 def rdsq2d(x, p):
     return round(1.0 / np.sqrt(x), p)
-
-
-
 
 
 class Object(object):
@@ -149,6 +147,9 @@ class LineBuilder:
         def clk1(event):
             # print('click', event)
             if event.inaxes != self.line.axes:
+                return
+            if event.button != 1:
+                self.error = True
                 return
             nonlocal x0, y0
             x0 = event.ydata
@@ -377,6 +378,7 @@ class PeakL(list):
         """clic left button to apeak to delete
            to stop click righ peak
         """
+
         def onpick(event):
             if event.artist != self.lp:
                 return
@@ -386,18 +388,19 @@ class PeakL(list):
         def endpick(event):
             if event.button != 3:
                 return
-            self.lp.figure.canvas.mpl_disconnect(cid)
-            self.lp.figure.canvas.mpl_disconnect(mid)
+            self.lp.figure.canvas.mpl_disconnect(self._cid)
+            self.lp.figure.canvas.mpl_disconnect(self._mid)
             return
 
         if not hasattr(self, 'lp'):
             return
-        cid = self.lp.figure.canvas.mpl_connect('pick_event', onpick)
-        mid = self.lp.figure.canvas.mpl_connect('button_press_event', endpick)
+        self._cid = self.lp.figure.canvas.mpl_connect('pick_event', onpick)
+        self._mid = self.lp.figure.canvas.mpl_connect('button_press_event', endpick)
 
     def del_PlotRange(self):
         """delete the peak inside a rectangle plotted on the axis
         """
+        self._break_loop = False
         if not hasattr(self, 'lp'):
             return
         line = LineBuilder()
@@ -434,12 +437,12 @@ class PeakL(list):
             if event.inaxes != self.lp.axes:
                 return
             nonlocal Rleft, Rright
-            canv.mpl_disconnect(mid)
+            canv.mpl_disconnect(self._mid)
             Rleft.remove()
             Rright.remove()
             plt.draw()
             del_inside()
-            canv.mpl_disconnect(rid)
+            canv.mpl_disconnect(self._rid)
             return
 
         def del_inside():
@@ -460,8 +463,9 @@ class PeakL(list):
             for i in np.flip(rcoor):
                 self.del_peak(i)
 
-        mid = canv.mpl_connect('motion_notify_event', move_m)
-        rid = canv.mpl_connect('button_press_event', endpick)
+        self._mid = canv.mpl_connect('motion_notify_event', move_m)
+        self._rid = canv.mpl_connect('button_press_event', endpick)
+
 
     def help(self):
         print(self.__doc__)
@@ -804,6 +808,8 @@ class SeqIm(list):
         '''
         fig = plt.figure()
         ax = plt.axes([0.1, 0.15, 0.8, 0.75])
+        tool_b = fig.canvas.manager.toolbar
+
 
         self.ima = self[0]
         self.ima.plot(new=0, log=log, *args, **kwds)
@@ -813,6 +819,7 @@ class SeqIm(list):
         index = 0
         lun = len(self)
         Peak_plot = True
+
 
         def UP_DO(up):
             nonlocal index
@@ -834,10 +841,77 @@ class SeqIm(list):
             plt.draw()
 
         def Del_p():
-            self.ima.Peaks.del_PlotPeak()
+            selfPL = self.ima.Peaks
+            if not hasattr(self.ima.Peaks, 'lp'):
+                return
+            print(tool_b._active)
+            if tool_b._active == 'Del_P':
+                tool_b._active = None
+            else:
+                tool_b._active = 'Del_P'
+
+            if tool_b._idPress is not None:
+                tool_b._idPress = fig.canvas.mpl_disconnect(tool_b._idPress)
+                tool_b.mode = ''
+
+            if tool_b._idRelease is not None:
+                tool_b._idRelease = fig.canvas.mpl_disconnect(
+                    tool_b._idRelease)
+                tool_b.mode = ''
+
+            def onpick(event):
+                if event.artist != self.ima.Peaks.lp:
+                    return
+                self.ima.Peaks.del_peak(event.ind[0])
+                return
+
+            def endpick(event):
+                if event is None:
+                    pass
+                elif event.button != 3:
+                    return
+                fig.canvas.mpl_disconnect(selfPL._cid)
+                fig.canvas.mpl_disconnect(selfPL._mid)
+                tool_b._active = None
+                tool_b._actions['del_p'].setChecked(False)
+                return
+
+            if tool_b._active:
+                selfPL._cid = fig.canvas.mpl_connect('pick_event', onpick)
+                selfPL._mid = fig.canvas.mpl_connect(
+                    'button_press_event', endpick)
+                #fig.canvas.widgetlock(self)
+            else:
+                #fig.canvas.widgetlock.release(self)
+                fig.canvas.mpl_disconnect(tool_b._idPress)
+                fig.canvas.mpl_disconnect(tool_b._idRelease)
+                #
+
+            tool_b._actions['pan'].setChecked(tool_b._active == 'PAN')
+            tool_b._actions['zoom'].setChecked(tool_b._active == 'ZOOM')
 
         def DelR_p():
+
+            if not hasattr(self.ima.Peaks, 'lp'):
+                return
+            if tool_b._active == 'DelR P':
+                tool_b._active = None
+            else:
+                tool_b._active = 'DelR P'
+
+            if tool_b._idPress is not None:
+                tool_b._idPress = fig.canvas.mpl_disconnect(tool_b._idPress)
+                tool_b.mode = ''
+
+            if tool_b._idRelease is not None:
+                tool_b._idRelease = fig.canvas.mpl_disconnect(
+                    tool_b._idRelease)
+                tool_b.mode = ''
+
             self.ima.Peaks.del_PlotRange()
+
+            tool_b._actions['pan'].setChecked(tool_b._active == 'PAN')
+            tool_b._actions['zoom'].setChecked(tool_b._active == 'ZOOM')
 
         def lenght():
             if hasattr(self.ima, 'line'):
@@ -862,6 +936,10 @@ class SeqIm(list):
             print(f'{at} {angle: 4.2f} degrees')
             print('\n\n')
 
+        def press(event):
+            if event.key == 'f4':
+                DelR_p()
+
         def _icon(name):
             direct = os.path.dirname(__file__)
             name = os.path.join(direct, name)
@@ -871,34 +949,31 @@ class SeqIm(list):
             return QtGui.QIcon(pm)
 
         fig.canvas.toolbar.addSeparator()
-        a = fig.canvas.toolbar.addAction(_icon('down.png'),
-                                         'back', lambda: UP_DO(-1))
+        a = tool_b.addAction(_icon('down.png'), 'back', lambda: UP_DO(-1))
         a.setToolTip('Previous image')
-        a = fig.canvas.toolbar.addAction(_icon('up.png'),
-                                         'foward', lambda: UP_DO(1))
+        a = tool_b.addAction(_icon('up.png'), 'foward', lambda: UP_DO(1))
         a.setToolTip('Next image')
-        fig.canvas.toolbar.addSeparator()
-        a = fig.canvas.toolbar.addAction(_icon('PlotP.png'),
-                                         'Peaks', Plot_p)
-        a.setToolTip('Peaks On/Off')
-        a = fig.canvas.toolbar.addAction(_icon('RemP.png'),
-                                         'Del P',
-                                         Del_p)
-        a.setToolTip('Delete Peaks')
-        a = fig.canvas.toolbar.addAction(_icon('RanP.png'),
-                                         'DelR P',
-                                         DelR_p)
-        a.setToolTip('Delete Peaks in range')
 
-        fig.canvas.toolbar.addSeparator()
-        a = fig.canvas.toolbar.addAction(_icon('lenght.png'),
-                                         'len',
-                                         lenght)
+        tool_b.addSeparator()
+        a = tool_b.addAction(_icon('PlotP.png'), 'Peaks', Plot_p)
+        a.setToolTip('Peaks On/Off')
+
+        a = tool_b.addAction(_icon('RemP.png'), 'Del_P', Del_p)
+        a.setCheckable(True)
+        a.setToolTip('Delete Peaks')
+        tool_b._actions['del_p'] = a
+
+        a = tool_b.addAction(_icon('RanP.png'), 'DelR P', DelR_p)
+        a.setToolTip('Delete Peaks in range (F4)')
+
+
+        tool_b.addSeparator()
+        a = tool_b.addAction(_icon('lenght.png'), 'len', lenght)
         a.setToolTip('calculate lenght of a line and plot profile')
-        a = fig.canvas.toolbar.addAction(_icon('angle.png'),
-                                         'angle',
-                                         angle)
+        a = tool_b.addAction(_icon('angle.png'), 'angle', angle)
         a.setToolTip('calculate angle between two lines')
+
+        self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
 
     def save(self, filesave):
         """
@@ -1023,24 +1098,30 @@ class EwaldPeaks(object):
         plt.figure()
         plt.hist(sorted(intens), bins=100, rwidth=4)
 
-    def plot_proj_int(self):
-        pos = np.hstack([i for i in self.pos_cal])
-        pos = np.fmod(pos, 1)
-        pos = np.where(pos < 0, pos + 1, pos)
-
-        fig = plt.figure()
-        gs = fig.add_gridspec(3, 1, hspace=0.50)
-        pa = fig.add_subplot(gs[0, 0])
-        pb = fig.add_subplot(gs[1, 0])
-        pc = fig.add_subplot(gs[2, 0])
-        print(np.sort(pos[:, 0]))
-        pa.hist(pos[0, :], bins=100, rwidth=4)
-        pa.set_title('a')
-        pb.hist(pos[1, :], bins=100, rwidth=4)
-        pb.set_title('b')
-        pc.hist(pos[2, :], bins=100, rwidth=4)
-        pc.set_title('c')
-        plt.draw()
+    def plot_proj_int(self, cell=True):
+        if cell:
+            pos = np.hstack([i for i in self.pos_cal])
+            pos = np.fmod(pos, 1)
+            pos = np.where(pos < 0, pos + 1, pos)
+            fig = plt.figure()
+            gs = fig.add_gridspec(3, 1, hspace=0.50)
+            pa = fig.add_subplot(gs[0, 0])
+            pb = fig.add_subplot(gs[1, 0])
+            pc = fig.add_subplot(gs[2, 0])
+            pa.hist(pos[0, :], bins=100)
+            pa.set_title('a')
+            pb.hist(pos[1, :], bins=100)
+            pb.set_title('b')
+            pc.hist(pos[2, :], bins=100)
+            pc.set_title('c')
+            plt.draw()
+        else:
+            fig = plt.figure()
+            plt.hist(np.vstack(self.pos)[:, 2], bins=1000)
+            plt.title('z')
+            plt.xlabel('position')
+            plt.ylabel('n. peaks')
+            plt.draw()
 
     def plot_reduce(self, tollerance=0.1, condition=None):
         """plot collapsed reciprocal space
@@ -1264,7 +1345,7 @@ class EwaldPeaks(object):
         self.set_cell(self.axes, self._axes_std)
         return res_1.x[9:]  # res_1.success, res_1.njev,
 
-    def refine_axang(self, axes=None, tollerance=0.1):
+    def refine_axang(self, axes=None, tollerance=0.1, zero_tol=0.1):
         """refine reciprocal cell basis
         refine the reciprocal cell basis in respect to data that are
         indexed in the tollerance range.
@@ -1286,9 +1367,10 @@ class EwaldPeaks(object):
         n_peak = []
         for i, pos_i in enumerate(self.pos_cal):
             filt = self.cr_cond('tollerance', tollerance)
-            cond = filt(pos_i, 0)
+            cond  = filt(pos_i, 0)
+            cond2 = abs(self.pos[i][:, 2]) > zero_tol
             pos_f.append(np.compress(cond, self.pos[i], axis=0))
-            n_peak.append(sum(cond))
+            n_peak.append(sum(cond * cond2))
         ref_planes, = np.where(np.array(n_peak) > 0)[:1]
 
 
@@ -1338,7 +1420,7 @@ class EwaldPeaks(object):
 
         return ref_planes, np.degrees(res_1.x), np.degrees(error)
 
-    def refine_angles(self, axes=None, tollerance=0.1):
+    def refine_angles(self, axes=None, tollerance=0.1, zero_tol=0.1):
         """refine reciprocal cell basis
         refine the reciprocal cell basis in respect to data that are
         indexed in the tollerance range.
@@ -1361,11 +1443,12 @@ class EwaldPeaks(object):
         for i, pos_i in enumerate(self.pos_cal):
             filt = self.cr_cond('tollerance', tollerance)
             cond = filt(pos_i, 0)
+            cond2 = abs(self.pos[i][:, 2]) > zero_tol
             pos_f.append(np.compress(cond, self.pos[i], axis=0))
-            n_peak.append(sum(cond))
+            n_peak.append(sum(cond * cond2))
         ref_planes, = np.where(np.array(n_peak) > 0)[:1]
         n_peak = sum(n_peak) - n_peak[0]
-        angles = [0 for i in ref_planes]
+        angles = [0.0] * len(ref_planes)
 
         P = inv(axes)
         def res(angles):
