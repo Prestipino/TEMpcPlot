@@ -655,15 +655,18 @@ class SeqIm(list):
     each element of the class is an image
 
     Args:
-        filenames (list): list string describing the exception.
+        filenames (list):
+                    i) list of string with filenames of image
+                    ii) string like \"Ge*.dm3\"
+                    iii) BIDS
         filesangle (str): Human readable file with angles
-
 
     Attributes:
         EwP  (TEMpcPlot.EwaldPeaks): Ewald peaks 3D set of peaks
         rot_vect (list): list of Rotation vector for each image
         scale  (list): scale(magnification) of the images
         ima  (TEMpcPlot.Mimage): current image of the sequence
+
 
     Note:
         | Methods to use:
@@ -680,7 +683,30 @@ class SeqIm(list):
         attribute angle it rapresent the angle of rotation
 
         """
+        def red_sqi(filena):
+            filelist = []
+            angles = []
+            with open(filena, 'r') as sqi:
+                for line in sqi.readlines():
+                    sline = line.strip()
+                    if sline == '':
+                        continue
+                    elif sline[0] == '#':
+                        continue
+                    f, xa, xb = sline.split()[:3]
+                    filelist.append(f)
+                    xa = -float(xa)
+                    xb = float(xb)
+                    angles.append(np.arccos(np.cos(xx[:, 0]) * np.cos(xx[:, 1])))
+            angles = np.array(angles)
+            return filelist, angles
+
         if isinstance(filenames, str):
+            if filenames[:3].lower() == 'sqi':
+                self.__filesangle = filenames
+                filenames, self.angles = red_sqi(filenames)
+                super().__init__([Mimage(i) for i in filenames])
+                return
             filenames = glob.glob(filenames)
             assert len(filenames) > 0, 'no image found'
         assert isinstance(filenames, list), 'list of filenames please'
@@ -707,15 +733,17 @@ class SeqIm(list):
         print(self.__doc__)
 
     def find_peaks(self, rad_c=1.5, tr_c=0.02, dist=None):
-        """
-            allows to search again the peaks in all the image witht the same
-            parameter
-            Args:
-                tr_c (float): total range coefficent the minimal intensity of the peak should be at list tr_c*self.ima.max() # noqa501
-                rad_c (float): coefficent in respect of the center radious peaks should be separate from at list self.rad*rad_c # noqa501
-                dist: (float): maximum distance in pixel
-            Examples:
-            >>> Exp1.find_peaks()
+        """ findf the peak
+        allows to search again the peaks in all the image witht the same
+        parameter
+
+        Args:
+            tr_c (float): total range coefficent the minimal intensity of the peak should be at list tr_c*self.ima.max()
+            rad_c (float): coefficent in respect of the center radious peaks should be separate from at list self.rad*rad_c
+            dist: (float): maximum distance in pixel
+
+        Examples:
+        >>> Exp1.find_peaks()
         """
         for i in self:
             if hasattr(i, 'Peaks'):
@@ -1012,7 +1040,6 @@ class SeqIm(list):
         """ load a saved project
         it is necessary that images remain in the same relative
         position
-
         Args:
             filename (str): filename to open
 
@@ -1020,8 +1047,8 @@ class SeqIm(list):
             >>> exp1 = SeqIm.load(exp1.pkl)
 
         """
-        inn = pickle.load(open(filename, 'rb'))
-        out = SeqIm(inn.filename, inn.filesangle)
+        inn = pickle.load(open(filename, 'rb'))              
+        out = SeqIm(inn.filename, inn.filesangle)                                                                                      
         for i, Peaksi in enumerate(inn.peaks):
             out[i].Peaks = PeakL(Peaksi['pos'])
             out[i].Peaks.int = Peaksi['inte']

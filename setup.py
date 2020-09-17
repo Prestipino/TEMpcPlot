@@ -1,5 +1,8 @@
 from setuptools import setup
 
+# to create the wheel type:
+# python3 setup.py sdist bdist_wheel
+
 setup(name='TEMpcPlot',
       version='0.1',
       description='Tools for ED',
@@ -9,7 +12,7 @@ setup(name='TEMpcPlot',
       license='MIT',
       packages=['TEMpcPlot', 'TEMpcPlot.GII', 'TEMpcPlot.tables',
                 'TEMpcPlot.dm3_lib', 'TEMpcPlot.TEM'],
-      install_requires=['numpy', 'matplotlib', 'scipy'],
+      install_requires=['numpy', 'matplotlib', 'scipy', 'pillow'],
       package_data={'TEMpcPlot.GII': ['libgcc_s_seh-1.dll',
                                       'libgfortran-3.dll',
                                       'libgmp-10.dll',
