@@ -40,6 +40,8 @@ class D3plot(object):
         gs = self.fig.add_gridspec(5, 5)
         self.ax_x = self.fig.add_subplot(gs[4, 0:4])
         self.ax_y = self.fig.add_subplot(gs[0:4, 4])
+        self.ax_y.tick_params(axis='y', left=False, right=True,
+                              labelleft=False, labelright=True)
         self.ax = self.fig.add_subplot(gs[0:4, 0:4])
         plt.figtext(0.8, 0.22, '- a', color='green',
                     size='x-large', weight='bold')
@@ -109,7 +111,8 @@ class D3plot(object):
         self._yh = self.ax_y.hist(np.concatenate(self.pos_i)[:, 1],
                                   bins=100, rwidth=4, orientation='horizontal')
         self.ax_x.set_autoscalex_on(False)
-        self.ax_y.set_autoscalex_on(False)
+        self.ax_y.set_autoscalex_on(True)
+        self.ax_y.invert_xaxis()
         self.ax_x.set_xlim(*self.ax.get_xlim())
         self.ax_y.set_ylim(*self.ax.get_ylim())
         plt.draw()
@@ -199,8 +202,12 @@ class D3plot(object):
     def _c_allign(self, abc):
         """command allign to an axis
         """
-        rot_vec = np.cross(self.axes[abc].pos_i - self.axes[abc].ori,
-                           np.array([0, 0, 1]))
+        try:
+            rot_vec = np.cross(self.axes[abc].pos_i - self.axes[abc].ori,
+                               np.array([0, 0, 1]))
+        except AttributeError:
+            rot_vec = np.cross(self.axes[abc].pos_i,
+                               np.array([0, 0, 1]))
         r_mod = np.sqrt(rot_vec @ rot_vec)
         rot_vec_n = rot_vec / r_mod
         rot_vec_n *= -np.arcsin(r_mod / self.axes[abc].mod)
@@ -352,7 +359,7 @@ class LineAxes:
         # plt.legend()
         return
 
-
+### collapsed 3D view r is for reduced)
 class D3plotr(D3plot):
     def __init__(self, EwPePos, origin, size='o'):
         self._D3plot__size = size
@@ -364,17 +371,18 @@ class D3plotr(D3plot):
         if hasattr(EwPePos, '_rot_vect'):
             __angle = np.arccos(np.dot(EwPePos._rot_vect[0], [0, 1, 0]))
             self._D3plot__angle = __angle * 180 / np.pi      # angle to start good
+
         # -----------define axis if already present
         self.axes = {}
         if hasattr(EwPePos, 'axes'):
             for i, abc in enumerate('abc'):
-                    self.axes[abc] = LineAxesr(abc, 1,
-                                               axis=EwPePos.axes.T[i],
-                                               origin=origin)
+                self.axes[abc] = LineAxesr(abc, 1,
+                                           axis=EwPePos.axes.T[i],
+                                           origin=origin)
 
-                    self.axes['g' + abc] = LineAxesr('g', 1,
-                                                     axis=-EwPePos.axes.T[i],
-                                                     origin=-origin)
+                self.axes['g' + abc] = LineAxesr('g', 1,
+                                                 axis=-EwPePos.axes.T[i],
+                                                 origin=-origin)
         # -----------------------------------------------
 
         plt.rcParams['toolbar'] = 'None'
