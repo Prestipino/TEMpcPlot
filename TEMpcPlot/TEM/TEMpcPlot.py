@@ -655,18 +655,15 @@ class SeqIm(list):
     each element of the class is an image
 
     Args:
-        filenames (list):
-                    i) list of string with filenames of image
-                    ii) string like \"Ge*.dm3\"
-                    iii) BIDS
+        filenames (list): list string describing the exception.
         filesangle (str): Human readable file with angles
+
 
     Attributes:
         EwP  (TEMpcPlot.EwaldPeaks): Ewald peaks 3D set of peaks
         rot_vect (list): list of Rotation vector for each image
         scale  (list): scale(magnification) of the images
         ima  (TEMpcPlot.Mimage): current image of the sequence
-
 
     Note:
         | Methods to use:
@@ -685,7 +682,7 @@ class SeqIm(list):
         """
         def red_sqi(filena):
             filelist = []
-            angles = []
+            gon_angles = []
             with open(filena, 'r') as sqi:
                 for line in sqi.readlines():
                     sline = line.strip()
@@ -695,36 +692,36 @@ class SeqIm(list):
                         continue
                     f, xa, xb = sline.split()[:3]
                     filelist.append(f)
-                    xa = -float(xa)
-                    xb = float(xb)
-                    angles.append(np.arccos(np.cos(xx[:, 0]) * np.cos(xx[:, 1])))
-            angles = np.array(angles)
-            return filelist, angles
+                    gon_angles.append([float(xa), float(xb)])
+            gon_angles = np.radians(np.array(gon_angles))
+            return filelist, gon_angles
 
         if isinstance(filenames, str):
-            if filenames[:3].lower() == 'sqi':
-                self.__filesangle = filenames
-                filenames, self.angles = red_sqi(filenames)
-                super().__init__([Mimage(i) for i in filenames])
-                return
-            filenames = glob.glob(filenames)
-            assert len(filenames) > 0, 'no image found'
-        assert isinstance(filenames, list), 'list of filenames please'
-        super().__init__([Mimage(i) for i in filenames])
+            if filenames[-3:].lower() == 'sqi':
+                self.filenames, gon_angles = red_sqi(filenames)
+            else:
+                self.filenames = glob.glob(filenames)
+                assert len(filenames) > 0, 'no image found'
+
+        assert isinstance(self.filenames, list), 'list of filenames please'
+
+        if filesangle:
+            if isinstance(filenames, str):
+                gon_angles = np.radians(np.loadtxt(filesangle)[:, :2])
+            if isinstance(filenames, list):
+                gon_angles = np.array(filesangle)
+
+        super().__init__([Mimage(i) for i in self.filenames])
+        for i, im in enumerate(self):
+            setattr(im.info, 'gon_angles', gon_angles[i])
 
         if len(set([i.scale for i in self])) == 1:
             self.scale = self[0].scale
         else:
             raise ValueError('images with different scales')
 
-        if filesangle:
-            rec_name = filesangle
-        else:
-            rec_name = filenames[0].split('-')[0] + '.txt'
-        xx = np.radians(np.loadtxt(rec_name)[:, :2])
-        xx -= xx[0]
-        self.angles = np.arccos(np.cos(xx[:, 0]) * np.cos(xx[:, 1]))
-        self.__filesangle = rec_name
+        g_ang = gon_angles - gon_angles[0]
+        self.angles = np.arccos(np.cos(g_ang[:, 0]) * np.cos(g_ang[:, 1]))
 
     def help(self):
         """
@@ -1022,10 +1019,9 @@ class SeqIm(list):
         out.peaks = [{'pos': tuple(i.Peaks),
                       'inte': i.Peaks.int,
                       'ps_in': i.Peaks.ps_in} for i in self]
-        out.filename = [i.info.filename for i in self]
-        out.filesangle = self.__filesangle
+        out.filename = self.filenames
+        out.filesangle = [i.info.gon_angles for i in self]
         if hasattr(self, 'EwP'):
-
             out.EwP = {'pos': self.EwP.pos,
                        'int': self.EwP.int,
                        'rot_vect': self.EwP._rot_vect}
@@ -1047,8 +1043,8 @@ class SeqIm(list):
             >>> exp1 = SeqIm.load(exp1.pkl)
 
         """
-        inn = pickle.load(open(filename, 'rb'))              
-        out = SeqIm(inn.filename, inn.filesangle)                                                                                      
+        inn = pickle.load(open(filename, 'rb'))
+        out = SeqIm(inn.filename, inn.filesangle)
         for i, Peaksi in enumerate(inn.peaks):
             out[i].Peaks = PeakL(Peaksi['pos'])
             out[i].Peaks.int = Peaksi['inte']
@@ -1059,6 +1055,7 @@ class SeqIm(list):
                                  inn.EwP['rot_vect'])
             if 'axes' in inn.EwP.keys():
                 out.EwP.axes = inn.EwP['axes']
+                out.EwP.set_cell()
         return out
 
 
@@ -1127,19 +1124,20 @@ class EwaldPeaks(object):
 
     def plot_proj_int(self, cell=True):
         if cell:
-            pos = np.hstack([i for i in self.pos_cal])
-            pos = np.fmod(pos, 1)
-            pos = np.where(pos < 0, pos + 1, pos)
+            print([i.shape for i in self.pos_cal])
+            pos = np.vstack([i for i in self.pos_cal])
+            pos = np.fmod(abs(pos), 1)
+            pos = np.where(pos < 0.5, pos, pos - 0.5)
             fig = plt.figure()
             gs = fig.add_gridspec(3, 1, hspace=0.50)
             pa = fig.add_subplot(gs[0, 0])
             pb = fig.add_subplot(gs[1, 0])
             pc = fig.add_subplot(gs[2, 0])
-            pa.hist(pos[0, :], bins=100)
+            pa.hist(pos[:, 0], range=(0, .5), bins=100)
             pa.set_title('a')
-            pb.hist(pos[1, :], bins=100)
+            pb.hist(pos[:, 1], range=(0, .5), bins=100)
             pb.set_title('b')
-            pc.hist(pos[2, :], bins=100)
+            pc.hist(pos[:, 2], range=(0, .5), bins=100)
             pc.set_title('c')
             plt.draw()
         else:
@@ -1182,16 +1180,16 @@ class EwaldPeaks(object):
         Args:
             hkl (str): constant index for the hkl plane to plot, format('k')
             n (float, int): value of hkl
-            size (float): intensity scaling ::
-                    * if positive, scale intensity of each peaks respect the max
-                    * if negative, scale a common value for all peaks
-
+            size (float): intensity scaling
+                * if positive, scale intensity of each peaks respect the max
+                * if negative, scale a common value for all peaks
+            mir (bool):  mirror in respect of n meaning =/-n
             tollerance (float): exclude from the plot peaks at higher distance
             spg (str): allows to index the peaks, and check if they are extinted
         """
         hkl = hkl.lower()
         o1, o2 = [i for i in [0, 1, 2] if i != 'hkl'.find(hkl)]
-        
+
         if mir:
             def app_cond(pos):
                 return np.where(abs(abs(pos['hkl'.find(hkl)]) - abs(n)) < toll)
@@ -1302,6 +1300,11 @@ class EwaldPeaks(object):
         plt.draw()
 
     def cr_cond(self, operator=None, lim=None):
+        """define filtering condition
+
+        fuch function create a function that filter the data following the condition
+
+        """
         if operator == '>':
             def lcond(pos, inte):
                 return inte > lim
@@ -1309,6 +1312,11 @@ class EwaldPeaks(object):
         elif operator == '<':
             def lcond(pos, inte):
                 return inte < lim
+
+
+
+
+
 
         elif operator == 'tollerance':
             # to use with calibrated position
@@ -1583,7 +1591,8 @@ class EwaldPeaks(object):
                                data, axis=0)
         filt = self.cr_cond(operator='tollerance', lim=tollerance)
         indexed = sum(filt(data, 0)) / data.shape[0] * 100
-        print(f'\n{sum(filt(data, 0))} indexed peaks, {round(indexed, 2)}%\n')
+        print(f'\n{sum(filt(data, 0))} indexed peaks, {round(indexed, 2)}%')
+        print(f'with tollence {tollerance*100}%\n')
         return
 
     def __calibrate(self):
@@ -1634,4 +1643,5 @@ class EwaldPeaks(object):
         z = EwaldPeaks(dd['pos'], dd['int'], dd['rot_vect'])
         if 'axes' in dd.keys():
             z.set_cell(dd['axes'])
+            z.set_cell()
         return z
