@@ -12,7 +12,7 @@ setup(name='TEMpcPlot',
       license='MIT',
       packages=['TEMpcPlot', 'TEMpcPlot.GII', 'TEMpcPlot.tables',
                 'TEMpcPlot.dm3_lib', 'TEMpcPlot.TEM'],
-      install_requires=['numpy', 'matplotlib', 'scipy', 'pillow'],
+      install_requires=['numpy', 'matplotlib', 'scipy', 'pillow', 'uncertainties'],
       package_data={'TEMpcPlot.GII': ['libgcc_s_seh-1.dll',
                                       'libgfortran-3.dll',
                                       'libgmp-10.dll',
@@ -32,5 +32,3 @@ setup(name='TEMpcPlot',
                                       'RemP.png',
                                       'UP.png']},
       zip_safe=False)
-
-

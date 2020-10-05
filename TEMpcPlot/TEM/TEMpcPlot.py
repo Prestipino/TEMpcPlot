@@ -695,41 +695,36 @@ class SeqIm(list):
                         continue
                     f, xa, xb = sline.split()[:3]
                     filelist.append(f)
-                    # xa = -float(xa)
                     gon_angles.append([float(xa), float(xb)])
             gon_angles = np.radians(np.array(gon_angles))
-            gon_angles -= gon_angles[0]
-            angles = np.cos(gon_angles[:, 0]) * np.cos(gon_angles[:, 1])
-            return filelist, np.arccos(angles)
+            return filelist, gon_angles
 
         if isinstance(filenames, str):
             if filenames[-3:].lower() == 'sqi':
-                self.__filesangle = filenames
-                filenames, self.angles = red_sqi(filenames)
-                super().__init__([Mimage(i) for i in filenames])
-                if len(set([i.scale for i in self])) == 1:
-                    self.scale = self[0].scale
-                else:
-                    raise ValueError('images with different scales')
-                return
-            filenames = glob.glob(filenames)
-            assert len(filenames) > 0, 'no image found'
-        assert isinstance(filenames, list), 'list of filenames please'
-        super().__init__([Mimage(i) for i in filenames])
+                self.filenames, gon_angles = red_sqi(filenames)
+            else:
+                self.filenames = glob.glob(filenames)
+                assert len(filenames) > 0, 'no image found'
+
+        assert isinstance(self.filenames, list), 'list of filenames please'
+
+        if filesangle:
+            if isinstance(filenames, str):
+                gon_angles = np.radians(np.loadtxt(filesangle)[:, :2])
+            if isinstance(filenames, list):
+                gon_angles = np.array(filesangle)
+
+        super().__init__([Mimage(i) for i in self.filenames])
+        for i, im in enumerate(self):
+            setattr(im.info, 'gon_angles', gon_angles[i])
 
         if len(set([i.scale for i in self])) == 1:
             self.scale = self[0].scale
         else:
             raise ValueError('images with different scales')
 
-        if filesangle:
-            rec_name = filesangle
-        else:
-            rec_name = filenames[0].split('-')[0] + '.txt'
-        xx = np.radians(np.loadtxt(rec_name)[:, :2])
-        xx -= xx[0]
-        self.angles = np.arccos(np.cos(xx[:, 0]) * np.cos(xx[:, 1]))
-        self.__filesangle = rec_name
+        g_ang = gon_angles - gon_angles[0]
+        self.angles = np.arccos(np.cos(g_ang[:, 0]) * np.cos(g_ang[:, 1]))
 
     def help(self):
         """
@@ -1027,10 +1022,9 @@ class SeqIm(list):
         out.peaks = [{'pos': tuple(i.Peaks),
                       'inte': i.Peaks.int,
                       'ps_in': i.Peaks.ps_in} for i in self]
-        out.filename = [i.info.filename for i in self]
-        out.filesangle = self.__filesangle
+        out.filename = self.filenames
+        out.filesangle = [i.info.gon_angles for i in self]
         if hasattr(self, 'EwP'):
-
             out.EwP = {'pos': self.EwP.pos,
                        'int': self.EwP.int,
                        'rot_vect': self.EwP._rot_vect}
@@ -1052,8 +1046,8 @@ class SeqIm(list):
             >>> exp1 = SeqIm.load(exp1.pkl)
 
         """
-        inn = pickle.load(open(filename, 'rb'))              
-        out = SeqIm(inn.filename, inn.filesangle)                                                                                      
+        inn = pickle.load(open(filename, 'rb'))
+        out = SeqIm(inn.filename, inn.filesangle)
         for i, Peaksi in enumerate(inn.peaks):
             out[i].Peaks = PeakL(Peaksi['pos'])
             out[i].Peaks.int = Peaksi['inte']
