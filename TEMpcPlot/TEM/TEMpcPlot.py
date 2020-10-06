@@ -655,18 +655,15 @@ class SeqIm(list):
     each element of the class is an image
 
     Args:
-        filenames (list):
-                    i) list of string with filenames of image
-                    ii) string like \"Ge*.dm3\"
-                    iii) BIDS
+        filenames (list): list string describing the exception.
         filesangle (str): Human readable file with angles
+
 
     Attributes:
         EwP  (TEMpcPlot.EwaldPeaks): Ewald peaks 3D set of peaks
         rot_vect (list): list of Rotation vector for each image
         scale  (list): scale(magnification) of the images
         ima  (TEMpcPlot.Mimage): current image of the sequence
-
 
     Note:
         | Methods to use:
