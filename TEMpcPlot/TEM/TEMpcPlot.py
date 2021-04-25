@@ -296,7 +296,7 @@ class PeakL(list):
         if hasattr(self, 'int'):
             self.int = np.delete(self.int, n)
         if hasattr(self, 'lp'):
-            self.lp.set_data(self[1], self[0])                                              
+            self.lp.set_data(self[1], self[0])
             self.lp.figure.canvas.draw()
 
     @classmethod
@@ -396,7 +396,8 @@ class PeakL(list):
         if not hasattr(self, 'lp'):
             return
         self._cid = self.lp.figure.canvas.mpl_connect('pick_event', onpick)
-        self._mid = self.lp.figure.canvas.mpl_connect('button_press_event', endpick)
+        self._mid = self.lp.figure.canvas.mpl_connect(
+            'button_press_event', endpick)
 
     def del_PlotRange(self):
         """delete the peak inside a rectangle plotted on the axis
@@ -411,7 +412,7 @@ class PeakL(list):
         if line.error:
             return
         canv = line.line.figure.canvas
-        angle = np.arctan2(*line.vect) / rpd 
+        angle = np.arctan2(*line.vect) / rpd
 
         width = 0
         Rleft = plt.Rectangle((np.flip(line.origin)),
@@ -466,7 +467,6 @@ class PeakL(list):
 
         self._mid = canv.mpl_connect('motion_notify_event', move_m)
         self._rid = canv.mpl_connect('button_press_event', endpick)
-
 
     def help(self):
         print(self.__doc__)
@@ -693,7 +693,7 @@ class SeqIm(list):
                         continue
                     f, xa, xb = sline.split()[:3]
                     filelist.append(f)
-                    gon_angles.append([float(xa), float(xb)])   
+                    gon_angles.append([float(xa), float(xb)])
             gon_angles = np.radians(np.array(gon_angles))
             return filelist, gon_angles
 
@@ -704,10 +704,9 @@ class SeqIm(list):
                 self.filenames = glob.glob(filenames)
                 assert len(filenames) > 0, 'no image found'
         elif isinstance(filenames, list):
-                self.filenames = filenames
+            self.filenames = filenames
         else:
             raise TypeError('filenames type not not available')
-
 
         assert isinstance(self.filenames, list), 'list of filenames please'
 
@@ -729,11 +728,9 @@ class SeqIm(list):
         self.__1rot__ = gon_angles[0]
         g_ang = gon_angles - gon_angles[0]
         ssign = 0 if np.argmax(np.abs(g_ang), axis=0).mean() <= 0.5 else 1
-        self.angles = np.arccos(np.cos(g_ang[:, 0]) * np.cos(g_ang[:, 1])) * np.sign(g_ang[:, ssign])
+        self.angles = np.arccos(
+            np.cos(g_ang[:, 0]) * np.cos(g_ang[:, 1])) * np.sign(g_ang[:, ssign])
         print(self.angles)
-
-
-
 
     def help(self):
         """
@@ -817,7 +814,7 @@ class SeqIm(list):
                 (all_peaks[i], np.zeros(len(all_peaks[i]))))
 
         # rotation of the point in the 3D space
-        # 
+        #
         self.rot_vect = np.array([1, LINE[0](1) - LINE[0](0), 0])
         self.rot_vect /= np.sqrt(self.rot_vect.dot(self.rot_vect))
         intensity = []
@@ -849,7 +846,6 @@ class SeqIm(list):
         ax = plt.axes([0.1, 0.15, 0.8, 0.75])
         tool_b = fig.canvas.manager.toolbar
 
-
         self.ima = self[0]
         self.ima.plot(new=0, log=log, *args, **kwds)
         ax.set_axis_off()
@@ -858,7 +854,6 @@ class SeqIm(list):
         index = 0
         lun = len(self)
         Peak_plot = True
-
 
         def UP_DO(up):
             nonlocal index
@@ -919,9 +914,9 @@ class SeqIm(list):
                 selfPL._cid = fig.canvas.mpl_connect('pick_event', onpick)
                 selfPL._mid = fig.canvas.mpl_connect(
                     'button_press_event', endpick)
-                #fig.canvas.widgetlock(self)
+                # fig.canvas.widgetlock(self)
             else:
-                #fig.canvas.widgetlock.release(self)
+                # fig.canvas.widgetlock.release(self)
                 fig.canvas.mpl_disconnect(tool_b._idPress)
                 fig.canvas.mpl_disconnect(tool_b._idRelease)
                 #
@@ -1004,7 +999,6 @@ class SeqIm(list):
 
         a = tool_b.addAction(_icon('RanP.png'), 'DelR P', DelR_p)
         a.setToolTip('Delete Peaks in range (F4)')
-
 
         tool_b.addSeparator()
         a = tool_b.addAction(_icon('lenght.png'), 'len', lenght)
@@ -1244,12 +1238,12 @@ class EwaldPeaks(object):
 
             o12maxmin = [int(np.rint(i)) for i in o12maxmin]
 
-            # create the HKL grid 
+            # create the HKL grid
             refx, refy = np.mgrid[o12maxmin[0]: o12maxmin[2],
                                   o12maxmin[1]: o12maxmin[3]]
             ref = [refx.flat, refy.flat].insert('hkl'.find(hkl),
                                                 np.ones_like(refx.flat) * n)
-            ref = np.vstack(ref).T #transform in nline 3 colum format
+            ref = np.vstack(ref).T  # transform in nline 3 colum format
 
             # create extinction
             ext_c = [True if spgo.is_exti_ref(i) else False for i in ref]
@@ -1266,10 +1260,10 @@ class EwaldPeaks(object):
                           s=c_size,
                           color='b')
             plt_p.rectangles(*ref_act,
-                             w=inte_o.mean() / inte_o.max() * abs(size*1.5),
+                             w=inte_o.mean() / inte_o.max() * abs(size * 1.5),
                              color='r', alpha=0.5)
             plt_p.rectangles(*ref_ext,
-                             w=inte_o.mean() / inte_o.max() * abs(size*1.5),
+                             w=inte_o.mean() / inte_o.max() * abs(size * 1.5),
                              color='r', fc='none')
             title = '(H K L)'.replace(hkl.upper(), str(n))
             title += '  %s' % spg
@@ -1332,11 +1326,6 @@ class EwaldPeaks(object):
         elif operator == '<':
             def lcond(pos, inte):
                 return inte < lim
-
-
-
-
-
 
         elif operator == 'tollerance':
             # to use with calibrated position
@@ -1422,12 +1411,11 @@ class EwaldPeaks(object):
         n_peak = []
         for i, pos_i in enumerate(self.pos_cal):
             filt = self.cr_cond('tollerance', tollerance)
-            cond  = filt(pos_i, 0)
+            cond = filt(pos_i, 0)
             cond2 = abs(self.pos[i][:, 2]) > zero_tol
             pos_f.append(np.compress(cond, self.pos[i], axis=0))
             n_peak.append(sum(cond * cond2))
         ref_planes, = np.where(np.array(n_peak) > 0)[:1]
-
 
         def res(axes_ang):
             # angles part
@@ -1468,8 +1456,8 @@ class EwaldPeaks(object):
 
         # change the angles
         for i, i_pla in enumerate(ref_planes):
-                r = R.from_rotvec(self._rot_vect[i_pla] * res_1.x[12 + i])
-                self.pos[i_pla] = r.apply(self.pos[i_pla])
+            r = R.from_rotvec(self._rot_vect[i_pla] * res_1.x[12 + i])
+            self.pos[i_pla] = r.apply(self.pos[i_pla])
 
         self.set_cell(self.axes, self._axes_std)
 
@@ -1506,6 +1494,7 @@ class EwaldPeaks(object):
         angles = [0.0] * len(ref_planes)
 
         P = inv(axes)
+
         def res(angles):
             pos = pos_f[:]
             for i, i_pla in enumerate(ref_planes):
@@ -1515,7 +1504,6 @@ class EwaldPeaks(object):
             resx = abs(P @ data.T) % 1
             resx = np.where(resx > 0.5, 1 - resx, resx)
             return resx.sum(0)
-
 
         res_1 = least_squares(res, angles, verbose=1)
 
@@ -1531,8 +1519,8 @@ class EwaldPeaks(object):
 
         # change the angles
         for i, i_pla in enumerate(ref_planes):
-                r = R.from_rotvec(self._rot_vect[i_pla] * res_1.x[i])
-                self.pos[i_pla] = r.apply(self.pos[i_pla])
+            r = R.from_rotvec(self._rot_vect[i_pla] * res_1.x[i])
+            self.pos[i_pla] = r.apply(self.pos[i_pla])
 
         self.set_cell(self.axes)
         return ref_planes, np.degrees(res_1.x), np.degrees(error)
@@ -1564,7 +1552,8 @@ class EwaldPeaks(object):
         if axes is None:
             try:
                 assert len(self.graph.axes) == 3, 'not prperly defined axes'
-                self.axes = np.array([self.graph.axes[i].axis for i in 'abc']).T
+                self.axes = np.array(
+                    [self.graph.axes[i].axis for i in 'abc']).T
             except:
                 print('\nusing old cell')
                 pass
@@ -1613,7 +1602,7 @@ class EwaldPeaks(object):
         indexed = sum(filt(data, 0)) / data.shape[0] * 100
         print(f'\n{sum(filt(data, 0))} indexed peaks, {round(indexed, 2)}%')
         print(f'with tollence {tollerance*100}%\n')
-        for i,j in self.cell.items():
+        for i, j in self.cell.items():
             print(i, ' = ', j)
         self.__check_cent__(tollerance=tollerance)
         return
@@ -1632,36 +1621,47 @@ class EwaldPeaks(object):
             self.pos_cal.append(np.round(P @ i.T, 2).T)
 
     def __check_cent__(self, tollerance=0.1):
-        center = ['I', 'F', 'A', 'B', 'C']
-        self.__centering__ = {k:{'w': 0} for k in center}
+        center = ['I', 'F', 'A', 'B', 'C', 'Ro', 'Rr']
+        # w is the total on all images
+        self.__centering__ = {k: {'w': 0} for k in center}
+
+        # create a list of indexed reflection
         indexed = []
         filt = self.cr_cond(operator='tollerance', lim=tollerance)
         for ima in self.pos_cal:
-            cond =  filt(ima,0)
-            indexed.append(np.round(ima[cond],0))
+            cond = filt(ima, 0)
+            indexed.append(np.round(ima[cond], 0))
+
         # try I centering
         for i, i_imai in enumerate(indexed):
             # I centering
-            NoEx = (i_imai.sum(1)%2).astype('bool')
-            self.__centering__['I'][i]=NoEx
-            self.__centering__['I']['w']+=NoEx.sum()   
+            NoEx = (i_imai.sum(1) % 2).astype('bool')
+            self.__centering__['I'][i] = NoEx
+            self.__centering__['I']['w'] += NoEx.sum()
             # F centering
-            NoEx = ((i_imai%2).sum(1)%3).astype('bool')
-            self.__centering__['F'][i]=NoEx
-            self.__centering__['F']['w']+=NoEx.sum()            
+            NoEx = ((i_imai % 2).sum(1) % 3).astype('bool')
+            self.__centering__['F'][i] = NoEx
+            self.__centering__['F']['w'] += NoEx.sum()
             # A centering
-            NoEx = ((i_imai.T[1] + i_imai.T[2])%2).astype('bool')
-            self.__centering__['A'][i]=NoEx
-            self.__centering__['A']['w']+=NoEx.sum()         
+            NoEx = ((i_imai.T[1] + i_imai.T[2]) % 2).astype('bool')
+            self.__centering__['A'][i] = NoEx
+            self.__centering__['A']['w'] += NoEx.sum()
             # B centering
-            NoEx = ((i_imai.T[0] + i_imai.T[2])%2).astype('bool')
-            self.__centering__['B'][i]=NoEx
-            self.__centering__['B']['w']+=NoEx.sum()                  
+            NoEx = ((i_imai.T[0] + i_imai.T[2]) % 2).astype('bool')
+            self.__centering__['B'][i] = NoEx
+            self.__centering__['B']['w'] += NoEx.sum()
             # C centering
-            NoEx = ((i_imai.T[0] + i_imai.T[1])%2).astype('bool')
-            self.__centering__['C'][i]=NoEx
-            self.__centering__['C']['w']+=NoEx.sum()  
-            # ask Vincent for Rombohedric
+            NoEx = ((i_imai.T[0] + i_imai.T[1]) % 2).astype('bool')
+            self.__centering__['C'][i] = NoEx
+            self.__centering__['C']['w'] += NoEx.sum()
+            # 'R obverse
+            NoEx = ((i_imai.sum(1) - (2 * i_imai.T[0])) % 3).astype('bool')
+            self.__centering__['Ro'][i] = NoEx
+            self.__centering__['Ro']['w'] += NoEx.sum()
+            # 'R reverse
+            NoEx = ((i_imai.sum(1) - (2 * i_imai.T[1])) % 3).astype('bool')
+            self.__centering__['Rr'][i] = NoEx
+            self.__centering__['Rr']['w'] += NoEx.sum()
         print('\n')
         for i in center:
             print(i, ' existing extincted peaks  ', self.__centering__[i]['w'])
