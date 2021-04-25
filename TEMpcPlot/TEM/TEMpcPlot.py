@@ -734,9 +734,6 @@ class SeqIm(list):
 
 
 
-            
-
-
 
     def help(self):
         """
@@ -1038,7 +1035,6 @@ class SeqIm(list):
                       'ps_in': i.Peaks.ps_in} for i in self]
         out.filename = self.filenames
         out.filesangle = [i.info.gon_angles for i in self]
-        print(out.filesangle)
         if hasattr(self, 'EwP'):
             out.EwP = {'pos': self.EwP.pos,
                        'int': self.EwP.int,
@@ -1098,6 +1094,7 @@ class EwaldPeaks(object):
         int (list): list of Rotation vector for each image
         pos_cal (np.array): array witht he position in the new basis
         rMT     (np.array): reciprocal metric tensor
+        axis    (np.array): reciprocal basis set, 3 coloums
         cell    (dict): a dictionary witht the value of
                          real space cell
 
@@ -1582,9 +1579,9 @@ class EwaldPeaks(object):
             ax = axesflat.reshape(3, 3)
             MT = unumpy.ulinalg.inv(np.dot(ax.T, ax))
             a, b, c = unumpy.sqrt(np.diagonal(MT))
-            al, bt, gm =  unumpy.arccos([MT[2, 1] / (b * c),
-                                         MT[2][0] / (a * c),
-                                         MT[0, 1] / a * b]) / rpd
+            al, bt, gm = unumpy.arccos([MT[2, 1] / (b * c),
+                                        MT[2, 0] / (a * c),
+                                        MT[0, 1] / (a * b)]) / rpd
             return a, b, c, al, bt, gm
 
         if axes_std is None:

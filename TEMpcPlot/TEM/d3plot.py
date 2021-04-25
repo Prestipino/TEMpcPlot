@@ -383,6 +383,14 @@ class D3plotr(D3plot):
                 self.axes['g' + abc] = LineAxesr('g', 1,
                                                  axis=-EwPePos.axes.T[i],
                                                  origin=-origin)
+
+                shift = np.delete(EwPePos.axes, [i], axis=1).T
+                self.axes['g1' + abc] = LineAxesr('g', 1,
+                                                  axis=EwPePos.axes.T[i],
+                                                  origin=origin + shift[0])
+                self.axes['g2' + abc] = LineAxesr('g', 1,
+                                                  axis=EwPePos.axes.T[i],
+                                                  origin=origin + shift[1])
         # -----------------------------------------------
 
         plt.rcParams['toolbar'] = 'None'
@@ -505,7 +513,7 @@ class LineAxesr(LineAxes):
 
     def plot(self):
         fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k',
-               'd': '*--r', 'e': '*--m'}
+               'd': '*--r', 'e': '*--m', 'g': '--k'}
         if self.abc in fmt.keys():
             self.line, = plt.plot([0], [0], fmt[self.abc])
         else:
