@@ -17,7 +17,7 @@ import os
 
 
 from .. import dm3_lib as dm3
-from .. import GII
+from .. import Symmetry
 from . import plt_p
 from .profileline import profile_line
 from .ransac import ransac_lin
@@ -1228,28 +1228,33 @@ class EwaldPeaks(object):
 
         # create a set of theoretical reflection
         if spg:
-            spgo = GII.SpcGroup(spg)[1]
+            # filter the reflection on the plane
+            spgo = spacegroup.Spacegroup(spg)
             layer_pos = np.vstack([i for i in self.pos_cal])
             cond = app_cond(layer_pos.T)
             layer_pos = layer_pos[cond].T
             inte_o = np.hstack([i for i in self.int])[cond]
-            # print(layer_pos[[o1, o2]].shape)
+
+            # ortogonalize
             pos_o = Ort_mat @ layer_pos[[o1, o2]]
+
+            # find limit of the layer
             o12maxmin = [layer_pos[o1].min(), layer_pos[o2].min(),
                          layer_pos[o1].max() + 1, layer_pos[o2].max() + 1]
 
             o12maxmin = [int(np.rint(i)) for i in o12maxmin]
-            # print(layer_pos[[o1, o2]])
+
+            # create the HKL grid 
             refx, refy = np.mgrid[o12maxmin[0]: o12maxmin[2],
                                   o12maxmin[1]: o12maxmin[3]]
-            ref = np.vstack([refx.flat, refy.flat]).T
-            extintion = []
-            for ref_i in ref:
-                hkl_i = np.insert(ref_i, 'hkl'.find(hkl), n)
-                extintion.append(GII.GenHKLf(hkl_i, spgo)[0])
-            extintion = np.array(extintion, dtype=bool)
-            ref_ext = Ort_mat @ ref[extintion].T
-            ref_act = Ort_mat @ ref[~ extintion].T
+            ref = [refx.flat, refy.flat].insert('hkl'.find(hkl),
+                                                np.ones_like(refx.flat) * n)
+            ref = np.vstack(ref).T #transform in nline 3 colum format
+
+            # create extinction
+            ext_c = [True if spgo.is_exti_ref(i) else False for i in ref]
+            ref_ext = Ort_mat @ ref[ext_c].T
+            ref_act = Ort_mat @ ref[~ ext_c].T
 
             plt.figure()
             if size > 0:
