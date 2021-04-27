@@ -560,6 +560,217 @@ class Spacegroup:
             i += 1
         return tags
 
+
+    def generate_exti_cond(self):
+        rules = []
+        exti=[]
+
+        Hkl_Ref_Conditions = {
+          1: "(h k l)    h+k=2n : xy0 centred face (C)                                        ",
+          2: "(h k l)    k+l=2n : 0yz centred face (A)                                        ",
+          3: "(h k l)    h+l=2n : x0z centred face (B)                                        ",
+          4: "(h k l)  h+k+l=2n : body centred (I)                                            ",
+          5: "(h k l)  h,k,l same parity: all-face centred (F)                                ",
+          6: "(h k l) -h+k+l=3n : rhombohedrally centred (R)                                  ",
+          7: "(  0  k  l)     k=2n : (100) glide plane with b/2 translation (b)               ",
+          8: "(  0  k  l)     l=2n : (100) glide plane with c/2 translation (c)               ",
+          9: "(  0  k  l)   k+l=2n : (100) glide plane with b/2 + c/2 translations (n)        ",
+         10: "(  0  k  l)   k+l=4n : (100) glide plane with b/4 +- c/4 translations (d)       ",
+         21: "(  h  0  l)     h=2n : (010) glide plane with a/2 translation (a)               ",
+         22: "(  h  0  l)     l=2n : (010) glide plane with c/2 translation (c)               ",
+         23: "(  h  0  l)   l+h=2n : (010) glide plane with c/2 + a/2 translations (n)        ",
+         24: "(  h  0  l)   l+h=4n : (010) glide plane with c/4 +- a/4 translations (d)       ",
+         25: "(  h  k  0)     h=2n : (001) glide plane with a/2 translation (a)               ",
+         26: "(  h  k  0)     k=2n : (001) glide plane with b/2 translation (b)               ",
+         27: "(  h  k  0)   h+k=2n : (001) glide plane with a/2 + b/2 translations (n)        ",
+         28: "(  h  k  0)   h+k=4n : (001) glide plane with a/4 +- b/4 translations (d)       ",
+         29: "(  h  -h   0 l) l=2n : (11-20) glide plane with c/2 translation (c)             ",
+         30: "(  0   k  -k l) l=2n : (-2110) glide plane with c/2 translation (c)             ",
+         31:  "( -h   0   h l) l=2n : (1-210) glide plane with c/2 translation (c)             ",
+         32:  "(  h   h -2h l) l=2n : (1-100) glide plane with c/2 translation (c)             ",
+         33:  "(-2h   h   h l) l=2n : (01-10) glide plane with c/2 translation (c)             ",
+         34:  "(  h -2h   h l) l=2n : (-1010) glide plane with c/2 translation (c)             ",
+         35:  "(  h  h  l)     l=2n : (1-10) glide plane with c/2 translation (c,n)            ",
+         36:  "(  h  k  k)     h=2n : (01-1) glide plane with a/2 translation (a,n)            ",
+         37:  "(  h  k  h)     k=2n : (-101) glide plane with b/2 translation (b,n)            ",
+         38:  "(  h  h  l)     l=2n : (1-10) glide plane with c/2 translation (c,n)            ",
+         39:  "(  h  h  l)  2h+l=4n : (1-10) glide plane with a/4 +- b/4 +- c/4 translation (d)",
+         40:  "(  h -h  l)     l=2n : (110)  glide plane with c/2 translation (c,n)            ",
+         41:   "(  h -h  l)  2h+l=4n : (110)  glide plane with a/4 +- b/4 +- c/4 translation (d)",
+         42:   "(  h  k  k)     h=2n : (01-1) glide plane with a/2 translation (a,n)            ",
+         43:   "(  h  k  k)  2k+h=4n : (01-1) glide plane with +-a/4 + b/4 +- c/4 translation(d)",
+         44:   "(  h  k -k)     h=2n : (011)  glide plane with a/2 translation (a,n)            ",
+         45:   "(  h  k -k)  2k+h=4n : (011)  glide plane with +-a/4 + b/4 +- c/4 translation(d)",
+         46:   "(  h  k  h)     k=2n : (-101) glide plane with b/2 translation (b,n)            ",
+         47:   "(  h  k  h)  2h+k=4n : (-101) glide plane with +-a/4 +- b/4 + c/4 translation(d)",
+         48:   "( -h  k  h)     k=2n : (101)  glide plane with b/2 translation (b,n)            ",
+         49:   "( -h  k  h)  2h+k=4n : (101)  glide plane with +-a/4 +- b/4 + c/4 translation(d)",
+         50:   "(h 0 0)      h=2n : screw axis // [100] with  a/2 translation (21)              ",  # ! monoclinic, ortho., tetra and cubic
+         51:   "(h 0 0)      h=2n : screw axis // [100] with 2a/4 translation (42)              ",  # ! cubic
+         52:   "(h 0 0)      h=4n : screw axis // [100] with  a/4 translation (41)              ",  # ! cubic
+         53:   "(h 0 0)      h=4n : screw axis // [100] with 3a/4 translation (43)              ",  # ! cubic
+         54:   "(0 k 0)      k=2n : screw axis // [010] with  b/2 translation (21)              ",  # ! monoclinic, ortho., tetra and cubic
+         55:   "(0 k 0)      k=2n : screw axis // [010] with 2b/4 translation (42)              ",  # ! cubic
+         56:   "(0 k 0)      k=4n : screw axis // [010] with  b/4 translation (41)              ",  # ! cubic
+         57:   "(0 k 0)      k=4n : screw axis // [010] with 3b/4 translation (43)              ",  # ! cubic
+         58:   "(0 0 l)      l=2n : screw axis // [00l] with  c/2 translation (21)              ",  # ! monoclinic, ortho., tetra and cubic
+         59:   "(0 0 l)      l=2n : screw axis // [00l] with 2c/4 translation (42)              ",  # ! tetragonal and cubic
+         60:   "(0 0 l)      l=4n : screw axis // [00l] with  c/4 translation (41)              ",  # ! tetragonal and cubic
+         61:  "(0 0 l)      l=4n : screw axis // [00l] with 3c/4 translation (43)              ",  # ! tetragonal and cubic
+         62:  "(0 0 0 l)    l=2n : screw axis // [00l] axis with 3c/6 translation (63)         ",  #
+         63:  "(0 0 0 l)    l=3n : screw axis // [00l] axis with  c/3 translation (31)         ",  #
+         64:  "(0 0 0 l)    l=3n : screw axis // [00l] axis with 2c/3 translation (32)         ",  #
+         65:  "(0 0 0 l)    l=3n : screw axis // [00l] axis with 2c/6 translation (62)         ",  #
+         66:  "(0 0 0 l)    l=3n : screw axis // [00l] axis with 4c/6 translation (64)         ",  #
+         67:  "(0 0 0 l)    l=6n : screw axis // [00l] axis with  c/6 translation (61)         ",  #
+         68:  "(0 0 0 l)    l=6n : screw axis // [00l] axis with 5c/6 translation (65)         "}
+
+        sym_t = self.get_symop(False)
+        # centering, F centering generate as sum of A, B ,C
+        if '    x, 1/2+y, 1/2+z' in sym_t:                               # A
+            rules.append(lambda h, k, l: (k + l) % 2)
+            exti,append(Hkl_Ref_Conditions[2])
+        if '1/2+x,     y, 1/2+z' in sym_t:                               # B
+            rules.append(lambda h, k, l: (h + l) % 2)
+            exti,append(Hkl_Ref_Conditions[3])
+        if '1/2+x, 1/2+y,     z' in sym_t:                               # C
+            rules.append(lambda h, k, l: (h + k) % 2)
+            exti,append(Hkl_Ref_Conditions[1])
+        elif '1/2+x, 1/2+y, 1/2+z' in sym_t:                             # I
+            rules.append(lambda h, k, l: (h + k + l) % 2)
+            exti,append(Hkl_Ref_Conditions[4])
+        elif ('1/3+x, 2/3+y, 2/3+z' in sym_t) and (
+                '2/3+x, 1/3+y, 1/3+z' in sym_t):                         # Ro
+            rules.append(lambda h, k, l: (-h + k + l) / 3)
+            exti,append(Hkl_Ref_Conditions[6])
+        elif ('2/3+x, 1/3+y, 2/3+z' in sym_t) and (
+                '2/3+x, 1/3+y, 1/3+z' in sym_t):                         # Rr
+            rules.append(lambda h, k, l: (h - k + l) / 3)
+            exti,append(Hkl_Ref_Conditions[6])
+
+
+        # screw 21
+        if '1/2+x,    -y,    -z' in sym_t:                          # 21 a //a*
+            rules.append(lambda h, k, l: h % 2 if (k and l == 0) else False)
+            exti,append(Hkl_Ref_Conditions[50])
+        if '   -x, 1/2+y,    -z' in sym_t:                          # 21 b //b*
+            rules.append(lambda h, k, l: k % 2 if (h and l == 0) else False)
+            exti,append(Hkl_Ref_Conditions[54])
+        if '   -x, 1/2+y,    -z' in sym_t:                          # 21 c //c*
+            rules.append(lambda h, k, l: l % 2 if (h and k == 0) else False)
+            exti,append(Hkl_Ref_Conditions[58])
+
+        # screw 31, 32
+        if ('-y,   x-y, 1/3+z' in sym_t) or (
+                '   -y,   x-y, 2/3+z' in sym_t):                # 31 or 32 //c*
+            rules.append(lambda h, k, l: l % 3 if (h and k == 0) else False)
+            exti,append(Hkl_Ref_Conditions[63])
+
+        # screw 41, 43
+        if ('   -y,     x, 1/4+z' in sym_t) or (
+                '   -y,     x, 3/4+z' in sym_t):                # 41 or 43 //c*
+            rules.append(lambda h, k, l: l % 3 if (h and k == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # screw 42
+        if '   -y,     x, 1/2+z' in sym_t:                            # 42 //c*
+            rules.append(lambda h, k, l: l % 4 if (h and k == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # screw 61, 65
+        if ('  x-y,     x, 1/6+z' in sym_t) or (
+                '  x-y,     x, 5/6+z' in sym_t):                # 61 or 65 //c*
+            rules.append(lambda h, k, l: l % 6 if (h and k == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # screw 62, 64
+        if ('  x-y,     x, 1/3+z' in sym_t) or (
+                '  x-y,     x, 1/3+z' in sym_t):                # 62 or 64//c*
+            rules.append(lambda h, k, l: l % 3 if (h and k == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # screw 63
+        if '   -y,     x, 1/2+z' in sym_t:                            # 63//c*
+            rules.append(lambda h, k, l: l % 2 if (h and k == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # GLIDES
+        # glide a p y
+        if ('1/2+x,    -y,     z' in sym_t) or (
+                '1/2+x, 1/2-y,     z'):
+            rules.append(lambda h, k, l: h % 2 if (k == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # glide a p z
+        if ('1/2+x,     y,    -z' in sym_t) or (
+                '1/2+x,     y, 1/2-z'):
+            rules.append(lambda h, k, l: h % 2 if (h == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # glide b p x
+        if ('   -x, 1/2+y,     z' in sym_t) or (
+                '1/2-x, 1/2+y,     z'):
+            rules.append(lambda h, k, l: k % 2 if (h == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # glide b p z
+        if ('    x, 1/2+y,    -z' in sym_t) or (
+                '    x, 1/2+y, 1/2-z'):
+            rules.append(lambda h, k, l: k % 2 if (l == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # glide c p y
+        if ('    x,    -y, 1/2+z' in sym_t) or (
+                '    x, 1/2-y, 1/2+z'):
+            rules.append(lambda h, k, l: l % 2 if (k == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # glide c p x
+        if ('   -x,     y, 1/2+z' in sym_t) or (
+                '1/2-x,     y, 1/2+z'):
+            rules.append(lambda h, k, l: l % 2 if (h == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # glide n p x
+        if ('   -x, 1/2+y, 1/2+z' in sym_t) or (
+                '1/2-x, 1/2+y, 1/2+z'):
+            rules.append(lambda h, k, l: (k + l) % 2 if (h == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # glide n p y
+        if ('1/2+x,    -y, 1/2+z' in sym_t) or (
+                '1/2+x, 1/2-y, 1/2+z'):
+            rules.append(lambda h, k, l: (h + l) % 2 if (k == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # glide n p z
+        if ('1/2+x, 1/2+y,    -z' in sym_t) or (
+                '1/2+x, 1/2+y, 1/2-z'):
+            rules.append(lambda h, k, l: (h + k) % 2 if (l == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # glide d p x
+        if ('   -x, 1/4+y, 1/4+z' in sym_t) or (
+                '1/4-x, 1/4+y, 1/4+z'):
+            rules.append(lambda h, k, l: (k + l) % 4 if (h == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # glide d p y
+        if ('1/4+x,    -y, 1/4+z' in sym_t) or (
+                '1/4+x, 1/4-y, 1/4+z'):
+            rules.append(lambda h, k, l: (h + l) % 4 if (k == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        # glide d p z
+        if ('1/4+x, 1/4+y,    -z' in sym_t) or (
+                '1/4+x, 1/4+y, 1/4-z'):
+            rules.append(lambda h, k, l: (h + k) % 4 if (l == 0) else False)
+            exti,append(Hkl_Ref_Conditions[6])
+
+        return rules
+
+
+
     def is_exti_ref(self, HKL):
         """
         Returns boolens if reflection is absent
@@ -638,9 +849,6 @@ class Spacegroup:
                 return hkl_ab(HKL)
         else:
             return hkl_ab(HKL)
-
-
-
 
 
 def MT2text(Opr, reverse=False):
