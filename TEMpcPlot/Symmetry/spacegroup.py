@@ -560,7 +560,7 @@ class Spacegroup:
             i += 1
         return tags
 
-    def is_reflection_absent(self, HKL):
+    def is_exti_ref(self, HKL):
         """
         Returns boolens if reflection is absent
         Uses fc.gen_sym_mat
@@ -574,17 +574,73 @@ class Spacegroup:
             val = abs(np.array(hkl1) - np.array(hkl1))
             return True if np.all(val < eps_ref) else False
 
-        HKL = np.asarray(HKL, dtype=np.float)
+        def hkl_ab(hkl):
+            for rot, trans in self.get_symop():
+                # multiply only by the rotational part
+                opHKL = np.dot(HKL, rot)
+                if is_equal(HKL, opHKL):
+                    r1 = np.dot(trans, HKL)
+                    if abs(r1 - round(r1)) > eps_ref:
+                        return True
+            return False
 
-        for rot, trans in self.get_symop():
-            # multiply only by the rotational part
-            opHKL = np.dot(HKL, rot)
-            if is_equal(HKL, opHKL):
-                r1 = np.dot(trans, HKL)
-                r2 = round(r1)
-                if abs(r1 - r2) > eps_ref:
-                    return True
-        return False
+        HKL = np.asarray(HKL, dtype=np.float)
+        if self.no in [1, 2, 3, 6, 10, 16, 25, 47, 75, 81, 83, 89,
+                       99, 111, 115, 123, 143, 147, 149, 150, 156,
+                       157, 162, 164, 168, 174, 175, 177, 183, 187,
+                       189, 191, 174, 175, 177, 183, 187, 189, 191,
+                       195, 200, 207, 215, 221]:
+            return False
+
+        if self.symbol[0] != 'A':
+            if (HKL[2] + HKL[1]) % 2:
+                return True
+        elif self.symbol[0] != 'B':
+            if (HKL[0] + HKL[2]) % 2:
+                return True
+        elif self.symbol[0] != 'C':
+            if (HKL[0] + HKL[1]) % 2:
+                return True
+        elif self.symbol[0] != 'I':
+            if (HKL.sum()) % 2:
+                return True
+        elif self.symbol[0] != 'F':
+            if (HKL % 2).sum() not in [0, 3]:
+                return True
+        elif self.symbol[0] != 'R':
+            if (-HKL[0] + HKL[1] + HKL[2]) % 2:
+                return True
+        if self.no in [5, 8, 12, 21, 22, 23, 35, 38, 42, 44, 65, 69,
+                       71, 79, 82, 87, 97, 107, 119, 121, 139, 146,
+                       148, 155, 160, 166, 196, 197, 202, 204, 209,
+                       211, 216, 217, 225, 229]:
+            return False
+
+        # screw along c
+        if self.no in [17, 20, 76, 77, 78, 80, 84, 91, 93, 95, 98,
+                       144, 145, 151, 152, 153, 154, 169, 170, 171,
+                       172, 173, 176, 178, 179, 180, 181, 182]:
+            return hkl_ab(HKL) if sum(HKL) == HKL[2] else False
+        # screw along b
+        elif self.no in [4, 11, 90]:
+            return hkl_ab(HKL) if sum(HKL) == HKL[1] else False
+        elif self.no in [7, 9, 13, 14, 15]:
+            return hkl_ab(HKL) if HKL[1] == 0 else False
+        # few trigonal + hexa
+        elif self.no in [158, 161, 163, 165, 167, 185, 188, 193]:
+            return False if (HKL[0] and HKL[1]) else hkl_ab(HKL)
+        elif self.no in [159, 186, 190, 194]:
+            return False if (HKL[0] == HKL[1]) else hkl_ab(HKL)
+        elif self.no in [184, 192, 194]:
+            if (HKL[0] and HKL[1]) and (HKL[0] != HKL[1]):
+                return False
+            else:
+                return hkl_ab(HKL)
+        else:
+            return hkl_ab(HKL)
+
+
+
 
 
 def MT2text(Opr, reverse=False):

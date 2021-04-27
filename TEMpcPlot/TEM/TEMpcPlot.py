@@ -730,7 +730,6 @@ class SeqIm(list):
         ssign = 0 if np.argmax(np.abs(g_ang), axis=0).mean() <= 0.5 else 1
         self.angles = np.arccos(
             np.cos(g_ang[:, 0]) * np.cos(g_ang[:, 1])) * np.sign(g_ang[:, ssign])
-        print(self.angles)
 
     def help(self):
         """
@@ -1223,7 +1222,7 @@ class EwaldPeaks(object):
         # create a set of theoretical reflection
         if spg:
             # filter the reflection on the plane
-            spgo = spacegroup.Spacegroup(spg)
+            spgo = Symmetry.Spacegroup(spg)
             layer_pos = np.vstack([i for i in self.pos_cal])
             cond = app_cond(layer_pos.T)
             layer_pos = layer_pos[cond].T
@@ -1241,13 +1240,18 @@ class EwaldPeaks(object):
             # create the HKL grid
             refx, refy = np.mgrid[o12maxmin[0]: o12maxmin[2],
                                   o12maxmin[1]: o12maxmin[3]]
-            ref = [refx.flat, refy.flat].insert('hkl'.find(hkl),
-                                                np.ones_like(refx.flat) * n)
+            ref = [refx.flat, refy.flat]
             ref = np.vstack(ref).T  # transform in nline 3 colum format
 
             # create extinction
-            ext_c = [True if spgo.is_exti_ref(i) else False for i in ref]
-            ref_ext = Ort_mat @ ref[ext_c].T
+            ref3ind = np.insert(ref, 'hkl'.find(hkl),
+                                np.ones_like(refx.flat) * n,
+                                axis=1)
+            ext_c = np.array([spgo.is_exti_ref(i) for i in ref3ind])
+            if np.any(ext_c):
+                ref_ext = Ort_mat @ ref[ext_c].T
+            if np.any(~ext_c):
+                ref_ext = Ort_mat @ ref[ext_c].T
             ref_act = Ort_mat @ ref[~ ext_c].T
 
             plt.figure()
@@ -1259,14 +1263,16 @@ class EwaldPeaks(object):
             plt_p.circles(pos_o[0], pos_o[1],
                           s=c_size,
                           color='b')
-            plt_p.rectangles(*ref_act,
-                             w=inte_o.mean() / inte_o.max() * abs(size * 1.5),
-                             color='r', alpha=0.5)
-            plt_p.rectangles(*ref_ext,
-                             w=inte_o.mean() / inte_o.max() * abs(size * 1.5),
-                             color='r', fc='none')
+            if np.any(~ext_c):
+                plt_p.rectangles(*ref_act,
+                                 w=inte_o.mean() / inte_o.max() * abs(size * 1.5),
+                                 color='r', alpha=0.5)
+            if np.any(ext_c):
+                plt_p.rectangles(*ref_ext,
+                                 w=inte_o.mean() / inte_o.max() * abs(size * 1.5),
+                                 color='r', fc='none')
             title = '(H K L)'.replace(hkl.upper(), str(n))
-            title += '  %s' % spg
+            title += '  %s (%d)' % (spgo.symbol.strip().replace(' ', ''), spgo.no)
             plt.title(title, weight='bold')
             # plt.scatter(*ref_act, s= 0.5 *inte_o.min() * size,
             #             marker="D",

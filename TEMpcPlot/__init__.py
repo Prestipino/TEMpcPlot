@@ -22,10 +22,6 @@ The mode of use is relativelly simple :
 """
 from .TEM import(SeqIm, EwaldPeaks)
 
-from .GII import (SpaceGroup, SytSym, spgbyNum)
-
 from .tables import pt_p
 
-
-
-
+from . import Symmetry 
