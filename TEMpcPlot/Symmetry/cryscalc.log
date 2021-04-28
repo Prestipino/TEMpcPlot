@@ -1,0 +1,76 @@
+   
+      *****************************************************************
+      *                                                               *
+      *                         C R Y S C A L C                       *
+      *                                                               *
+      *                 (CRYSTALLOGRAPHIC CALCULATIONS)               *
+      *                                                               *
+      *              makes crystallographer life easier !             *
+      *                                                               *
+      *                           Ver. 20.04                          *
+      *                                                               *
+      *---------------------------------------------------------------*
+      *                                                               *
+      *                           T. Roisnel                          *
+      *                                                               *
+      *                         CDIFX/PRTS/ISCR                       *
+      *                UMR6226 CNRS-Univ Rennes, France               *
+      *                                                               *
+      *             [with courtesy of JRC and JGP for CFML]           *
+      *                                                               *
+      *                                                               *
+      *            contact : thierry.roisnel@univ-rennes1.fr          *
+      *        Web site : https://cdifx.univ-rennes1.fr/cryscalc      *
+      *                                                               *
+      *****************************************************************
+   
+   
+   > Enter keyword: 
+   
+      >> Input command: SG 5
+   
+   
+    > SPACE GROUP : 5
+   
+            > HM symbol : C 1 2 1
+                   IT # :   5
+                centric : no
+                 chiral : yes
+   general multiplicity :   4
+   
+      Enter SG_INFO [ALL] keyword for more details about selected space group.
+   
+   
+   > Enter keyword: 
+   
+      >> Input command: SG_EXTI
+   
+   
+            > HM symbol : C 1 2 1
+                   IT # :   5
+                centric : no
+                 chiral : yes
+   general multiplicity :   4
+   
+      Enter SG_INFO [ALL] keyword for more details about selected space group.
+   
+   
+    >>> Integral reflections conditions for centred lattices:
+   ----------------------------------------------------------
+   
+       # 1: (h k l)    h+k=2n : xy0 centred face (C)
+   
+    >>> Zonal reflections conditions for glide planes:
+   ---------------------------------------------------
+   
+       # 7: (  0  k  l)     k=2n : (100) glide plane with b/2 translation (b)
+       #11: (  h  0  l)     h=2n : (010) glide plane with a/2 translation (a)
+       #17: (  h  k  0)   h+k=2n : (001) glide plane with a/2 + b/2 translations (n)
+   
+    >>> Serial reflections conditions for screw axes:
+   ---------------------------------------------------
+   
+       #40: (h 0 0)      h=2n : screw axis // [100] with  a/2 translation (21)
+       #44: (0 k 0)      k=2n : screw axis // [010] with  b/2 translation (21)
+   
+   > Enter keyword: 
