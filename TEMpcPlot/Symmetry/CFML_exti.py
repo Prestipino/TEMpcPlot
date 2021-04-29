@@ -156,13 +156,13 @@ def Integral_Conditions(SpaceGroup, iunit):
         # la regle d"extinction
         p_hkl = hkl.T[cond]
         # reflecions obeissant a la regle
-        absent_hkl = [hkl_absent(hh, SpaceGroup) for hh in p_hkl]
+        absent_hkl = [True for hh in p_hkl if hkl_absent(hh, SpaceGroup)]
         return len(p_hkl) == len(absent_hkl)
 
     def end_action(num_exti):
         nonlocal integral_condition
         if iunit:
-            print(f"#  ,{num_exti}, : , {Hkl_Ref_Conditions[num_exti]}")
+            print(f"#  {num_exti:3d} :  {Hkl_Ref_Conditions[num_exti]}")
         integral_condition = True
 
     # !---- C-face centred ----!
@@ -192,16 +192,17 @@ def Integral_Conditions(SpaceGroup, iunit):
     # !---- Body centred (I) ----!
     # !  Hkl_Ref_Conditions(4) =   "(h k l)  h+k+l=2n         : body centred"
     num_exti = 4
-    hkl = gen_hkl(6)  # colomn of hkl
-    cond = np.asarray((hkl[0] + hkl[1] + hkl[2]) % 2, dtype=bool)
+    hkl = gen_hkl(3)  # colomn of hkl
+    cond = np.asarray(hkl.sum(0) % 2, dtype=bool)
     if test_absent(hkl, cond):
         end_action(num_exti)
-
+        return
     # !---- all-face centred (F) ----!
-    # ! Hkl_Ref_Conditions(5) =   "(h k l)  h,k,l same parity: all-face centred"
+    # ! Hkl_Ref_Conditions(5) =   "(h k l)  h,k,l same parity: all-face cent"
     num_exti = 5
     hkl = gen_hkl(6)  # colomn of hkl
-    cond = np.asarray(hkl.sum(axis=1) % 2 in [1, 2])
+    c1 = np.sum(hkl % 2, axis=0)
+    cond = np.asarray(np.logical_or((c1 == 1), (c1 == 2)))
     if test_absent(hkl, cond):
         end_action(num_exti)
 
@@ -244,13 +245,13 @@ def Screw_Axis_Conditions(SpaceGroup, Iunit):
         # la regle d"extinction
         p_hkl = hkl.T[cond]
         # reflecions obeissant a la regle
-        absent_hkl = [hkl_absent(hh, SpaceGroup) for hh in p_hkl]
+        absent_hkl = [hh for hh in p_hkl if hkl_absent(hh, SpaceGroup)]
         return len(p_hkl) == len(absent_hkl)
 
     def end_action(num_exti):
         nonlocal serial_condition
         if Iunit:
-            print(f"#  ,{num_exti}, : , {Hkl_Ref_Conditions[num_exti]}")
+            print(f"#  {num_exti:3d} :  {Hkl_Ref_Conditions[num_exti]}")
             serial_condition = True
 
     def screw_21_41(xyz, num_exti):
@@ -283,23 +284,23 @@ def Screw_Axis_Conditions(SpaceGroup, Iunit):
     # !SCREW AXES:      33 extinctions
     # check if "Monoclinic", "Orthorhombic" "Tetragonal" "Cubic"
     if (SpaceGroup.no in range(1, 143)) or (SpaceGroup.no > 194):
-        # ! Hkl_Ref_Conditions(40) =   "(h 0 0)      h=2n : screw axis // [100] with  a/2 translation (21)"   # ! monoclinic, ortho., tetra or cubic
+        # ! Hkl_Ref_Conditions(40) =   "(h 0 0)      h=2n : screw axis // [100] with  a/2 translation (21) # noqa E501
         num_exti = 40
         screw_21_41(0, num_exti)
-        # ! Hkl_Ref_Conditions(44) =   "(0 k 0)      k=2n : screw axis // [010] with  b/2 translation (21)"   # ! monoclinic, ortho., tetra and cubic
+        # ! Hkl_Ref_Conditions(44) =   "(0 k 0)      k=2n : screw axis // [010] with  b/2 translation (21) # noqa E501
         num_exti = 44
         screw_21_41(1, num_exti)
-        # ! Hkl_Ref_Conditions(48) =   "(0 0 l)      l=2n : screw axis // [00l] with  c/2 translation (21)"   # ! monoclinic, ortho. and cubic
+        # ! Hkl_Ref_Conditions(48) =   "(0 0 l)      l=2n : screw axis // [00l] with  c/2 translation (21) # noqa E501
         num_exti = 48
         screw_21_41(2, num_exti)
 
     if (SpaceGroup.no > 194):  # "Cubic" then
         # ! 41
-        # ! Hkl_Ref_Conditions(41) =   "(h 0 0)      h=2n : screw axis // [100] with  2a/4 translation (42)"   # !  cubic
+        # ! Hkl_Ref_Conditions(41) =   "(h 0 0)      h=2n : screw axis // [100] with  2a/4 translation (42)" # noqa E501
         num_exti = 41
         screw_21_41(0, num_exti)
 
-        # Hkl_Ref_Conditions(42) =   "(h 0 0)      h=4n : screw axis // [100] with  a/4 translation (41)"   # ! cubic
+        # Hkl_Ref_Conditions(42) =   "(h 0 0)      h=4n : screw axis // [100] with  a/4 translation (41)" # noqa E501
         # Hkl_Ref_Conditions(43) =   "(h 0 0)      h=4n : screw axis //
         # [100] with 3a/4 translation (43)"   # ! cubic
         num_exti = 42
@@ -380,8 +381,8 @@ def Glide_Planes_Conditions(SpaceGroup, Iunit):
 
     def gen_hk0(zero, x):
         g = np.mgrid[-x: x + 1, -x: x + 1]
-        hkl = np.vstack(map(np.ravel, g))
-        hkl = hkl.insert(zero, np.zeros_like(hkl[0]))
+        hkl = np.vstack(list(map(np.ravel, g)))
+        hkl = np.insert(hkl, zero, np.zeros_like(hkl[0]), 0)
         return hkl
 
     def gen_hhl(l_diff, x):
@@ -392,23 +393,23 @@ def Glide_Planes_Conditions(SpaceGroup, Iunit):
 
     def test_absent(hkl, cond):
         p_hkl = hkl.T[cond]   # la regle d"extinction
-        absent_hkl = [hkl_absent(hh, SpaceGroup)
-                      for hh in p_hkl]  # ref. good with rule
+        absent_hkl = [hh for hh in p_hkl if hkl_absent(
+            hh, SpaceGroup)]  # ref. good with rule
         return len(p_hkl) == len(absent_hkl)
 
     def end_action(num_exti):
         nonlocal zonal_condition
-        if iunit:
-            print(f"#  ,{num_exti}, : , {Hkl_Ref_Conditions[num_exti]}")
-        integral_condition = True
+        if Iunit:
+            print(f"#  {num_exti:3d} :  {Hkl_Ref_Conditions[num_exti]}")
+        zonal_condition = True
 
     def glide_abc(tras, mir, num_exti):
         """
           xyz = 0 , 1, 2
         """
         g = np.mgrid[-6:7, -6:7]
-        hkl = np.vstack(map(np.ravel, g))
-        hkl = hkl.insert(mir, np.zeros_like(hkl[0])).T
+        hkl = np.vstack(list(map(np.ravel, g)))
+        hkl = np.insert(hkl, mir, np.zeros_like(hkl[0]), 0)
         cond = np.asarray(hkl[tras] % 2, dtype=bool)
         if test_absent(hkl, cond):
             end_action(num_exti)
