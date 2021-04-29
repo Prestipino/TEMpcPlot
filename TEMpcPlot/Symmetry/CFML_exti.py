@@ -1,10 +1,72 @@
 """
 """
 import numpy as np
-
+import types
 # zz
 
 eps_ref = 0.0002
+
+
+ex_r = {"Ccen": lambda h, k, l: np.where((h + k) % 2, True, False),
+        "Acen": lambda h, k, l: np.where((k + l) % 2, True, False),
+        "Bcen": lambda h, k, l: np.where((h + l) % 2, True, False),
+        "Icen": lambda h, k, l: np.where((k + k + l) % 2  , True, False),
+        "Rceno": lambda h, k, l: np.where((-h + k + l) % 3, True, False),
+        'Rcenr': lambda h, k, l: np.where((h - k + l) % 3 , True, False),
+        7      : lambda h, k, l: np.where(h != 0, False, (k % 2).astype(bool)),               #7  (  0  k  l)     k=2n : (100) glide plane with b/2 translation (b)
+        8      : lambda h, k, l: np.where(h != 0, False, (l % 2).astype(bool)),               #8  (  0  k  l)     l=2n : (100) glide plane with c/2 translation (c)
+        9      : lambda h, k, l: np.where(h != 0, False, ((k + l) % 2).astype(bool)),         #9  (  0  k  l)   k+l=2n : (100) glide plane with b/2 + c/2 translations (n)
+        10     : lambda h, k, l: np.where(h != 0, False, ((k + l) % 4).astype(bool)),         #10 (  0  k  l)   k+l=4n : (100) glide plane with b/4 +- c/4 translations (d)
+        11     : lambda h, k, l: np.where(k != 0, False, (h  % 2).astype(bool)),              #11 (  h  0  l)     h=2n : (010) glide plane with a/2 translation (a)
+        12     : lambda h, k, l: np.where(k != 0, False, (l % 2).astype(bool)),               #12 (  h  0  l)     l=2n : (010) glide plane with c/2 translation (c)
+        13     : lambda h, k, l: np.where(k != 0, False, ((h + l) % 2).astype(bool)),         #13 (  h  0  l)   l+h=2n : (010) glide plane with c/2 + a/2 translations (n)
+        14     : lambda h, k, l: np.where(k != 0, False, ((h + l) % 4).astype(bool)),         #14 (  h  0  l)   l+h=4n : (010) glide plane with c/4 +- a/4 translations (d)
+        15     : lambda h, k, l: np.where(l != 0, False, (h  % 2).astype(bool)),              #15 (  h  k  0)     h=2n : (001) glide plane with a/2 translation (a)
+        16     : lambda h, k, l: np.where(l != 0, False, (k % 2).astype(bool)),               #16 (  h  k  0)     k=2n : (001) glide plane with b/2 translation (b)
+        17     : lambda h, k, l: np.where(l != 0, False, ((h + l) % 2).astype(bool)),         #17 (  h  k  0)   h+k=2n : (001) glide plane with a/2 + b/2 translations (n)
+        18     : lambda h, k, l: np.where(k != 0, False, ((h + l) % 4).astype(bool)),         #18 (  h  k  0)   h+k=4n : (001) glide plane with a/4 +- b/4 translations (d)
+        19     : lambda h, k, l: np.where(  h - k == 0,   False, (l % 2).astype(bool)),       #19 (  h  -h   0 l) l=2n : (11-20) glide plane with c/2 translation (c)
+        20     : lambda h, k, l: np.where(  0 + k == k,   False, (l % 2).astype(bool)),       #20 (  0   k  -k l) l=2n : (-2110) glide plane with c/2 translation (c)
+        21     : lambda h, k, l: np.where( -h + 0 == h,   False, (l % 2).astype(bool)),       #21 ( -h   0   h l) l=2n : (1-210) glide plane with c/2 translation (c)
+        22     : lambda h, k, l: np.where(  h + k == 2*h, False, (l % 2).astype(bool)),       #22 (  h   h -2h l) l=2n : (1-100) glide plane with c/2 translation (c)
+        23     : lambda h, k, l: np.where(-2*h + k == h,  False, (l % 2).astype(bool)),       #23 (-2h   h   h l) l=2n : (01-10) glide plane with c/2 translation (c)
+        24     : lambda h, k, l: np.where(  h - 2*k == h, False, (l % 2).astype(bool)),       #24 (  h -2h   h l) l=2n : (-1010) glide plane with c/2 translation (c) 
+        25     : lambda h, k, l: np.where(h !=  k, False, (l % 2).astype(bool)),              #25  (  h  h  l)     l=2n : (1-10) glide plane with c/2 translation (c,n)
+        26     : lambda h, k, l: np.where(k !=  l, False, (h % 2).astype(bool)),              #26  (  h  k  k)     h=2n : (01-1) glide plane with a/2 translation (a,n)
+        27     : lambda h, k, l: np.where(h !=  l, False, (k % 2).astype(bool)),              #27  (  h  k  h)     k=2n : (-101) glide plane with b/2 translation (b,n)
+        28     : lambda h, k, l: np.where(h !=  k, False, (l % 2).astype(bool)),              #28  (  h  h  l)     l=2n : (1-10) glide plane with c/2 translation (c,n)
+        29     : lambda h, k, l: np.where(h !=  k, False, ((2*h +l) % 4).astype(bool)),       #29  (  h  h  l)  2h+l=4n : (1-10) glide plane with a/4 +- b/4 +- c/4 translation (d)
+        30     : lambda h, k, l: np.where(h != -k, False, (l % 2).astype(bool)),              #30  (  h -h  l)     l=2n : (110)  glide plane with c/2 translation (c,n)
+        31     : lambda h, k, l: np.where(h != -k, False, ((2*h +l) % 4).astype(bool)),       #31  (  h -h  l)  2h+l=4n : (110)  glide plane with a/4 +- b/4 +- c/4 translation (d)
+        32     : lambda h, k, l: np.where(k !=  l, False, (h % 2).astype(bool)),              #32  (  h  k  k)     h=2n : (01-1) glide plane with a/2 translation (a,n)
+        33     : lambda h, k, l: np.where(k !=  l, False, ((2*k +h) % 4).astype(bool)),       #33  (  h  k  k)  2k+h=4n : (01-1) glide plane with +-a/4 + b/4 +- c/4 translation(d)
+        34     : lambda h, k, l: np.where(k != -l, False, (h % 2).astype(bool)),              #34  (  h  k -k)     h=2n : (011)  glide plane with a/2 translation (a,n)
+        35     : lambda h, k, l: np.where(k != -l, False, ((2*k +h) % 4).astype(bool)),       #35  (  h  k -k)  2k+h=4n : (011)  glide plane with +-a/4 + b/4 +- c/4 translation(d)
+        36     : lambda h, k, l: np.where(h !=  l, False, (k % 2).astype(bool)),              #36  (  h  k  h)     k=2n : (-101) glide plane with b/2 translation (b,n)
+        37     : lambda h, k, l: np.where(h !=  l, False, ((2*h +k) % 4).astype(bool)),       #37  (  h  k  h)  2h+k=4n : (-101) glide plane with +-a/4 +- b/4 + c/4 translation(d)
+        38     : lambda h, k, l: np.where(-h != l, False, (k % 2).astype(bool)),              #38  ( -h  k  h)     k=2n : (101)  glide plane with b/2 translation (b,n)
+        39     : lambda h, k, l: np.where(-h != l, False, ((2*h +k) % 4).astype(bool)),       #39  ( -h  k  h)  2h+k=4n : (101)  glide plane with +-a/4 +- b/4 + c/4 translation(d)
+        40     : lambda h, k, l: np.where(np.logical_or(k, l), False, (h % 2).astype(bool)),  #40  (h 0 0)      h=2n : screw axis // [100] with  a/2 translation (21) 
+        41     : lambda h, k, l: np.where(np.logical_or(k, l), False, (h % 2).astype(bool)),  #41  (h 0 0)      h=2n : screw axis // [100] with 2a/4 translation (42)
+        42     : lambda h, k, l: np.where(np.logical_or(k, l), False, (h % 4).astype(bool)),  #42  (h 0 0)      h=4n : screw axis // [100] with  a/4 translation (41)
+        43     : lambda h, k, l: np.where(np.logical_or(k, l), False, (h % 4).astype(bool)),  #43  (h 0 0)      h=4n : screw axis // [100] with 3a/4 translation (43)
+        44     : lambda h, k, l: np.where(np.logical_or(h, l), False, (h % 2).astype(bool)),  #44  (0 k 0)      k=2n : screw axis // [010] with  b/2 translation (21)
+        45     : lambda h, k, l: np.where(np.logical_or(h, l), False, (h % 2).astype(bool)),  #45  (0 k 0)      k=2n : screw axis // [010] with 2b/4 translation (42)
+        46     : lambda h, k, l: np.where(np.logical_or(h, l), False, (h % 4).astype(bool)),  #46  (0 k 0)      k=4n : screw axis // [010] with  b/4 translation (41)
+        47     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 4).astype(bool)),  #47  (0 k 0)      k=4n : screw axis // [010] with 3b/4 translation (43)
+        48     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 2).astype(bool)),  #48  (0 0 l)      l=2n : screw axis // [00l] with  c/2 translation (21)
+        49     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 2).astype(bool)),  #49  (0 0 l)      l=2n : screw axis // [00l] with 2c/4 translation (42)
+        50     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 4).astype(bool)),  #50  (0 0 l)      l=4n : screw axis // [00l] with  c/4 translation (41)
+        51     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 4).astype(bool)),  #51  (0 0 l)      l=4n : screw axis // [00l] with 3c/4 translation (43)
+        52     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 2).astype(bool)),  #52  (0 0 0 l)    l=2n : screw axis // [00l] axis with 3c/6 translation (63)
+        53     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 3).astype(bool)),  #53  (0 0 0 l)    l=3n : screw axis // [00l] axis with  c/3 translation (31)
+        54     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 3).astype(bool)),  #54  (0 0 0 l)    l=3n : screw axis // [00l] axis with 2c/3 translation (32)
+        55     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 3).astype(bool)),  #55  (0 0 0 l)    l=3n : screw axis // [00l] axis with 2c/6 translation (62)
+        56     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 3).astype(bool)),  #56  (0 0 0 l)    l=3n : screw axis // [00l] axis with 4c/6 translation (64)
+        57     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 6).astype(bool)),  #57  (0 0 0 l)    l=6n : screw axis // [00l] axis with  c/6 translation (61)
+        58     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 6).astype(bool)),  #58  (0 0 0 l)    l=6n : screw axis // [00l] axis with 5c/6 translation
+        }
+
 
 
 Hkl_Ref_Conditions = """ None
@@ -83,21 +145,29 @@ Hkl_Ref_Conditions = Hkl_Ref_Conditions.split('\n')
 Hkl_Ref_Conditions = [i for i in Hkl_Ref_Conditions if i[0] != '#']
 
 
-def Search_Extinctions_Iunit(Spacegroup, Iunit):
+def Search_Extinctions(Spacegroup, Iunit):
     """!---- Arguments ----!
     type (Space_Group_Type), intent(in)     :: spacegroup
     integer,                 intent(in)     :: Iunit
     """
 
-    Integral_Conditions(Spacegroup, Iunit)
-    Glide_Planes_Conditions(Spacegroup, Iunit)
-    Screw_Axis_Conditions(Spacegroup, Iunit)
+    IC = Integral_Conditions(Spacegroup, Iunit)
+    SPC = Glide_Planes_Conditions(Spacegroup, Iunit)
+    SAC = Screw_Axis_Conditions(Spacegroup, Iunit)
+
+    C = IC + SPC + SAC
+
+    def is_exti(self, h, k, l):
+        h, k, l = np.asarray(h), np.asarray(k), np.asarray(l)
+        cond = np.asarray([f(h,k,l) for f in C], dtype=bool)
+        return cond.any(axis=0)
+    Spacegroup.search_exti = types.MethodType(is_exti, Spacegroup)
 
     return
 
 
 def is_equal(hkl1, hkl2):
-    val = abs(np.array(hkl1) - np.array(hkl1))
+    val = abs(np.array(hkl1) - np.array(hkl2))
     return True if np.all(val < eps_ref) else False
 
 
@@ -112,6 +182,35 @@ def hkl_absent(HKL, Spacegroup):
     return False
 
 
+    # Function Hkl_AbsentI(H,Spacegroup) Result(Info)
+    #    !---- Arguments ----!
+    #    integer, dimension(3),   intent (in) :: h
+    #    Type (Space_Group_Type), intent (in) :: SpaceGroup
+    #    logical                              :: info
+
+    #    !---- Local Variables ----!
+    #    integer, dimension(3)              :: k
+    #    integer                            :: i
+    #    real(kind=cp)                      :: r1,r2
+
+    #    info=.false.
+
+    #    do i=1,SpaceGroup%multip
+    #       k = matmul(h,SpaceGroup%SymOp(i)%Rot)
+    #       if (hkl_equal(h,k)) then
+    #          r1=dot_product(SpaceGroup%SymOp(i)%Tr,real(h))
+    #          r2=nint(r1)
+    #          if (abs(r1-r2) > eps_ref) then
+    #             info=.true.
+    #             exit
+    #          end if
+    #       end if
+    #    end do
+
+    #    return
+    # End Function Hkl_AbsentI
+
+
 def Integral_Conditions(SpaceGroup, iunit):
     """!---- Arguments ----!
     type (Space_Group_Type),  intent(in)     :: spacegroup
@@ -124,7 +223,7 @@ def Integral_Conditions(SpaceGroup, iunit):
     integer               :: num_exti
     logical               :: integral_condition
     """
-
+    IC = []
     integral_condition = False
 
     # 1.       h+k   = 2n                   C-face centred                      C
@@ -140,7 +239,7 @@ def Integral_Conditions(SpaceGroup, iunit):
     #
     # 6.      -h+k+l = 3n                   Rhombohedrally centred,             R
     #                                       obverse setting
-
+   
     if (iunit):
         print(" ")
         print(" >>> Integral reflections conditions for centred lattices:")
@@ -172,6 +271,7 @@ def Integral_Conditions(SpaceGroup, iunit):
     cond = np.asarray((hkl[0] + hkl[1]) % 2, dtype=bool)
     if test_absent(hkl, cond):
         end_action(num_exti)
+        IC.append(ex_r['Ccen'])
 
     # !---- A-face centred ----!
     # !   Hkl_Ref_Conditions(2) =   "(h k l)  k+l=2n           : 0yz centered base"
@@ -180,6 +280,7 @@ def Integral_Conditions(SpaceGroup, iunit):
     cond = np.asarray((hkl[1] + hkl[2]) % 2, dtype=bool)
     if test_absent(hkl, cond):
         end_action(num_exti)
+        IC.append(ex_r['Acen'])
 
     # !---- B-face centred ----!
     # !  Hkl_Ref_Conditions(3) =   "(h k l)  h+l=2n           : x0z centered base"
@@ -188,6 +289,7 @@ def Integral_Conditions(SpaceGroup, iunit):
     cond = np.asarray((hkl[0] + hkl[2]) % 2, dtype=bool)
     if test_absent(hkl, cond):
         end_action(num_exti)
+        IC.append(ex_r['Bcen'])
 
     # !---- Body centred (I) ----!
     # !  Hkl_Ref_Conditions(4) =   "(h k l)  h+k+l=2n         : body centred"
@@ -196,7 +298,8 @@ def Integral_Conditions(SpaceGroup, iunit):
     cond = np.asarray(hkl.sum(0) % 2, dtype=bool)
     if test_absent(hkl, cond):
         end_action(num_exti)
-        return
+        IC.append(ex_r['Icen'])
+
     # !---- all-face centred (F) ----!
     # ! Hkl_Ref_Conditions(5) =   "(h k l)  h,k,l same parity: all-face cent"
     num_exti = 5
@@ -213,11 +316,12 @@ def Integral_Conditions(SpaceGroup, iunit):
     cond = np.asarray((-hkl[0] + hkl[1] + hkl[2]) % 3, dtype=bool)
     if test_absent(hkl, cond):
         end_action(num_exti)
+        IC.append(ex_r['Rceno'])
 
     if not integral_condition:
         if iunit:
             print("     =====>>> no general reflection condition")
-    return
+    return IC
 
 
 def Screw_Axis_Conditions(SpaceGroup, Iunit):
@@ -233,7 +337,7 @@ def Screw_Axis_Conditions(SpaceGroup, Iunit):
     integer               :: num_exti
     logical               :: serial_condition
     """
-
+    SAC = []
     serial_condition = False
 
     def gen_hkl(x):
@@ -252,7 +356,8 @@ def Screw_Axis_Conditions(SpaceGroup, Iunit):
         nonlocal serial_condition
         if Iunit:
             print(f"#  {num_exti:3d} :  {Hkl_Ref_Conditions[num_exti]}")
-            serial_condition = True
+        serial_condition = True
+        SAC.append(ex_r[num_exti])
 
     def screw_21_41(xyz, num_exti):
         """
@@ -355,10 +460,12 @@ def Screw_Axis_Conditions(SpaceGroup, Iunit):
             end_action(num_exti)
             end_action(num_exti + 1)
 
+
     if not serial_condition:
         if Iunit:
             print("     =====>>> no serial reflection condition")
 
+    return SAC
 
 def Glide_Planes_Conditions(SpaceGroup, Iunit):
     """
@@ -373,6 +480,7 @@ def Glide_Planes_Conditions(SpaceGroup, Iunit):
     integer               :: num_exti
     logical               :: zonal_condition
     """
+    GPC = []
     zonal_condition = False
 
     def gen_hkl(x):
@@ -402,6 +510,7 @@ def Glide_Planes_Conditions(SpaceGroup, Iunit):
         if Iunit:
             print(f"#  {num_exti:3d} :  {Hkl_Ref_Conditions[num_exti]}")
         zonal_condition = True
+        GPC.append(ex_r[num_exti])
 
     def glide_abc(tras, mir, num_exti):
         """
@@ -709,3 +818,5 @@ def Glide_Planes_Conditions(SpaceGroup, Iunit):
     if not zonal_condition:
         if Iunit:
             print("     =====>>> no zonal reflection condition")
+
+    return GPC
