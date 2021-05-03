@@ -1,7 +1,14 @@
+import matplotlib
 import matplotlib.pyplot as plt
 # import skimage
 from matplotlib.backends.qt_compat import QtGui
 from matplotlib.widgets import Cursor
+
+from packaging import version
+if version.parse(matplotlib.__version__) < version.parse("2.3.1"):
+    matplotlib_old = True
+else:
+    matplotlib_old = False
 # from matplotlib.widgets import Slider
 # from matplotlib.backend_tools import ToolBase
 # plt.rcParams['toolbar'] = 'toolmanager'
@@ -22,6 +29,8 @@ from . import plt_p
 from .profileline import profile_line
 from .ransac import ransac_lin
 from . import d3plot
+from . import more_widget as mw
+from . import math_tools as mt
 # import  scipy.optimize  as opt
 plt.ion()
 
@@ -399,74 +408,42 @@ class PeakL(list):
         self._mid = self.lp.figure.canvas.mpl_connect(
             'button_press_event', endpick)
 
-    def del_PlotRange(self):
+    def del_PlotRange(self, ):
         """delete the peak inside a rectangle plotted on the axis
         """
+        canv = self.lp.figure.canvas
         self._break_loop = False
         if not hasattr(self, 'lp'):
             return
-        line = LineBuilder()
-        line.defFplot(plot=False, color='r')
-        while not(hasattr(line, 'error')):
-            plt.pause(0.3)
-        if line.error:
-            return
-        canv = line.line.figure.canvas
-        angle = np.arctan2(*line.vect) / rpd
 
-        width = 0
-        Rleft = plt.Rectangle((np.flip(line.origin)),
-                              line.mod, width, angle, color='r', alpha=0.3)
-        Rright = plt.Rectangle((np.flip(line.origin)),
-                               line.mod, -width, angle, color='r', alpha=0.3)
-        self.lp.axes.add_patch(Rleft)
-        self.lp.axes.add_patch(Rright)
-
-        def move_m(event):
-            if event.inaxes != self.lp.axes:
-                return
-            nonlocal width
-            x1 = event.ydata
-            y1 = event.xdata
-            width = line.dist_p([[x1], [y1]])
-            Rleft.set_height(width)
-            Rright.set_height(-width)
-            canv.draw()
-            return
-
-        def endpick(event):
-            # print('click', event)
-            if event.inaxes != self.lp.axes:
-                return
-            nonlocal Rleft, Rright
-            canv.mpl_disconnect(self._mid)
-            Rleft.remove()
-            Rright.remove()
-            plt.draw()
-            del_inside()
+        def on_press(self, event):
+            canv = self.lp.figure.canvas
             canv.mpl_disconnect(self._rid)
-            return
+            ax = self.lp.axes
+            if canv.widgetlock.locked():
+                return
+            if event.inaxes is None:
+                return
+            self.rect = mw.RectangleBuilder(ax, [event.xdata. evant.ydata],
+                                            callback=del_inside)
+            # acquire a lock on the widget drawing
+            self.canvas.widgetlock(self.rect)
 
-        def del_inside():
+        def del_inside(origin, vect, width):
             '''delete point inside the rrectangle
             '''
-            nonlocal width
             # calc perp line
-            perp_v = width * np.cross(line.vect, [0, 0, 1])[:2] / line.mod
-            line.cen = line.origin + (line.vect / 2)
-            line_p = LineBuilder()
-            data = np.array([line.cen - perp_v, line.cen + perp_v]).T
-            line_p.calc(data=data)
+            p_vect = width * mt.perp_vect(vect)
+            cen = origin + (vect / 2)
             # delete points
             coor = np.array(self)
-            dist_1 = line.dist_p(coor)
-            dist_2 = line_p.dist_p(coor)
-            rcoor = np.where((dist_1 < width) & (dist_2 < (abs(line.mod) / 2)))
+            dist_1 = mt.dist_p2vect(origin, vect, coor)
+            dist_2 = mt.dist_p2vect(cen - p_vect, p_vect * 2, coor)
+            rcoor = np.where((dist_1 < width) & (dist_2 < (mt.mod(vect) / 2)))
             for i in np.flip(rcoor):
                 self.del_peak(i)
 
-        self._mid = canv.mpl_connect('motion_notify_event', move_m)
-        self._rid = canv.mpl_connect('button_press_event', endpick)
+        self._rid = canv.mpl_connect('button_press_event', on_press)
 
     def help(self):
         print(self.__doc__)
@@ -877,24 +854,13 @@ class SeqIm(list):
             selfPL = self.ima.Peaks
             if not hasattr(self.ima.Peaks, 'lp'):
                 return
-            print(tool_b._active)
-            if tool_b._active == 'Del_P':
-                tool_b._active = None
-            else:
-                tool_b._active = 'Del_P'
-
-            if tool_b._idPress is not None:
-                tool_b._idPress = fig.canvas.mpl_disconnect(tool_b._idPress)
-                tool_b.mode = ''
-
-            if tool_b._idRelease is not None:
-                tool_b._idRelease = fig.canvas.mpl_disconnect(
-                    tool_b._idRelease)
-                tool_b.mode = ''
+            if fig.canvas.widgetlock.locked():
+               return
 
             def onpick(event):
                 if event.artist != self.ima.Peaks.lp:
                     return
+                print('xx')
                 self.ima.Peaks.del_peak(event.ind[0])
                 return
 
@@ -905,23 +871,19 @@ class SeqIm(list):
                     return
                 fig.canvas.mpl_disconnect(selfPL._cid)
                 fig.canvas.mpl_disconnect(selfPL._mid)
-                tool_b._active = None
+                fig.canvas.widgetlock.release(tool_b._actions['del_p'])
                 tool_b._actions['del_p'].setChecked(False)
+                print('lll')
                 return
 
-            if tool_b._active:
-                selfPL._cid = fig.canvas.mpl_connect('pick_event', onpick)
-                selfPL._mid = fig.canvas.mpl_connect(
-                    'button_press_event', endpick)
-                # fig.canvas.widgetlock(self)
-            else:
-                # fig.canvas.widgetlock.release(self)
-                fig.canvas.mpl_disconnect(tool_b._idPress)
-                fig.canvas.mpl_disconnect(tool_b._idRelease)
-                #
 
-            tool_b._actions['pan'].setChecked(tool_b._active == 'PAN')
-            tool_b._actions['zoom'].setChecked(tool_b._active == 'ZOOM')
+            selfPL._cid = fig.canvas.mpl_connect('pick_event', onpick)
+            selfPL._mid = fig.canvas.mpl_connect('button_press_event', endpick)
+            # fig.canvas.widgetlock(self)
+            #fig.canvas.widgetlock(tool_b._actions['del_p'])
+
+            #tool_b._actions['pan'].setChecked(tool_b._active == 'PAN')
+            #tool_b._actions['zoom'].setChecked(tool_b._active == 'ZOOM')
 
         def DelR_p():
 
