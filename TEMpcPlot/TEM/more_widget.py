@@ -4,11 +4,40 @@ import numpy as np
 # from . import _api, cbook, colors, ticker
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
+from matplotlib.text import Text
+from matplotlib.pyplot import axline
 
 import math
 
 
 rpd = math.pi / 180.0
+
+
+class Picker(AxesWidget):
+    def __init__(self, ax, picked, callback=None):
+        super().__init__(ax)
+
+        self.picked = picked
+        self.callback = callback
+        self.connect_event('pick_event', self.onpress)
+        self.canvas.widgetlock(self)
+        return
+
+    def onpick(self, event):
+        if event.artist != self.picked:
+            return
+        if event.button == 1:
+            self.callback(event.ind[0])
+        if event.button == 3:
+
+            return
+
+    def endpick(self, event):
+        if event.button != 3:
+            return
+        self.disconnect_events()
+        self.canvas.widgetlock.release(self)
+        return
 
 
 class LineBuilder(AxesWidget):
@@ -23,24 +52,18 @@ class LineBuilder(AxesWidget):
 
     """
 
-    def __init__(self, ax, xy, callback=None, useblit=True,
-                 color='r', stay=False):
+    def __init__(self, ax, callback=None, useblit=True,
+                 stay=False, linekargs={}):
         super().__init__(ax)
 
         self.useblit = useblit and self.canvas.supports_blit
         if self.useblit:
             self.background = self.canvas.copy_from_bbox(self.ax.bbox)
         self.stay = stay
-        x, y = xy
 
-        self.verts = [(x, y)]
-        self.line = Line2D([x], [y], linestyle='-', color=color, lw=2)
-        self.ax.add_line(self.line)
         self.callback = callback
-
-        self.connect_event('button_release_event', self.onrelease)
-        self.connect_event('motion_notify_event', self.onmove)
-
+        self.linekargs = linekargs
+        self.connect_event('button_press_event', self.onpress)
         return
 
     def onrelease(self, event):
@@ -48,8 +71,9 @@ class LineBuilder(AxesWidget):
             return
         if self.verts is not None:
             self.verts.append((event.xdata, event.ydata))
-            if len(self.verts) > 1:
-                self.callback(self.verts)
+            if self.callback is not None:
+                if len(self.verts) > 1:
+                    self.callback(self.verts)
         if not(self.stay):
             self.ax.lines.remove(self.line)
         self.verts = None
@@ -65,7 +89,8 @@ class LineBuilder(AxesWidget):
         if event.button != 1:
             return
         data = self.verts + [(event.xdata, event.ydata)]
-        self.line.set_data(list(zip(*data)))
+        data = np.array(data, dtype=float).T
+        self.line.set_data(*data)
 
         if self.useblit:
             self.canvas.restore_region(self.background)
@@ -73,6 +98,105 @@ class LineBuilder(AxesWidget):
             self.canvas.blit(self.ax.bbox)
         else:
             self.canvas.draw_idle()
+
+    def onpress(self, event):
+        if self.canvas.widgetlock.locked():
+            return
+        if event.inaxes is None:
+            return
+        # acquire a lock on the widget drawing
+        if self.ignore(event):
+            return
+        if event.inaxes != self.ax:
+            return
+        if event.button != 1:
+            return
+        self.verts = [(event.xdata, event.ydata)]
+
+        self.line = Line2D([event.xdata], [event.ydata],
+                           linestyle='-', lw=2, **self.linekargs)
+        self.ax.add_line(self.line)
+        if self.useblit:
+            self.canvas.restore_region(self.background)
+            self.ax.draw_artist(self.line)
+            self.canvas.blit(self.ax.bbox)
+        else:
+            self.canvas.draw_idle()
+        self.connect_event('button_release_event', self.onrelease)
+        self.connect_event('motion_notify_event', self.onmove)
+
+
+###########################################################################################################
+
+
+class LineAxes(AxesWidget):
+
+    def __init__(self, ax, m, callback=None, useblit=True,
+                 linekargs={}):
+        super().__init__(ax)
+
+        self.useblit = useblit and self.canvas.supports_blit
+        if self.useblit:
+            self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+        self.m = m
+        self.callback = callback
+        self.linekargs = linekargs
+        self.connect_event('button_press_event', self.onpress)
+
+    def onpress(self):
+        self.line = Line2D([0], [0], linestyle='+-', lw=2, **self.linekargs)
+        self.text = self.ax.text(0, 0, '')
+        self.ax.add_line(self.line)
+        if self.useblit:
+            self.canvas.restore_region(self.background)
+            self.ax.draw_artist(self.line)
+            self.canvas.blit(self.ax.bbox)
+        else:
+            self.canvas.draw_idle()
+        self.connect_event('button_release_event', self.onrelease)
+        self.connect_event('motion_notify_event', self.onmove)
+        return
+
+    def onmove(self, event):
+        if self.ignore(event):
+            return
+        if self.verts is None:
+            return
+        if event.inaxes != self.ax:
+            return
+        if event.button != 1:
+            return
+
+        lim = 1.5 * max([self.ax.get_xlim(), self.ax.get_xlim()])
+        if hasattr(self, 'p_lines'):
+            self.p_line.set_data([lim * event.datay, -lim * event.datay],
+                                 [-lim * event.datax, lim * event.datax])
+        else:
+            self.p_line = Line2D([lim * event.datay, -lim * event.datay],
+                                 [-lim * event.datax, lim * event.datax],
+                                 linestyle='--', lw=2, color='grey')
+            self.ax.add_line(self.p_line)
+
+        datax = np.linspace(0, event.xdata, self.m + 1)
+        datay = np.linspace(0, event.ydata, self.m + 1)
+
+        inv_mod = round(self.m / np.sqrt(event.xdata**2 + event.ydata**2), 2)
+        self.line.set_data(datax, datay)
+        self.ax.text.set_position((event.xdata, event.ydata))
+        self.ax.text.set_text(f'{inv_mod:3.2f} ')
+        if self.useblit:
+            self.canvas.restore_region(self.background)
+            self.ax.draw_artist(self.line)
+            self.canvas.blit(self.ax.bbox)
+        else:
+            self.canvas.draw_idle()
+
+    def onrelease(self, event):
+        if self.ignore(event):
+            return
+        if self.callback is not None:
+            self.callback(self.verts)
+        self.disconnect_events()
 
 
 class RectangleBuilder(AxesWidget):
@@ -85,15 +209,15 @@ class RectangleBuilder(AxesWidget):
     self.fline = line object passing grom the two point
     """
 
-    def __init__(self, ax, xy, callback=None, useblit=False):
+    def __init__(self, ax, callback=None, useblit=False):
         super().__init__(ax)
 
         self.useblit = useblit and self.canvas.supports_blit
         if self.useblit:
             self.background = self.canvas.copy_from_bbox(self.ax.bbox)
 
-        self.line = LineBuilder(ax, xy, callback=self.line_callback,
-                                useblit=useblit)
+        self.line = LineBuilder(ax, callback=self.line_callback,
+                                useblit=useblit, linekargs={'color': 'red'})
         self.callback = callback
         # self.canvas.widgetlock(self.line)
         # self.__xtl = []

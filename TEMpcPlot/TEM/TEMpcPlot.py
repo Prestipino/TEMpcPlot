@@ -2,7 +2,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 # import skimage
 from matplotlib.backends.qt_compat import QtGui
-from matplotlib.widgets import Cursor
+from matplotlib.backend_bases import _Mode
+
 
 from packaging import version
 if version.parse(matplotlib.__version__) < version.parse("2.3.1"):
@@ -112,7 +113,7 @@ class LineBuilder:
         self.__xtl = []
         return
 
-    def defFplot(self, plot=False, ima=False, **kargs):
+    def defFplot(self, ax, plot, ima):
         """graphical definition of line
         define the line parameter by clicking
         Args:
@@ -121,67 +122,20 @@ class LineBuilder:
            args : argument for the plot 
            a graphical approach
         """
-        self.line, = plt.plot([], [], **kargs)
-        canv = self.line.figure.canvas
-        x0, y0 = 0, 0
+        if plot:
+            def callb(event):
+                self.calc(event)
+                self.plot_profile(ima)
+            callback = callb
+        else:
+            callback = self.calc
 
-        def move_m(event):
-            if event.inaxes != self.line.axes:
-                return
-            x1 = event.ydata
-            y1 = event.xdata
-            self.line.set_data([y0, y1], [x0, x1])
-            canv.draw()
-            return
-
-        def clk1_r(event):
-            # print('click', event)
-            if event.inaxes != self.line.axes:
-                return
-            canv.mpl_disconnect(self.__mid)
-            canv.mpl_disconnect(self.__rid)
-
-            warn = 'line is defined with button mouse release, please repeat'
-            if (x0 == event.ydata) and (y0 == event.xdata):
-                self.error = True
-                print(warn)
-                return
-            else:
-                self.error = False
-
-            self.calc(data=[[x0, event.ydata], [y0, event.xdata]])
-            if plot:
-                self.plot_profile(ima, lw=1, order=1, plot=True)
-            return
-
-        def clk1(event):
-            # print('click', event)
-            if event.inaxes != self.line.axes:
-                return
-            if event.button != 1:
-                self.error = True
-                return
-            nonlocal x0, y0
-            x0 = event.ydata
-            y0 = event.xdata
-
-            canv.mpl_disconnect(self.__cid)
-            self.__mid = canv.mpl_connect('motion_notify_event', move_m)
-            self.__rid = canv.mpl_connect('button_release_event', clk1_r)
-
-        self.__cid = canv.mpl_connect('button_press_event', clk1)
+        self.line = mw.LineBuilder(ax, callback=callback, useblit=True,
+                                   stay=True)
 
     def __del__(self):
-        if hasattr(self, '__cid'):
-            self.line.figure.canvas.mpl_disconnect(self.__cid)
-        if hasattr(self, '__mid'):
-            self.line.figure.canvas.mpl_disconnect(self.__mid)
-        if hasattr(self, '__rid'):
-            self.line.figure.canvas.mpl_disconnect(self.__rid)
         for i in self.__xtl:
             i.remove()
-        if hasattr(self, 'line'):
-            self.line.remove()
         return
 
     def calc(self, data=None):
@@ -350,7 +304,7 @@ class PeakL(list):
         # repeat 5 time the refinement or stop if any coordiname moves
         # more than 2 pixel
         if comass:
-            coor = np.asarray(coor)
+            coor = np.asarray(coor, dtype=float)
             for i in range(5):
                 newcoor = center_m()
                 coor = newcoor.round(2)
@@ -388,47 +342,11 @@ class PeakL(list):
         """clic left button to apeak to delete
            to stop click righ peak
         """
-
-        def onpick(event):
-            if event.artist != self.lp:
-                return
-            self.del_peak(event.ind[0])
-            return
-
-        def endpick(event):
-            if event.button != 3:
-                return
-            self.lp.figure.canvas.mpl_disconnect(self._cid)
-            self.lp.figure.canvas.mpl_disconnect(self._mid)
-            return
-
-        if not hasattr(self, 'lp'):
-            return
-        self._cid = self.lp.figure.canvas.mpl_connect('pick_event', onpick)
-        self._mid = self.lp.figure.canvas.mpl_connect(
-            'button_press_event', endpick)
+        mw.Picker(self.lp.axes, self.lp, callback=self.del_peak)
 
     def del_PlotRange(self, ):
         """delete the peak inside a rectangle plotted on the axis
         """
-        canv = self.lp.figure.canvas
-        self._break_loop = False
-        if not hasattr(self, 'lp'):
-            return
-
-        def on_press(self, event):
-            canv = self.lp.figure.canvas
-            canv.mpl_disconnect(self._rid)
-            ax = self.lp.axes
-            if canv.widgetlock.locked():
-                return
-            if event.inaxes is None:
-                return
-            self.rect = mw.RectangleBuilder(ax, [event.xdata. evant.ydata],
-                                            callback=del_inside)
-            # acquire a lock on the widget drawing
-            self.canvas.widgetlock(self.rect)
-
         def del_inside(origin, vect, width):
             '''delete point inside the rrectangle
             '''
@@ -437,13 +355,24 @@ class PeakL(list):
             cen = origin + (vect / 2)
             # delete points
             coor = np.array(self)
-            dist_1 = mt.dist_p2vect(origin, vect, coor)
-            dist_2 = mt.dist_p2vect(cen - p_vect, p_vect * 2, coor)
+            dist_1 = mt.dist_p2vect(np.flip(origin),
+                                    np.flip(vect), coor)
+            dist_2 = mt.dist_p2vect(np.flip(cen),
+                                    np.flip(p_vect) * 2, coor)
             rcoor = np.where((dist_1 < width) & (dist_2 < (mt.mod(vect) / 2)))
             for i in np.flip(rcoor):
                 self.del_peak(i)
 
-        self._rid = canv.mpl_connect('button_press_event', on_press)
+
+        canv = self.lp.figure.canvas
+        self._break_loop = False
+        if not hasattr(self, 'lp'):
+            return
+        ax = self.lp.axes
+        if canv.widgetlock.locked():
+            return
+        self.rect = mw.RectangleBuilder(ax, callback=del_inside)
+        #self.rect.canvas.widgetlock(self.rect)
 
     def help(self):
         print(self.__doc__)
@@ -604,9 +533,10 @@ class Mimage():
         """create a line object store in the attribute self.line
            and calculae its profile stored in self.line.profile
         """
+        fig = plt.gcf()
         self.line = LineBuilder()
         if data is None:
-            self.line.defFplot(plot=True, ima=self.ima)
+            self.line.defFplot(fig.axes[0], plot=True, ima=self.ima)
         else:
             self.line.calc(data)
 
@@ -855,12 +785,11 @@ class SeqIm(list):
             if not hasattr(self.ima.Peaks, 'lp'):
                 return
             if fig.canvas.widgetlock.locked():
-               return
+                return
 
             def onpick(event):
                 if event.artist != self.ima.Peaks.lp:
                     return
-                print('xx')
                 self.ima.Peaks.del_peak(event.ind[0])
                 return
 
@@ -873,7 +802,6 @@ class SeqIm(list):
                 fig.canvas.mpl_disconnect(selfPL._mid)
                 fig.canvas.widgetlock.release(tool_b._actions['del_p'])
                 tool_b._actions['del_p'].setChecked(False)
-                print('lll')
                 return
 
 
@@ -886,27 +814,15 @@ class SeqIm(list):
             #tool_b._actions['zoom'].setChecked(tool_b._active == 'ZOOM')
 
         def DelR_p():
-
+            if tool_b.mode == _Mode.ZOOM:
+                tool_b.mode = _Mode.NONE
+                tool_b._actions['zoom'].setChecked(False)
+            if tool_b.mode == _Mode.PAN:
+                tool_b.mode = _Mode.NONE
+                tool_b._actions['pan'].setChecked(False)
             if not hasattr(self.ima.Peaks, 'lp'):
                 return
-            if tool_b._active == 'DelR P':
-                tool_b._active = None
-            else:
-                tool_b._active = 'DelR P'
-
-            if tool_b._idPress is not None:
-                tool_b._idPress = fig.canvas.mpl_disconnect(tool_b._idPress)
-                tool_b.mode = ''
-
-            if tool_b._idRelease is not None:
-                tool_b._idRelease = fig.canvas.mpl_disconnect(
-                    tool_b._idRelease)
-                tool_b.mode = ''
-
             self.ima.Peaks.del_PlotRange()
-
-            tool_b._actions['pan'].setChecked(tool_b._active == 'PAN')
-            tool_b._actions['zoom'].setChecked(tool_b._active == 'ZOOM')
 
         def lenght():
             if hasattr(self.ima, 'line'):
