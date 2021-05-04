@@ -145,7 +145,7 @@ Hkl_Ref_Conditions = Hkl_Ref_Conditions.split('\n')
 Hkl_Ref_Conditions = [i for i in Hkl_Ref_Conditions if i[0] != '#']
 
 
-def Search_Extinctions(Spacegroup, Iunit):
+def Search_Extinctions(Spacegroup, Iunit=False):
     """!---- Arguments ----!
     type (Space_Group_Type), intent(in)     :: spacegroup
     integer,                 intent(in)     :: Iunit
@@ -159,7 +159,7 @@ def Search_Extinctions(Spacegroup, Iunit):
 
     def is_exti(self, h, k, l):
         h, k, l = np.asarray(h), np.asarray(k), np.asarray(l)
-        cond = np.asarray([f(h,k,l) for f in C], dtype=bool)
+        cond = np.asarray([f(h, k, l) for f in C], dtype=bool)
         return cond.any(axis=0)
     Spacegroup.search_exti = types.MethodType(is_exti, Spacegroup)
 
