@@ -17,7 +17,7 @@ import os
 
 
 from .. import dm3_lib as dm3
-from .. import Symmetry
+from ..Symmetry import Spacegroup
 from . import plt_p
 from .profileline import profile_line
 from .ransac import ransac_lin
@@ -1222,7 +1222,7 @@ class EwaldPeaks(object):
         # create a set of theoretical reflection
         if spg:
             # filter the reflection on the plane
-            spgo = Symmetry.Spacegroup(spg)
+            spgo = Spacegroup(spg)
             layer_pos = np.vstack([i for i in self.pos_cal])
             cond = app_cond(layer_pos.T)
             layer_pos = layer_pos[cond].T
@@ -1241,13 +1241,12 @@ class EwaldPeaks(object):
             refx, refy = np.mgrid[o12maxmin[0]: o12maxmin[2],
                                   o12maxmin[1]: o12maxmin[3]]
             ref = [refx.flat, refy.flat]
-            ref = np.vstack(ref).T  # transform in nline 3 colum format
 
             # create extinction
             ref3ind = np.insert(ref, 'hkl'.find(hkl),
                                 np.ones_like(refx.flat) * n,
-                                axis=1)
-            ext_c = np.array([spgo.is_exti_ref(i) for i in ref3ind])
+                                axis=0)
+            ext_c = spgo.is_exti(*ref3ind)
             if np.any(ext_c):
                 ref_ext = Ort_mat @ ref[ext_c].T
             if np.any(~ext_c):

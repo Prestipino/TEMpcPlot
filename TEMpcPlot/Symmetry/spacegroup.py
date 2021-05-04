@@ -1,7 +1,8 @@
 # Copyright (C) 2010, Jesper Friis
 # (see accompanying license files for details).
 """Definition of the Spacegroup class.
-
+from ase library
+few change for extinctions
 This module only depends on NumPy and the space group database.
 """
 
@@ -12,9 +13,10 @@ from typing import Union
 
 import numpy as np
 
+from .CFML_exti import Search_Extinctions, gen_hkl
+
 __all__ = ['Spacegroup']
 
-eps_ref = 0.0002
 
 
 class SpacegroupError(Exception):
@@ -90,6 +92,10 @@ class Spacegroup:
         'reflections as a matrix with the Miller indices along the rows.')
     nsubtrans = property(lambda self: len(self._subtrans),
                          doc='Number of cell-subtranslation vectors.')
+    systematic_absence = property(
+        lambda self: Search_Extinctions(self, 1),
+        doc='print systematic absence ands redefine is_exti')
+
 
     def _get_nsymop(self):
         """Returns total number of symmetry operations."""
@@ -135,6 +141,8 @@ class Spacegroup:
             datafile = get_datafile()
         with open(datafile, 'r') as fd:
             _read_datafile(self, spacegroup, setting, fd)
+
+        Search_Extinctions(self, 0)
 
     def __repr__(self):
         return 'Spacegroup(%d, setting=%d)' % (self.no, self.setting)
