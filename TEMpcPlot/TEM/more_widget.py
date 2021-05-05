@@ -143,10 +143,16 @@ class LineAxes(AxesWidget):
         self.linekargs = linekargs
         self.connect_event('button_press_event', self.onpress)
 
-    def onpress(self):
+    def onpress(self, event):
         self.line = Line2D([0], [0], linestyle='+-', lw=2, **self.linekargs)
         self.text = self.ax.text(0, 0, '')
         self.ax.add_line(self.line)
+
+        lim = 1.5 * max([self.ax.get_xlim(), self.ax.get_xlim()])
+        self.p_line = Line2D([lim * event.datay, -lim * event.datay],
+                             [lim * event.datax, lim * event.datax],
+                             linestyle='--', lw=2, color='grey')
+        self.ax.add_line(self.p_line)
         if self.useblit:
             self.canvas.restore_region(self.background)
             self.ax.draw_artist(self.line)
@@ -168,14 +174,8 @@ class LineAxes(AxesWidget):
             return
 
         lim = 1.5 * max([self.ax.get_xlim(), self.ax.get_xlim()])
-        if hasattr(self, 'p_lines'):
-            self.p_line.set_data([lim * event.datay, -lim * event.datay],
-                                 [-lim * event.datax, lim * event.datax])
-        else:
-            self.p_line = Line2D([lim * event.datay, -lim * event.datay],
-                                 [-lim * event.datax, lim * event.datax],
-                                 linestyle='--', lw=2, color='grey')
-            self.ax.add_line(self.p_line)
+        self.p_line.set_data([lim * event.datay, -lim * event.datay],
+                             [-lim * event.datax, lim * event.datax])
 
         datax = np.linspace(0, event.xdata, self.m + 1)
         datay = np.linspace(0, event.ydata, self.m + 1)
@@ -194,8 +194,11 @@ class LineAxes(AxesWidget):
     def onrelease(self, event):
         if self.ignore(event):
             return
+        self.text.remove()
+        self.p_line.remove()
         if self.callback is not None:
-            self.callback(self.verts)
+            self.callback(self.event.xdata,
+                          self.event.xdata)
         self.disconnect_events()
 
 

@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from numpy.linalg import inv
-
+from . import more_widget as mw
+from . import math_tools as mt
 plt.ion()
 
 """
@@ -266,7 +267,7 @@ class D3plot(object):
         """
         assert abc in 'abc', 'only three axis a, b, c '
         self.fig.canvas.mpl_disconnect(self.__cid)
-        self.axes[abc] = LineAxes(abc, m)
+        self.axes[abc] = LineAxes(abc, m, self.ax)
         self.axes[abc]._graph_init_()
         plt.waitforbuttonpress(65)
         self.axes[abc].calc_axis(self.r0)
@@ -278,9 +279,10 @@ class D3plot(object):
 
 
 class LineAxes:
-    def __init__(self, abc, m, axis=None, rot=None):
+    def __init__(self, abc, m, ax, axis=None, rot=None):
         self.m = m
         self.abc = abc
+        self.ax = ax
         fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k'}
         if axis is not None:
             self.axis = axis
@@ -314,39 +316,17 @@ class LineAxes:
         self.inv_mod = 1 / self.mod
 
     def _graph_init_(self):
-        m = self.m
-        text = plt.text(0, 0, '')
-        canv = self.line.figure.canvas
+        fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k'}
 
-        def endpick(event):
-            self.pos_i = np.array([event.xdata / m,
-                                   event.ydata / m, 0])
+        def endpick(x, y):
+            self.pos_i = np.array([x / self.m,
+                                   y / self.m, 0])
             # print(self.pos_i)
-            self.inv_mod = m / np.sqrt(self.pos_i[0]**2 + self.pos_i[1]**2)
-            canv.mpl_disconnect(self.__cid)
-            canv.mpl_disconnect(self.__mid)
-            text.remove()
+            self.inv_mod = self.m / mt.mod(self.pos_i)
+            self.plot()
             return
-
-        def move_m(event):
-            if event.inaxes != self.line.axes:
-                return
-            # canv.restore_region(self.bkg_cache)
-            datax = np.linspace(0, event.xdata, m + 1)
-            datay = np.linspace(0, event.ydata, m + 1)
-            inv_mod = round(m / np.sqrt(event.xdata**2 + event.ydata**2), 2)
-            self.line.set_data(datax, datay)
-            self.line.axes.draw_artist(self.line)
-            text.set_position((event.xdata, event.ydata))
-            text.set_text(f'{inv_mod:3.2f} ')
-            self.line.axes.draw_artist(text)
-            # canv.blit(self.line.axes.bbox)
-            plt.draw()
-            return
-
-        # self.bkg_cache = canv.copy_from_bbox(self.line.axes.bbox.padded(0))
-        self.__mid = canv.mpl_connect('motion_notify_event', move_m)
-        self.__cid = canv.mpl_connect('button_press_event', endpick)
+        mw.LineAxes(self.ax, self.m, callback=endpick,
+                    linekargs={'fmt': fmt[self.abc]})
         return
 
     def __del__(self):
