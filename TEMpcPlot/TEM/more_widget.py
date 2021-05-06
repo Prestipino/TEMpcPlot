@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
-from matplotlib.pyplot import axline
+
 
 import math
 
@@ -100,6 +100,7 @@ class LineBuilder(AxesWidget):
             self.canvas.draw_idle()
 
     def onpress(self, event):
+        print('pippo')
         if self.canvas.widgetlock.locked():
             return
         if event.inaxes is None:
@@ -134,7 +135,6 @@ class LineAxes(AxesWidget):
     def __init__(self, ax, m, callback=None, useblit=True,
                  linekargs={}):
         super().__init__(ax)
-
         self.useblit = useblit and self.canvas.supports_blit
         if self.useblit:
             self.background = self.canvas.copy_from_bbox(self.ax.bbox)
@@ -144,15 +144,19 @@ class LineAxes(AxesWidget):
         self.connect_event('button_press_event', self.onpress)
 
     def onpress(self, event):
-        self.line = Line2D([0], [0], linestyle='+-', lw=2, **self.linekargs)
-        self.text = self.ax.text(0, 0, '')
+        print('ddddddddddddddddddddddddddddddd')
+        self.line = Line2D([0], [0], linestyle='-', marker='+',
+                           lw=2, **self.linekargs)
         self.ax.add_line(self.line)
 
-        lim = 1.5 * max([self.ax.get_xlim(), self.ax.get_xlim()])
-        self.p_line = Line2D([lim * event.datay, -lim * event.datay],
-                             [lim * event.datax, lim * event.datax],
-                             linestyle='--', lw=2, color='grey')
-        self.ax.add_line(self.p_line)
+        self.p_line = [Line2D([0], [0], linestyle='--',
+                              color='grey', lw=1,
+                              **self.linekargs) for i in range(self.m)]
+        for pline_i in self.p_line:
+            self.ax.add_line(pline_i)
+
+        self.text = self.ax.text(0, 0, '')
+
         if self.useblit:
             self.canvas.restore_region(self.background)
             self.ax.draw_artist(self.line)
@@ -166,27 +170,33 @@ class LineAxes(AxesWidget):
     def onmove(self, event):
         if self.ignore(event):
             return
-        if self.verts is None:
-            return
         if event.inaxes != self.ax:
             return
         if event.button != 1:
             return
 
-        lim = 1.5 * max([self.ax.get_xlim(), self.ax.get_xlim()])
-        self.p_line.set_data([lim * event.datay, -lim * event.datay],
-                             [-lim * event.datax, lim * event.datax])
+        lim = 1.5 * max(self.ax.get_xlim() + self.ax.get_xlim())
+        pdatax = lim * np.array((-event.ydata, event.ydata))
+        pdatay = lim * np.array((event.xdata, -event.xdata)) 
+        for i, pline_i in enumerate(self.p_line):
+            pline_i.set_data(pdatax + (event.xdata * (i + 1) / self.m),
+                             pdatay + (event.ydata * (i + 1) / self.m))
+        # (event.xdata * (i + 1) / self.m)
+        # (event.ydata * (i + 1) / self.m)
 
         datax = np.linspace(0, event.xdata, self.m + 1)
         datay = np.linspace(0, event.ydata, self.m + 1)
-
         inv_mod = round(self.m / np.sqrt(event.xdata**2 + event.ydata**2), 2)
         self.line.set_data(datax, datay)
-        self.ax.text.set_position((event.xdata, event.ydata))
-        self.ax.text.set_text(f'{inv_mod:3.2f} ')
+        self.text.set_position((event.xdata, event.ydata))
+        self.text.set_text(f'{inv_mod:3.2f} ')
+
         if self.useblit:
             self.canvas.restore_region(self.background)
             self.ax.draw_artist(self.line)
+            self.ax.draw_artist(self.text)
+            for pline_i in self.p_line:            
+                self.ax.draw_artist(pline_i)
             self.canvas.blit(self.ax.bbox)
         else:
             self.canvas.draw_idle()
@@ -195,8 +205,11 @@ class LineAxes(AxesWidget):
         if self.ignore(event):
             return
         self.text.remove()
-        self.p_line.remove()
+        for pline_i in self.p_line:
+            pline_i.remove()
+        self.canvas.draw()
         if self.callback is not None:
+            print('callback')
             self.callback(self.event.xdata,
                           self.event.xdata)
         self.disconnect_events()

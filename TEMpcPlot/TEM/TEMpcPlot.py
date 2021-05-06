@@ -2,14 +2,16 @@ import matplotlib
 import matplotlib.pyplot as plt
 # import skimage
 from matplotlib.backends.qt_compat import QtGui
-from matplotlib.backend_bases import _Mode
+
 
 
 from packaging import version
-if version.parse(matplotlib.__version__) < version.parse("2.3.1"):
-    matplotlib_old = True
-else:
+if version.parse(matplotlib.__version__) > version.parse("3.3.1"):
     matplotlib_old = False
+    from matplotlib.backend_bases import _Mode
+else:
+    matplotlib_old = True
+
 # from matplotlib.widgets import Slider
 # from matplotlib.backend_tools import ToolBase
 # plt.rcParams['toolbar'] = 'toolmanager'
@@ -814,14 +816,29 @@ class SeqIm(list):
             #tool_b._actions['zoom'].setChecked(tool_b._active == 'ZOOM')
 
         def DelR_p():
-            if tool_b.mode == _Mode.ZOOM:
-                tool_b.mode = _Mode.NONE
-                tool_b._actions['zoom'].setChecked(False)
-            if tool_b.mode == _Mode.PAN:
-                tool_b.mode = _Mode.NONE
-                tool_b._actions['pan'].setChecked(False)
             if not hasattr(self.ima.Peaks, 'lp'):
                 return
+            if matplotlib_old:
+                if tool_b._active == 'DelR P':
+                    tool_b._active = None
+                else:
+                    tool_b._active = 'DelR P'
+
+                if tool_b._idPress is not None:
+                    tool_b._idPress = fig.canvas.mpl_disconnect(tool_b._idPress)
+                    tool_b.mode = ''
+
+                if tool_b._idRelease is not None:
+                    tool_b._idRelease = fig.canvas.mpl_disconnect(
+                        tool_b._idRelease)
+                    tool_b.mode = ''   
+            else:             
+                if tool_b.mode == _Mode.ZOOM:
+                    tool_b.mode = _Mode.NONE
+                    tool_b._actions['zoom'].setChecked(False)
+                if tool_b.mode == _Mode.PAN:
+                    tool_b.mode = _Mode.NONE
+                    tool_b._actions['pan'].setChecked(False)
             self.ima.Peaks.del_PlotRange()
 
         def lenght():
