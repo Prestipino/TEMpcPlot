@@ -13,7 +13,7 @@ from typing import Union
 
 import numpy as np
 
-from .CFML_exti import Search_Extinctions, gen_hkl
+from .CFML_exti import Search_Extinctions
 
 __all__ = ['Spacegroup']
 

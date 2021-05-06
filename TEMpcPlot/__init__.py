@@ -15,9 +15,6 @@ The mode of use is relativelly simple :
       >>> Ex1.Ewp.create_layer(hkl)
 
 
-
-
-
 -----
 """
 from .TEM import(SeqIm, EwaldPeaks)
