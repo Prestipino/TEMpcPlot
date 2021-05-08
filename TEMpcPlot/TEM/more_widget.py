@@ -142,16 +142,15 @@ class LineAxes(AxesWidget):
         self.callback = callback
         self.linekargs = linekargs
         self.connect_event('button_press_event', self.onpress)
+        return
 
     def onpress(self, event):
-        print('ddddddddddddddddddddddddddddddd')
         self.line = Line2D([0], [0], linestyle='-', marker='+',
                            lw=2, **self.linekargs)
         self.ax.add_line(self.line)
 
         self.p_line = [Line2D([0], [0], linestyle='--',
-                              color='grey', lw=1,
-                              **self.linekargs) for i in range(self.m)]
+                              color='grey', lw=1) for i in range(self.m)]
         for pline_i in self.p_line:
             self.ax.add_line(pline_i)
 
