@@ -100,7 +100,6 @@ class LineBuilder(AxesWidget):
             self.canvas.draw_idle()
 
     def onpress(self, event):
-        print('pippo')
         if self.canvas.widgetlock.locked():
             return
         if event.inaxes is None:
@@ -264,7 +263,6 @@ class RectangleBuilder(AxesWidget):
 
 
     def onrelease(self, event):
-        print("non capisco")
         if self.ignore(event):
             return
         if self.width:
@@ -272,7 +270,6 @@ class RectangleBuilder(AxesWidget):
                           self.width)
             self.Rleft.remove()
             self.Rright.remove()
-            print("non capisco2")
         self.canvas.draw_idle()
         self.disconnect_events()
 

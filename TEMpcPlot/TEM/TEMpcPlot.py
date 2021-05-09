@@ -1142,12 +1142,15 @@ class EwaldPeaks(object):
             ref3ind = np.insert(ref, 'hkl'.find(hkl),
                                 np.ones_like(refx.flat) * n,
                                 axis=1)
-            ext_c = np.array([spgo.is_exti_ref(i) for i in ref3ind])
+            ext_c = spgo.search_exti(ref3ind[:, 0].flat,
+                                     ref3ind[:, 1].flat,
+                                     ref3ind[:, 2].flat)
+
             if np.any(ext_c):
+                print(ref[ext_c].T.shape)
                 ref_ext = Ort_mat @ ref[ext_c].T
             if np.any(~ext_c):
-                ref_ext = Ort_mat @ ref[ext_c].T
-            ref_act = Ort_mat @ ref[~ ext_c].T
+                ref_act = Ort_mat @ ref[~ext_c].T     
 
             plt.figure()
             if size > 0:
