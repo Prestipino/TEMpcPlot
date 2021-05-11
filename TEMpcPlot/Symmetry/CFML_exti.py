@@ -145,7 +145,7 @@ Hkl_Ref_Conditions = Hkl_Ref_Conditions.split('\n')
 Hkl_Ref_Conditions = [i for i in Hkl_Ref_Conditions if i[0] != '#']
 
 
-def Search_Extinctions(Spacegroup, Iunit=False):
+def Search_Extinctions(Spacegroup, Iunit):
     """!---- Arguments ----!
     type (Space_Group_Type), intent(in)     :: spacegroup
     integer,                 intent(in)     :: Iunit
@@ -159,8 +159,11 @@ def Search_Extinctions(Spacegroup, Iunit=False):
 
     def is_exti(self, h, k, l):
         h, k, l = np.asarray(h), np.asarray(k), np.asarray(l)
-        cond = np.asarray([f(h, k, l) for f in C], dtype=bool)
-        return cond.any(axis=0)
+        cond = np.asarray([f(h,k,l) for f in C], dtype=bool)
+        if len(cond):
+            return cond.any(axis=0)
+        else:
+            return np.array([False for i in h])
     Spacegroup.search_exti = types.MethodType(is_exti, Spacegroup)
 
     return
@@ -322,7 +325,6 @@ def Integral_Conditions(SpaceGroup, iunit):
         if iunit:
             print("     =====>>> no general reflection condition")
     return IC
-
 
 def Screw_Axis_Conditions(SpaceGroup, Iunit):
     """
@@ -495,8 +497,8 @@ def Glide_Planes_Conditions(SpaceGroup, Iunit):
 
     def gen_hhl(l_diff, x):
         g1, g2 = np.mgrid[-x: x + 1, -x: x + 1]
-        hkl = np.tile(g1, (3, 1))
-        hkl[l_diff] = g2
+        hkl = np.tile(g1.flat, (3, 1))
+        hkl[l_diff] = g2.flat
         return hkl
 
     def test_absent(hkl, cond):

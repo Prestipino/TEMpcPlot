@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from numpy.linalg import inv
-
+from . import more_widget as mw
+from . import math_tools as mt
 plt.ion()
 
 """
@@ -31,7 +33,7 @@ class D3plot(object):
         self.axes = {}
         if hasattr(EwPePos, 'axes'):
             for i, abc in enumerate('abc'):
-                    self.axes[abc] = LineAxes(abc, 1, axis=EwPePos.axes.T[i])
+                self.axes[abc] = LineAxes(abc, 1, axis=EwPePos.axes.T[i])
         # -----------------------------------------------
 
         plt.rcParams['toolbar'] = 'None'
@@ -317,6 +319,10 @@ class LineAxes:
         m = self.m
         text = plt.text(0, 0, '')
         canv = self.line.figure.canvas
+        p_line = [Line2D([0], [0], linestyle='--',
+                         color='grey', lw=1) for i in range(self.m)]
+        for pline_i in p_line:
+            self.line.axes.add_line(pline_i)
 
         def endpick(event):
             self.pos_i = np.array([event.xdata / m,
@@ -326,6 +332,8 @@ class LineAxes:
             canv.mpl_disconnect(self.__cid)
             canv.mpl_disconnect(self.__mid)
             text.remove()
+            for pline_i in p_line:
+                pline_i.remove()
             return
 
         def move_m(event):
@@ -337,6 +345,17 @@ class LineAxes:
             inv_mod = round(m / np.sqrt(event.xdata**2 + event.ydata**2), 2)
             self.line.set_data(datax, datay)
             self.line.axes.draw_artist(self.line)
+            #
+            lim = 1.5 * max(self.line.axes.get_xlim() +
+                            self.line.axes.get_xlim())
+            pdatax = lim * np.array((-event.ydata, event.ydata))
+            pdatay = lim * np.array((event.xdata, -event.xdata))
+            for i, pline_i in enumerate(p_line):
+                pline_i.set_data(pdatax + (event.xdata * (i + 1) / self.m),
+                                 pdatay + (event.ydata * (i + 1) / self.m))
+            for pline_i in p_line:
+                self.line.axes.draw_artist(pline_i)
+            #
             text.set_position((event.xdata, event.ydata))
             text.set_text(f'{inv_mod:3.2f} ')
             self.line.axes.draw_artist(text)
@@ -359,7 +378,9 @@ class LineAxes:
         # plt.legend()
         return
 
-### collapsed 3D view r is for reduced)
+# collapsed 3D view r is for reduced)
+
+
 class D3plotr(D3plot):
     def __init__(self, EwPePos, origin, size='o'):
         self._D3plot__size = size
@@ -399,7 +420,7 @@ class D3plotr(D3plot):
         gs = self.fig.add_gridspec(4, 4)
         self.ax_x = self.fig.add_subplot(gs[0:1, 3])
         self.ax_y = self.fig.add_subplot(gs[1:2, 3])
-        self.ax_z = self.fig.add_subplot(gs[2:3, 3])        
+        self.ax_z = self.fig.add_subplot(gs[2:3, 3])
         self.ax = self.fig.add_subplot(gs[0:4, 0:3])
         plt.figtext(0.8, 0.22, '- a', color='green',
                     size='x-large', weight='bold')
@@ -449,9 +470,10 @@ class D3plotr(D3plot):
         self.axes[abc]._graph_init_()
         plt.waitforbuttonpress(65)
         self.axes[abc].calc_axis(self.r0)
-        self.axes[abc].vect = inv(self._D3plot__EwPePos.axes) @ self.axes[abc].axis
+        self.axes[abc].vect = inv(
+            self._D3plot__EwPePos.axes) @ self.axes[abc].axis
         self._D3plotr__cid = self.fig.canvas.mpl_connect('button_press_event',
-                                                 self.main_click)
+                                                         self.main_click)
 
 
 class LineAxesr(LineAxes):

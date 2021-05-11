@@ -10,6 +10,7 @@ import os
 import warnings
 from functools import total_ordering
 from typing import Union
+from .CFML_exti import Search_Extinctions
 
 import numpy as np
 
@@ -136,11 +137,14 @@ class Spacegroup:
         if isinstance(spacegroup, Spacegroup):
             for k, v in spacegroup.__dict__.items():
                 setattr(self, k, v)
+                Search_Extinctions(self, False)
             return
         if not datafile:
             datafile = get_datafile()
         with open(datafile, 'r') as fd:
             _read_datafile(self, spacegroup, setting, fd)
+        Search_Extinctions(self, False)
+
 
         Search_Extinctions(self, 0)
 
