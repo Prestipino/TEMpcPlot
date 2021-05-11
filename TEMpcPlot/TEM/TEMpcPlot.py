@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.qt_compat import QtGui
 
 
-
 from packaging import version
 if version.parse(matplotlib.__version__) > version.parse("3.3.1"):
     matplotlib_old = False
@@ -365,7 +364,6 @@ class PeakL(list):
             for i in np.flip(rcoor):
                 self.del_peak(i)
 
-
         canv = self.lp.figure.canvas
         self._break_loop = False
         if not hasattr(self, 'lp'):
@@ -374,7 +372,7 @@ class PeakL(list):
         if canv.widgetlock.locked():
             return
         self.rect = mw.RectangleBuilder(ax, callback=del_inside)
-        #self.rect.canvas.widgetlock(self.rect)
+        # self.rect.canvas.widgetlock(self.rect)
 
     def help(self):
         print(self.__doc__)
@@ -732,7 +730,8 @@ class SeqIm(list):
                 all_peaks[i] = r.apply(all_peaks[i])
             intensity.append(self[i].Peaks.int)
         all_peaks = [i * self.scale for i in all_peaks]
-        self.EwP = EwaldPeaks(all_peaks, intensity, self.rot_vect)
+        self.EwP = EwaldPeaks(all_peaks, intensity, rot_vect=self.rot_vect,
+                              angles=self.angles, r0=self.__1rot__)
         return
 
     def plot(self, log=False, *args, **kwds):
@@ -806,11 +805,10 @@ class SeqIm(list):
                 tool_b._actions['del_p'].setChecked(False)
                 return
 
-
             selfPL._cid = fig.canvas.mpl_connect('pick_event', onpick)
             selfPL._mid = fig.canvas.mpl_connect('button_press_event', endpick)
             # fig.canvas.widgetlock(self)
-            #fig.canvas.widgetlock(tool_b._actions['del_p'])
+            # fig.canvas.widgetlock(tool_b._actions['del_p'])
 
             #tool_b._actions['pan'].setChecked(tool_b._active == 'PAN')
             #tool_b._actions['zoom'].setChecked(tool_b._active == 'ZOOM')
@@ -825,14 +823,15 @@ class SeqIm(list):
                     tool_b._active = 'DelR P'
 
                 if tool_b._idPress is not None:
-                    tool_b._idPress = fig.canvas.mpl_disconnect(tool_b._idPress)
+                    tool_b._idPress = fig.canvas.mpl_disconnect(
+                        tool_b._idPress)
                     tool_b.mode = ''
 
                 if tool_b._idRelease is not None:
                     tool_b._idRelease = fig.canvas.mpl_disconnect(
                         tool_b._idRelease)
-                    tool_b.mode = ''   
-            else:             
+                    tool_b.mode = ''
+            else:
                 if tool_b.mode == _Mode.ZOOM:
                     tool_b.mode = _Mode.NONE
                     tool_b._actions['zoom'].setChecked(False)
@@ -924,11 +923,16 @@ class SeqIm(list):
         out.filename = self.filenames
         out.filesangle = [i.info.gon_angles for i in self]
         if hasattr(self, 'EwP'):
-            out.EwP = {'pos': self.EwP.pos,
-                       'int': self.EwP.int,
-                       'rot_vect': self.EwP._rot_vect}
+            out.EwP = {'positions': self.EwP.pos,
+                       'intensity': self.EwP.int}
             if hasattr(self.EwP, 'axes'):
                 out.EwP['axes'] = self.EwP.axes
+            if hasattr(self.EwP, '_rot_vect'):
+                out.EwP['rot_vect'] = self.EwP._rot_vect
+            if hasattr(self.EwP, 'angles'):
+                out.EwP['angles'] = self.EwP.angles
+            if hasattr(self.EwP, '__1rot__'):
+                out.EwP['r0'] = self.EwP.__1rot__
         with open(filesave, "wb") as file_save:
             pickle.dump(out, file_save)
         return
@@ -952,12 +956,7 @@ class SeqIm(list):
             out[i].Peaks.int = Peaksi['inte']
             out[i].Peaks.ps_in = Peaksi['ps_in']
         if hasattr(inn, 'EwP'):
-            out.EwP = EwaldPeaks(inn.EwP['pos'],
-                                 inn.EwP['int'],
-                                 inn.EwP['rot_vect'])
-            if 'axes' in inn.EwP.keys():
-                out.EwP.axes = inn.EwP['axes']
-                out.EwP.set_cell()
+            out.EwP = EwaldPeaks(**inn.EwP)
         return out
 
 
@@ -985,13 +984,10 @@ class EwaldPeaks(object):
         axis    (np.array): reciprocal basis set, 3 coloums
         cell    (dict): a dictionary witht the value of
                          real space cell
-
-
-
     """
 
-    def __init__(self, positions, intensity, rot_vect=None, axes=None,
-                 set_cell=True):
+    def __init__(self, positions, intensity, rot_vect=None,
+                 angles=None, r0=None, axes=None, set_cell=True):
         # list in whic pos are sotred for each image
         self.pos = positions
         self.int = intensity
@@ -1001,6 +997,10 @@ class EwaldPeaks(object):
             self._rot_vect = rot_vect
         else:
             self._rot_vect = [rot_vect] * len(self.int)
+        if angles is not None:
+            self._angles = angles
+        if r0 is not None:
+            self.__1rot__ = r0
         if axes is not None:
             if set_cell:
                 self.set_cell(axes)
@@ -1008,12 +1008,37 @@ class EwaldPeaks(object):
                 self.axes = axes
 
     def __add__(self, other):
-        pos = self.pos + other.pos[1:]
-        inte = self.int + other.int[1:]
+
+        pos = self.pos + other.pos
+        inte = self.int + other.int
         cond = hasattr(self, '_rot_vect') and hasattr(other, '_rot_vect')
         if cond:
             rot_vect = self._rot_vect + other._rot_vect
-        return EwaldPeaks(pos, inte, rot_vect)
+        return EwaldPeaks(pos, inte, rot_vect=rot_vect)
+
+    def merge(self, other):
+        assert hasattr(self, '__1rot__'), 'self missing r0 attribute '
+        assert hasattr(other, '__1rot__'), 'other missing r0 attribute '
+        rx, ry = self.__1rot__
+        rtot1 = R.from_rotvec([rx, 0, 0]) * R.from_rotvec([0, ry, 0]) 
+        rtot1inv = rtot1.inv()
+        selfpos = [rtot1inv.apply(i) for i in self.pos]
+
+        rx2, ry2 = other.__1rot__
+        rtot2 = R.from_rotvec([rx2, 0, 0]) * R.from_rotvec([0, ry2, 0])
+        rtot2inv = rtot2.inv()
+        otherpos = [rtot2inv.apply(i) for i in other.pos]
+        otherrotvect = [rtot2inv.apply(rtot2.apply(i)) for i in other._rot_vect]
+
+        #position = [rtotinv.apply(i) for i in selfpos + otherpos]
+        position = selfpos + otherpos
+        inte = self.int + other.int
+        rot_vect = self._rot_vect + otherrotvect
+
+        out = EwaldPeaks(position, inte, rot_vect=rot_vect)
+        if hasattr(self, 'axes'):
+            out.set_cell(rtot1inv.apply(self.axes.T).T)
+        return out
 
     def plot(self):
         """open a D3plot graph
@@ -1150,7 +1175,7 @@ class EwaldPeaks(object):
                 print(ref[ext_c].T.shape)
                 ref_ext = Ort_mat @ ref[ext_c].T
             if np.any(~ext_c):
-                ref_act = Ort_mat @ ref[~ext_c].T     
+                ref_act = Ort_mat @ ref[~ext_c].T
 
             plt.figure()
             if size > 0:
