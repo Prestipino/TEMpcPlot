@@ -631,12 +631,7 @@ class SeqIm(list):
             self.scale = self[0].scale
         else:
             raise ValueError('images with different scales')
-
-        self.__1rot__ = gon_angles[0]
-        g_ang = gon_angles - gon_angles[0]
-        ssign = 0 if np.argmax(np.abs(g_ang), axis=0).mean() <= 0.5 else 1
-        self.angles = np.arccos(
-            np.cos(g_ang[:, 0]) * np.cos(g_ang[:, 1])) * np.sign(g_ang[:, ssign])
+        self.__rot__ = gon_angles
 
     def help(self):
         """
@@ -672,24 +667,7 @@ class SeqIm(list):
         """
         # shape of one element of all  peaks n_p *2
         all_peaks = [np.array(i.Peaks).T - np.array(i.center) for i in self]
-        out = []
-        # find common peaks, all_peaks has been shifted by the centers
-        for i_p in all_peaks[0]:   # i_p one peak of the first image
-            n_p = [i_p]
-            for p_ima in all_peaks[1:]:
-
-                dist = np.sqrt(np.sum((p_ima - i_p)**2, axis=1))
-                if dist.min() > tollerance:
-                    break
-                else:
-                    n_p.append(p_ima[dist.argmin()])
-                    i_p = p_ima[dist.argmin()]
-            else:
-                out.append(n_p)
-        # out structure list of common peaks, each elem contains the position
-        # of the peak for each image out.shape =  n_image,n_peaks,  2(x,y)
-        out = np.swapaxes(np.asanyarray(out), 0, 1)
-
+        out = mt.find_common_peaks(tollerance, all_peaks)
         print('found %d common peaks' % out.shape[1])
 
         # find possible rotation on the plane of the rotation axes
@@ -706,32 +684,40 @@ class SeqIm(list):
 
         # calibration for rotation of the image i the plane
         # and correct the center on the basis of average difference of out
-        def rot_m(theta):
-            cos, sin = np.cos(theta), np.sin(theta)
-            return np.array([[cos, -sin], [sin, cos]]).T
-        for i, peaks in enumerate(all_peaks):
-            if i != 0:
-                peaks = peaks @ rot_m(-angle[i])
-                shift = out[0] - (out[i] @ rot_m(-angle[i]))
-                shift = shift.sum(axis=0) / len(out[i])
-                all_peaks[i] = peaks + shift
-                # print(shift)
-            all_peaks[i] = np.column_stack(
-                (all_peaks[i], np.zeros(len(all_peaks[i]))))
+        # mt.zrotm is a rotation along z
+        for i, peaks in enumerate(all_peaks[1:]):
+            peaks = peaks @ mt.zrotm(-angle[i])
+            shift = out[0] - (out[i] @ mt.zrotm(-angle[i]))
+            shift = shift.sum(axis=0) / len(out[i])
+            all_peaks[i] = peaks + shift
+            # print(shift)
+        all_peaks = [np.column_stack((i, np.zeros_like(i))) for i in all_peaks]
 
         # rotation of the point in the 3D space
-        #
         self.rot_vect = np.array([1, LINE[0](1) - LINE[0](0), 0])
-        self.rot_vect /= np.sqrt(self.rot_vect.dot(self.rot_vect))
-        intensity = []
-        for i, peaks in enumerate(all_peaks):
-            if i != 0:
-                r = R.from_rotvec(self.rot_vect * self.angles[i])
-                all_peaks[i] = r.apply(all_peaks[i])
-            intensity.append(self[i].Peaks.int)
+        self.rot_vect /= mt.mod(self.rot_vect)
+
+        # find_absolute_rotation
+        #tilting = self.__rot__[1:] - self.__rot__[0]
+        tilting = self.__rot__
+        return tilting, self.rot_vect
+
+        abs_rotz = mt.find_absolute_angle(tilting, self.rot_vect)
+        R_axis = [mt.defR(tl, abs_rotz) for tl in tilting]
+        R_axis = np.array([r.as_rotvec() for r in R_axis])
+        angle = np.sqrt(np.sum(R_axis**2, axis=1))
+        abs_axis = R_axis / angle
+        angle_s = np.where(abs_axis @ self.rot_vect > angle, 1, -1)
+        self.angles = angle * angle_s
+
+        # finally rotate in 3 dimension
+        for i, peaks in enumerate(all_peaks[1:]):
+            r = R.from_rotvec(self.rot_vect * self.angles[i])
+            all_peaks[i] = r.apply(all_peaks[i])
+        intensity = [self[i].Peaks.int for i in self]
         all_peaks = [i * self.scale for i in all_peaks]
         self.EwP = EwaldPeaks(all_peaks, intensity, rot_vect=self.rot_vect,
-                              angles=self.angles, r0=self.__1rot__)
+                              angles=self.angles, r0=self.__rot__, z0=abs_rotz)
         return
 
     def plot(self, log=False, *args, **kwds):
@@ -931,8 +917,10 @@ class SeqIm(list):
                 out.EwP['rot_vect'] = self.EwP._rot_vect
             if hasattr(self.EwP, 'angles'):
                 out.EwP['angles'] = self.EwP.angles
-            if hasattr(self.EwP, '__1rot__'):
-                out.EwP['r0'] = self.EwP.__1rot__
+            if hasattr(self.EwP, '__rot__'):
+                out.EwP['r0'] = self.EwP.__rot__
+            if hasattr(self.EwP, '__rotz__'):
+                out.EwP['z0'] = self.EwP.__rotz__
         with open(filesave, "wb") as file_save:
             pickle.dump(out, file_save)
         return
@@ -986,8 +974,8 @@ class EwaldPeaks(object):
                          real space cell
     """
 
-    def __init__(self, positions, intensity, rot_vect=None,
-                 angles=None, r0=None, axes=None, set_cell=True):
+    def __init__(self, positions, intensity, rot_vect=None, angles=None,
+                 r0=None, z0=None, axes=None, set_cell=True):
         # list in whic pos are sotred for each image
         self.pos = positions
         self.int = intensity
@@ -1000,7 +988,9 @@ class EwaldPeaks(object):
         if angles is not None:
             self._angles = angles
         if r0 is not None:
-            self.__1rot__ = r0
+            self.__rot__ = r0
+        if z0 is not None:
+            self.__rotz__ = z0
         if axes is not None:
             if set_cell:
                 self.set_cell(axes)
@@ -1008,7 +998,8 @@ class EwaldPeaks(object):
                 self.axes = axes
 
     def __add__(self, other):
-
+        """
+        """
         pos = self.pos + other.pos
         inte = self.int + other.int
         cond = hasattr(self, '_rot_vect') and hasattr(other, '_rot_vect')
@@ -1021,21 +1012,25 @@ class EwaldPeaks(object):
         assert hasattr(other, '__1rot__'), 'other missing r0 attribute '
         rx, ry = self.__1rot__
         rtot1 = R.from_rotvec([rx, 0, 0]) * R.from_rotvec([0, ry, 0]) 
-        rtot1inv = rtot1.inv()
-        selfpos = [rtot1inv.apply(i) for i in self.pos]
+        z1 = rtot1.apply([0, 0, 1])
 
         rx2, ry2 = other.__1rot__
         rtot2 = R.from_rotvec([rx2, 0, 0]) * R.from_rotvec([0, ry2, 0])
-        rtot2inv = rtot2.inv()
-        otherpos = [rtot2inv.apply(i) for i in other.pos]
-        otherrotvect = [rtot2inv.apply(rtot2.apply(i)) for i in other._rot_vect]
+        z2 = rtot2.apply([0, 0, 1])
 
-        #position = [rtotinv.apply(i) for i in selfpos + otherpos]
-        position = selfpos + otherpos
+        r12 = R.from_rotvec(np.cross(z1, z2))
+        
+        otherpos = other.pos
+        #otherpos = [r12.inv().apply(i) for i in other.pos]
+        # otherrotvect = [rtot2inv.apply(rtot2.apply(i)) for i in other._rot_vect]
+
+        # position = [rtotinv.apply(i) for i in selfpos + otherpos]
+        position = self.pos + otherpos
         inte = self.int + other.int
-        rot_vect = self._rot_vect + otherrotvect
+        # rot_vect = self._rot_vect + otherrotvect
 
-        out = EwaldPeaks(position, inte, rot_vect=rot_vect)
+        # out = EwaldPeaks(position, inte, rot_vect=rot_vect)
+        out = EwaldPeaks(position, inte)
         if hasattr(self, 'axes'):
             out.set_cell(rtot1inv.apply(self.axes.T).T)
         return out
@@ -1612,17 +1607,25 @@ class EwaldPeaks(object):
                        footer=footer, fmt='%10.5f', comments='')
             return
 
-        dict_data = dict(zip(['pos', 'int', 'rot_vect'],
-                             [self.pos, self.int, self._rot_vect]))
+        out = {'positions': self.EwP.pos, 'intensity': self.EwP.int}
         if hasattr(self, 'axes'):
-            dict_data['axes'] = self.axes
+            out['axes'] = self.axes
+        if hasattr(self, '_rot_vect'):
+            out['rot_vect'] = self._rot_vect
+        if hasattr(self, 'angles'):
+            out['angles'] = self.angles
+        if hasattr(self, '__rot__'):
+            out['r0'] = self.__rot__
+        if hasattr(self, '__rotz__'):
+            out['z0'] = self.__rotz__
+
         if dictionary:
-            return dict_data
+            return out
 
         if '.' not in filename:
             filename += '.ewp'
         with open(filename, 'wb') as filesave:
-            pickle.dump(dict_data, filesave)
+            pickle.dump(out, filesave)
         return
 
     @classmethod

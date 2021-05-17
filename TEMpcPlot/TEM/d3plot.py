@@ -85,7 +85,7 @@ class D3plot(object):
         pos_i = []
         for j, i_pos in enumerate(self._EwPePos.pos):
             if j in listn:
-                pos_i.append(i_pos)
+                pos_i.append(self.r0.apply(i_pos))
         self.pos_i = pos_i
         self.plot_ax()
         self.plot_hist()
