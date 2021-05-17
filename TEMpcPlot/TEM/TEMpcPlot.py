@@ -632,7 +632,7 @@ class SeqIm(list):
         else:
             raise ValueError('images with different scales')
 
-        self.__1rot__ = gon_angles[0]
+        self.__1rot__ = gon_angles
         g_ang = gon_angles - gon_angles[0]
         ssign = 0 if np.argmax(np.abs(g_ang), axis=0).mean() <= 0.5 else 1
         self.angles = np.arccos(
@@ -672,23 +672,7 @@ class SeqIm(list):
         """
         # shape of one element of all  peaks n_p *2
         all_peaks = [np.array(i.Peaks).T - np.array(i.center) for i in self]
-        out = []
-        # find common peaks, all_peaks has been shifted by the centers
-        for i_p in all_peaks[0]:   # i_p one peak of the first image
-            n_p = [i_p]
-            for p_ima in all_peaks[1:]:
-
-                dist = np.sqrt(np.sum((p_ima - i_p)**2, axis=1))
-                if dist.min() > tollerance:
-                    break
-                else:
-                    n_p.append(p_ima[dist.argmin()])
-                    i_p = p_ima[dist.argmin()]
-            else:
-                out.append(n_p)
-        # out structure list of common peaks, each elem contains the position
-        # of the peak for each image out.shape =  n_image,n_peaks,  2(x,y)
-        out = np.swapaxes(np.asanyarray(out), 0, 1)
+        out = mt.find_common_peaks(tollerance, all_peaks)
 
         print('found %d common peaks' % out.shape[1])
 
@@ -706,19 +690,14 @@ class SeqIm(list):
 
         # calibration for rotation of the image i the plane
         # and correct the center on the basis of average difference of out
-        def rot_m(theta):
-            cos, sin = np.cos(theta), np.sin(theta)
-            return np.array([[cos, -sin], [sin, cos]]).T
         for i, peaks in enumerate(all_peaks):
             if i != 0:
-                peaks = peaks @ rot_m(-angle[i])
-                shift = out[0] - (out[i] @ rot_m(-angle[i]))
+                peaks = peaks @ mt.r2z(-angle[i])
+                shift = out[0] - (out[i] @ mt.r2z(-angle[i]))
                 shift = shift.sum(axis=0) / len(out[i])
                 all_peaks[i] = peaks + shift
                 # print(shift)
-            all_peaks[i] = np.column_stack(
-                (all_peaks[i], np.zeros(len(all_peaks[i]))))
-
+        all_peaks = [np.column_stack((i, np.zeros(len(i)))) for i in all_peaks]
         # rotation of the point in the 3D space
         #
         self.rot_vect = np.array([1, LINE[0](1) - LINE[0](0), 0])
@@ -727,8 +706,8 @@ class SeqIm(list):
         for i, peaks in enumerate(all_peaks):
             if i != 0:
                 r = R.from_rotvec(self.rot_vect * self.angles[i])
-                all_peaks[i] = r.apply(all_peaks[i])
-            intensity.append(self[i].Peaks.int)
+                all_peaks[i] = r.apply(peaks)
+        intensity = [i.Peaks.int for i in self]
         all_peaks = [i * self.scale for i in all_peaks]
         self.EwP = EwaldPeaks(all_peaks, intensity, rot_vect=self.rot_vect,
                               angles=self.angles, r0=self.__1rot__)
