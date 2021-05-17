@@ -24,8 +24,19 @@ def perp_vect(vect):
 
 
 def mod(vect):
-    return np.sqrt(vect.dot(vect))
+    """
+    modulus along axis 1
+    """
+    if vect.ndim == 1:
+        return np.sqrt(vect @ vect)
+    return np.sqrt(np.sum(np.power(vect, 2), axis=1))
 
+
+def angle_between_vector(v1, v2):
+    v1 = np.array(v1)
+    v2 = np.array(v2)
+    acos = (v1 @ v2) / (mod(v1) * mod(v2))
+    return np.arccos(acos)
 
 # trig functions in degrees
 def sind(x):
