@@ -631,7 +631,16 @@ class SeqIm(list):
             self.scale = self[0].scale
         else:
             raise ValueError('images with different scales')
+<<<<<<< HEAD
         self.__rot__ = gon_angles
+=======
+
+        self.__1rot__ = gon_angles
+        g_ang = gon_angles - gon_angles[0]
+        ssign = 0 if np.argmax(np.abs(g_ang), axis=0).mean() <= 0.5 else 1
+        self.angles = np.arccos(
+            np.cos(g_ang[:, 0]) * np.cos(g_ang[:, 1])) * np.sign(g_ang[:, ssign])
+>>>>>>> origin/3dRotation
 
     def help(self):
         """
@@ -668,6 +677,10 @@ class SeqIm(list):
         # shape of one element of all  peaks n_p *2
         all_peaks = [np.array(i.Peaks).T - np.array(i.center) for i in self]
         out = mt.find_common_peaks(tollerance, all_peaks)
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/3dRotation
         print('found %d common peaks' % out.shape[1])
 
         # find possible rotation on the plane of the rotation axes
@@ -684,6 +697,7 @@ class SeqIm(list):
 
         # calibration for rotation of the image i the plane
         # and correct the center on the basis of average difference of out
+<<<<<<< HEAD
         # mt.zrotm is a rotation along z
         for i, peaks in enumerate(all_peaks[1:]):
             peaks = peaks @ mt.zrotm(-angle[i])
@@ -693,8 +707,19 @@ class SeqIm(list):
             # print(shift)
         all_peaks = [np.column_stack((i, np.zeros_like(i))) for i in all_peaks]
 
+=======
+        for i, peaks in enumerate(all_peaks):
+            if i != 0:
+                peaks = peaks @ mt.r2z(-angle[i])
+                shift = out[0] - (out[i] @ mt.r2z(-angle[i]))
+                shift = shift.sum(axis=0) / len(out[i])
+                all_peaks[i] = peaks + shift
+                # print(shift)
+        all_peaks = [np.column_stack((i, np.zeros(len(i)))) for i in all_peaks]
+>>>>>>> origin/3dRotation
         # rotation of the point in the 3D space
         self.rot_vect = np.array([1, LINE[0](1) - LINE[0](0), 0])
+<<<<<<< HEAD
         self.rot_vect /= mt.mod(self.rot_vect)
 
         # find_absolute_rotation
@@ -715,6 +740,15 @@ class SeqIm(list):
             r = R.from_rotvec(self.rot_vect * self.angles[i])
             all_peaks[i] = r.apply(all_peaks[i])
         intensity = [self[i].Peaks.int for i in self]
+=======
+        self.rot_vect /= np.sqrt(self.rot_vect.dot(self.rot_vect))
+        intensity = []
+        for i, peaks in enumerate(all_peaks):
+            if i != 0:
+                r = R.from_rotvec(self.rot_vect * self.angles[i])
+                all_peaks[i] = r.apply(peaks)
+        intensity = [i.Peaks.int for i in self]
+>>>>>>> origin/3dRotation
         all_peaks = [i * self.scale for i in all_peaks]
         self.EwP = EwaldPeaks(all_peaks, intensity, rot_vect=self.rot_vect,
                               angles=self.angles, r0=self.__rot__, z0=abs_rotz)
