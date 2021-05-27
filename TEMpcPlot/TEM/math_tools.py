@@ -2,95 +2,9 @@
 '''
 
 import numpy as np
-import numpy.linalg as nl
-from scipy.spatial.transform import Rotation as R
-
+# import numpy.linalg as nl
 from scipy.spatial.transform import Rotation as R
 from scipy.optimize import least_squares
-
-# trig functions in degrees
-
-
-def dist_p2vect(origin, vec, coor):
-    """return the distances of a set of point from the line
-       the position of the point if given by an iterable of shape 2xN
-    """
-    coor = np.array(coor)
-    assert 2 in coor.shape
-    if coor.shape[0] == 2:
-        coor = coor.T
-    return np.abs((np.cross(vec, coor - origin)) / mod(vec))
-
-
-def perp_vect(vect):
-    """return the perpendicular vector in a  2xN space
-    """
-    return np.cross(vect, [0, 0, 1])[:2] / mod(vect)
-
-
-def mod(vect):
-    """
-    modulus along axis 1
-    """
-    if vect.ndim == 1:
-        return np.sqrt(vect @ vect)
-    return np.sqrt(np.sum(np.power(vect, 2), axis=1))
-
-
-def angle_between_vector(v1, v2):
-    v1 = np.array(v1)
-    v2 = np.array(v2)
-    acos = (v1 @ v2) / (mod(v1) * mod(v2))
-    return np.arccos(acos)
-
-
-def find_common_peaks(tollerance, all_peaks):
-    out = []
-    # find common peaks, all_peaks has been shifted by the centers
-    for i_p in all_peaks[0]:   # i_p one peak of the first image
-        n_p = [i_p]
-        for p_ima in all_peaks[1:]:
-
-            dist = np.sqrt(np.sum((p_ima - i_p)**2, axis=1))
-            if dist.min() > tollerance:
-                break
-            else:
-                n_p.append(p_ima[dist.argmin()])
-                i_p = p_ima[dist.argmin()]
-        else:
-            out.append(n_p)
-    # out structure list of common peaks, each elem contains the position
-    # of the peak for each image out.shape =  n_image,n_peaks,  2(x,y)
-    return np.swapaxes(np.asanyarray(out), 0, 1)
-
-
-def r2z(theta):
-    cos, sin = np.cos(theta), np.sin(theta)
-    return np.array([[cos, -sin], [sin, cos]]).T
-
-
-def find_axis(tilts, rot=0):
-    tilts = tilts[1:] - tilts[0]
-    def creaxex(rot):
-        axis = [R.from_rotvec([0, 0, rot]) * R.from_rotvec([i[0], 0, 0]) * R.from_rotvec([0, i[1], 0])  for i in tilts]
-        rot_vec = [i.as_rotvec() for i in axis]
-        rot_vec2 = [i / mod(i) for i in rot_vec]
-        return rot_vec2
-
-
-    rot_vec2 = creaxex(rot)
-    print(*rot_vec2, sep='\n')
-    axis = [R.from_rotvec([i[0], 0, 0]) *
-            R.from_rotvec([0, i[1], 0]) *
-            R.from_rotvec([0, 0, rot]) for i in tilts]
-    rev = axis[0].inv()
-    print([rev.apply(i) for i in rot_vec2])
-    print('')
-
-    #print(*rot_vec2, sep='\n')
-    #print('')
-    #print(*cr2.EwP._rot_vect, sep='\n')
->>>>>>> origin/3dRotation
 
 
 def sind(x):
@@ -121,17 +35,9 @@ def acosd(x):
     return 180. * np.arccos(x) / np.pi
 
 
-def rdsq2d(x, p):
-    return round(1.0 / np.sqrt(x), p)
-
-
 rpd = np.pi / 180.
 RSQ2PI = 1. / np.sqrt(2. * np.pi)
 SQ2 = np.sqrt(2.)
-RSQPI = 1. / np.sqrt(np.pi)
-R2pisq = 1. / (2. * np.pi**2)
-nxs = np.newaxis
-<<<<<<< HEAD
 
 
 def dist_p2vect(origin, vec, coor):
@@ -152,7 +58,16 @@ def perp_vect(vect):
 
 
 def mod(vect):
-    return np.sqrt(vect.dot(vect))
+    """
+    modulus along axis 1
+    """
+    if vect.ndim == 1:
+        return np.sqrt(vect @ vect)
+    return np.sqrt(np.sum(np.power(vect, 2), axis=1))
+
+
+def norm(vect):
+    return np.array(vect, dtype=float) / mod(vect)
 
 
 def angled_between_tilts(x1, y1, x2, y2):
@@ -183,9 +98,25 @@ def angle_between_vectors(v0, v1):
     """
     v0 = np.array(v0, dtype=np.float64, copy=False)
     v1 = np.array(v1, dtype=np.float64, copy=False)
-    dot = v0 @ v1
-    dot /= mod(v0) * mod(v1)
-    return np.arccos(dot)
+    s = mod(np.cross(v0, v1))
+    c = v0 @ v1
+    return np.arctan2(s, c)
+
+
+def zrot_among_vectors(v0, v1):
+    """Return angle between vectors layng on the xy plane.
+    If directed is False, the input vectors are interpreted as undirected axes,
+    i.e. the maximum angle is pi/2.
+    >>> a = angle_between_vectors([1, -2, 3], [-1, 2, -3])
+    >>> numpy.allclose(a, math.pi)
+    True
+    """
+    v0 = np.array(v0, dtype=np.float64, copy=False)
+    v1 = np.array(v1, dtype=np.float64, copy=False)
+    s = np.cross(v0, v1)
+    c = v0 @ v1
+    segno = np.sign(s.flatten()[2::3])
+    return segno * np.arctan2(mod(s), c)
 
 
 def find_common_peaks(tollerance, all_peaks):
@@ -218,21 +149,23 @@ def zrotm(theta):
     return np.array([[cos, -sin], [sin, cos]]).T
 
 
-def rxyz(xyz, rot):
-    return R.from_rotvec(np.insert([0., 0.], xyz, rot))
+def rotxyz(x, y, z):
+    rz = R.from_rotvec([0, 0, z])
+    rx = R.from_rotvec([0, x, 0])
+    ry = R.from_rotvec([y, 0, 0])
+    return rz * rx * ry
 
 
-def defR(tilt, zrot):
-    return rxyz(0, tilt[0]) * rxyz(1, tilt[1]) * rxyz(2, zrot)
-
-
-def drot_axes(rx, ry):
-    rot_axes = R.from_rotvec([0., 0., rx/rpd]) * R.from_rotvec([0., rx/rpd, 0])
-    rinv = defR(tiltin[0], zrot).inv() 
-    rot_axes = [rinv * r for r in rot_axes]
-    rot_axes = [r.as_rotvec() for r in rot_axes]
-    print(*rot_axes, sep='\n')
-    return np.array([r / mod(r) for r in rot_axes])
+def creaxex(tilts, zrot):
+    """
+    create the rotation vector based on tilt and camera rotation
+    """
+    r0 = rotxyz(tilts[0][0], tilts[0][1], zrot)
+    r0i = r0.inv()
+    axis = [rotxyz(i[0], i[1], zrot) for i in tilts[1:]]
+    rot_vec = [i * r0i for i in axis]
+    rot_vec2 = [i.as_rotvec() for i in rot_vec]
+    return rot_vec2
 
 
 def find_absolute_angle(tiltin, axis, zrot=None):
