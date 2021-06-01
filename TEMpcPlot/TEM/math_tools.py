@@ -5,7 +5,7 @@ import numpy as np
 # import numpy.linalg as nl
 from scipy.spatial.transform import Rotation as R
 from scipy.optimize import least_squares
-
+from .ransac import ransac_lin
 
 def sind(x):
     return np.sin(x * np.pi / 180.)
@@ -142,6 +142,40 @@ def find_common_peaks(tollerance, all_peaks):
     # out structure list of common peaks, each elem contains the position
     # of the peak for each image out.shape =  n_image,n_peaks,  2(x,y)
     return np.swapaxes(np.asanyarray(out), 0, 1)
+
+
+def find_zrot_correction(common_pic, tollerance):
+    """
+    common peak list of common peak
+    """
+    def fl(x):
+        return ransac_lin(x.T, threshDist=tollerance, inlierRatio=0.7)
+
+    LINE = [fl(im_p) for im_p in common_pic]
+    assert not(None in LINE), f'rot.axis not found {LINE.index(None)}im'
+
+    angle = np.arctan([i.c[0] for i in LINE])
+    angle -= angle[0]
+    common_vector = np.array([1, LINE[0](1) - LINE[0](0), 0])
+    return angle, norm(common_vector)
+
+
+def find_z_rotation(rot, rot_vect):
+    """
+        find the angle between the tilt rotvector and 
+        and the absolute rotation 
+    """
+    axis = creaxex(rot, 0)
+    z_ang = zrot_among_vectors(axis, rot_vect)
+    z_ang = np.where(np.abs(z_ang) <= np.pi / 2,
+                     z_ang,
+                     np.pi + z_ang)
+    if (abs(z_ang.min() - z_ang.min()) / rpd) > 10:
+        print('zrot', np.round(np.degrees(z_ang), 1))
+        raise ValueError
+    return z_ang
+
+
 
 
 def zrotm(theta):

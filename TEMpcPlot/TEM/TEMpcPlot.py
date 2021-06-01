@@ -29,7 +29,6 @@ from .. import dm3_lib as dm3
 from .. import Symmetry
 from . import plt_p
 from .profileline import profile_line
-from .ransac import ransac_lin
 from . import d3plot
 from . import more_widget as mw
 from . import math_tools as mt
@@ -677,14 +676,8 @@ class SeqIm(list):
 
         # find possible rotation on the plane of the rotation axes
         # evaluated between the fitted line that pass for the common peaks
-        def fl(x):
-            return ransac_lin(x.T, threshDist=tollerance, inlierRatio=0.7)
-
-        LINE = [fl(im_p) for im_p in out]
-        assert not(None in LINE), f'rot.axis not found {LINE.index(None)}im'
-
-        angle = np.arctan([i.c[0] for i in LINE])
-        angle -= angle[0]
+        # return the angle of cortrection and a vector passing from all points
+        angle, self.rot_vect = mt.find_zrot_correction(out, tollerance)
         print('angle correction', np.round(np.degrees(angle), 2))
 
         # calibration for rotation of the image i the plane
@@ -698,40 +691,26 @@ class SeqIm(list):
                 # print(shift)
         all_peaks = [np.column_stack((i, np.zeros(len(i)))) for i in all_peaks]
 
-        # rotation of the point in the 3D space
-        self.rot_vect = np.array([1, LINE[0](1) - LINE[0](0), 0])
-        self.rot_vect /= mt.mod(self.rot_vect)
-
         # absolute rotation
-        axis = mt.creaxex(self.__rot__, 0)
-        z_ang = mt.zrot_among_vectors(axis, self.rot_vect)
-        z_ang = np.where(np.abs(z_ang) <= np.pi / 2,
-                         z_ang,
-                         np.pi + z_ang)
-        print('zrot', np.round(np.degrees(z_ang), 1))
-        self.z0 = z_ang[0]
-        rot0 = mt.rotxyz(self.__rot__[0][0],
-                         self.__rot__[0][1],
-                         -self.z0)
+        self.z0 = mt.find_z_rotation(self.__rot__, self.rot_vect)[0]
+
         axis = mt.creaxex(self.__rot__, self.z0)
-        sign = np.where(axis @ self.rot_vect > 0, 1, -1)
+        sign = np.where(axis @ self.rot_vect > 0, -1, 1)
         angle = np.array([mt.mod(i) for i in axis])
-        self.angle = sign * angle
-        self.angle = np.insert(self.angle, 0, 0.0)
+        self.angle = np.insert(sign * angle, 0, 0.0)
 
         intensity = []
         position = []
         for i, peaks in enumerate(all_peaks):
             if i == 0:
-                position.append(rot0.apply(peaks))
+                position.append(peaks)
             else:
-                r = rot0 * R.from_rotvec(self.rot_vect * self.angles[i])
+                r = R.from_rotvec(self.rot_vect * self.angles[i])
                 position.append(r.apply(peaks))
         intensity = [i.Peaks.int for i in self]
-        all_peaks = [i * self.scale for i in all_peaks]
+        position = [i * self.scale for i in position]
         self.EwP = EwaldPeaks(position, intensity, rot_vect=self.rot_vect,
-                              angles=self.angles, r0=self.__rot__, z0=self.z0,
-                              pos0=all_peaks)
+                              angles=self.angles, r0=self.__rot__, z0=self.z0)
         # abs_rotz
         return
 
@@ -965,8 +944,7 @@ class SeqIm(list):
 
 class EwaldPeaks(object):
     """Set of peaks position and intensity
-
-    this class manages peaks position and intensity and the methods related to 
+    this class manages peaks position and intensity and the methods related to
     lattice indexing and refinement
     could be created as an attribute EwP of a SeqIm class by using methods D3_peaks
     or by sum with an another EwaldPeaks class with the same first image
@@ -989,8 +967,11 @@ class EwaldPeaks(object):
                          real space cell
     """
 
-    def __init__(self, positions, intensity, rot_vect=None, angles=None,
-                 r0=None, z0=None, pos0=None, axes=None, set_cell=True):
+    def __init__(self, positions, intensity,
+                 rot_vect=None, angles=None,
+                 r0=None, z0=None, pos0=None,
+                 scale=None,
+                 axes=None, set_cell=True):
         # list in whic pos are sotred for each image
         self.pos = positions
         self.int = intensity
@@ -1008,6 +989,8 @@ class EwaldPeaks(object):
             self.__rotz__ = z0
         if pos0 is not None:
             self.__pos0__ = pos0
+        if scale is not None:
+            self.__scale__ = pos0
         if axes is not None:
             if set_cell:
                 self.set_cell(axes)
@@ -1024,32 +1007,40 @@ class EwaldPeaks(object):
             rot_vect = self._rot_vect + other._rot_vect
         return EwaldPeaks(pos, inte, rot_vect=rot_vect)
 
-    def merge(self, other):
-        #common_tilt = [i in other.__rot__ for i in self.__rot__]
-        #if True in common_tilt:
-        #    selfct = common_tilt.index(True)
+    def merge(self, other, tollerance=0.61):
+        # all_peaks = [self.__pos0__[0][:, :2], other.__pos0__[0][:, :2]]
+        all_peaks = [self.pos[0][:, :2], other.pos[0][:, :2]]
+        rot = np.array([self.__rot__[0], other.__rot__[0]])
 
+        out = mt.find_common_peaks(tollerance, all_peaks)
+        print('found %d common peaks' % out.shape[1])
+        zangle, rot_vect = mt.find_zrot_correction(out, tollerance)
 
+        zrot = R.from_rotvec([0, 0, -zangle[1]])
+        print('angle correction', np.round(np.degrees(zangle), 2))
+        otherpos = [zrot.apply(i) for i in other.pos]
 
-        #if self.__rot__ - other.__rot__
+        z0 = mt.find_z_rotation(rot, rot_vect)[0]
+        print('z0 angle %4.2f' % np.degrees(z0))
+        axis = mt.creaxex(rot, z0)
+        sign = np.where(axis @ rot_vect > 0, -1, 1)
+        angle = mt.mod(axis[0]) * sign
 
+        position = []
+        r = R.from_rotvec(rot_vect * -angle)
+        for i, peaks in enumerate(otherpos):
+            position.append(r.apply(peaks))
 
-
-        #assert hasattr(self, '__1rot__'), 'self missing r0 attribute '
-        #assert hasattr(other, '__1rot__'), 'other missing r0 attribute '
- 
-        #otherpos = [r12.inv().apply(i) for i in other.pos]
-        # otherrotvect = [rtot2inv.apply(rtot2.apply(i)) for i in other._rot_vect]
-
-        # position = [rtotinv.apply(i) for i in selfpos + otherpos]
-        position = self.pos + other.pos
+        position = self.pos + position
         inte = self.int + other.int
+        r0 = self.__rot__ + other.__rot__
+
         # rot_vect = self._rot_vect + otherrotvect
 
         # out = EwaldPeaks(position, inte, rot_vect=rot_vect)
-        out = EwaldPeaks(position, inte)
-        #if hasattr(self, 'axes'):
-        #    out.set_cell(rtot1inv.apply(self.axes.T).T)
+        out = EwaldPeaks(position, inte, r0=r0)
+        if hasattr(self, 'axes'):
+            out.set_cell(self.axes)
         return out
 
     def plot(self):
