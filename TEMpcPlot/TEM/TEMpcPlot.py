@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.qt_compat import QtGui
 
 
-
 from packaging import version
 if version.parse(matplotlib.__version__) > version.parse("3.3.1"):
     matplotlib_old = False
@@ -30,7 +29,6 @@ from .. import dm3_lib as dm3
 from .. import Symmetry
 from . import plt_p
 from .profileline import profile_line
-from .ransac import ransac_lin
 from . import d3plot
 from . import more_widget as mw
 from . import math_tools as mt
@@ -365,7 +363,6 @@ class PeakL(list):
             for i in np.flip(rcoor):
                 self.del_peak(i)
 
-
         canv = self.lp.figure.canvas
         self._break_loop = False
         if not hasattr(self, 'lp'):
@@ -374,7 +371,7 @@ class PeakL(list):
         if canv.widgetlock.locked():
             return
         self.rect = mw.RectangleBuilder(ax, callback=del_inside)
-        #self.rect.canvas.widgetlock(self.rect)
+        # self.rect.canvas.widgetlock(self.rect)
 
     def help(self):
         print(self.__doc__)
@@ -633,8 +630,7 @@ class SeqIm(list):
             self.scale = self[0].scale
         else:
             raise ValueError('images with different scales')
-
-        self.__1rot__ = gon_angles[0]
+        self.__rot__ = gon_angles
         g_ang = gon_angles - gon_angles[0]
         ssign = 0 if np.argmax(np.abs(g_ang), axis=0).mean() <= 0.5 else 1
         self.angles = np.arccos(
@@ -674,65 +670,48 @@ class SeqIm(list):
         """
         # shape of one element of all  peaks n_p *2
         all_peaks = [np.array(i.Peaks).T - np.array(i.center) for i in self]
-        out = []
-        # find common peaks, all_peaks has been shifted by the centers
-        for i_p in all_peaks[0]:   # i_p one peak of the first image
-            n_p = [i_p]
-            for p_ima in all_peaks[1:]:
-
-                dist = np.sqrt(np.sum((p_ima - i_p)**2, axis=1))
-                if dist.min() > tollerance:
-                    break
-                else:
-                    n_p.append(p_ima[dist.argmin()])
-                    i_p = p_ima[dist.argmin()]
-            else:
-                out.append(n_p)
-        # out structure list of common peaks, each elem contains the position
-        # of the peak for each image out.shape =  n_image,n_peaks,  2(x,y)
-        out = np.swapaxes(np.asanyarray(out), 0, 1)
+        out = mt.find_common_peaks(tollerance, all_peaks)
 
         print('found %d common peaks' % out.shape[1])
 
         # find possible rotation on the plane of the rotation axes
         # evaluated between the fitted line that pass for the common peaks
-        def fl(x):
-            return ransac_lin(x.T, threshDist=tollerance, inlierRatio=0.7)
-
-        LINE = [fl(im_p) for im_p in out]
-        assert not(None in LINE), f'rot.axis not found {LINE.index(None)}im'
-
-        angle = np.arctan([i.c[0] for i in LINE])
-        angle -= angle[0]
-        print('angle correction', np.degrees(angle))
+        # return the angle of cortrection and a vector passing from all points
+        angle, self.rot_vect = mt.find_zrot_correction(out, tollerance)
+        print('angle correction', np.round(np.degrees(angle), 2))
 
         # calibration for rotation of the image i the plane
         # and correct the center on the basis of average difference of out
-        def rot_m(theta):
-            cos, sin = np.cos(theta), np.sin(theta)
-            return np.array([[cos, -sin], [sin, cos]]).T
         for i, peaks in enumerate(all_peaks):
             if i != 0:
-                peaks = peaks @ rot_m(-angle[i])
-                shift = out[0] - (out[i] @ rot_m(-angle[i]))
+                peaks = peaks @ mt.zrotm(-angle[i])
+                shift = out[0] - (out[i] @ mt.zrotm(-angle[i]))
                 shift = shift.sum(axis=0) / len(out[i])
                 all_peaks[i] = peaks + shift
                 # print(shift)
-            all_peaks[i] = np.column_stack(
-                (all_peaks[i], np.zeros(len(all_peaks[i]))))
+        all_peaks = [np.column_stack((i, np.zeros(len(i)))) for i in all_peaks]
 
-        # rotation of the point in the 3D space
-        #
-        self.rot_vect = np.array([1, LINE[0](1) - LINE[0](0), 0])
-        self.rot_vect /= np.sqrt(self.rot_vect.dot(self.rot_vect))
+        # absolute rotation
+        self.z0 = mt.find_z_rotation(self.__rot__, self.rot_vect)[0]
+
+        axis = mt.creaxex(self.__rot__, self.z0)
+        sign = np.where(axis @ self.rot_vect > 0, -1, 1)
+        angle = np.array([mt.mod(i) for i in axis])
+        self.angle = np.insert(sign * angle, 0, 0.0)
+
         intensity = []
+        position = []
         for i, peaks in enumerate(all_peaks):
-            if i != 0:
+            if i == 0:
+                position.append(peaks)
+            else:
                 r = R.from_rotvec(self.rot_vect * self.angles[i])
-                all_peaks[i] = r.apply(all_peaks[i])
-            intensity.append(self[i].Peaks.int)
-        all_peaks = [i * self.scale for i in all_peaks]
-        self.EwP = EwaldPeaks(all_peaks, intensity, self.rot_vect)
+                position.append(r.apply(peaks))
+        intensity = [i.Peaks.int for i in self]
+        position = [i * self.scale for i in position]
+        self.EwP = EwaldPeaks(position, intensity, rot_vect=self.rot_vect,
+                              angles=self.angles, r0=self.__rot__, z0=self.z0)
+        # abs_rotz
         return
 
     def plot(self, log=False, *args, **kwds):
@@ -806,11 +785,10 @@ class SeqIm(list):
                 tool_b._actions['del_p'].setChecked(False)
                 return
 
-
             selfPL._cid = fig.canvas.mpl_connect('pick_event', onpick)
             selfPL._mid = fig.canvas.mpl_connect('button_press_event', endpick)
             # fig.canvas.widgetlock(self)
-            #fig.canvas.widgetlock(tool_b._actions['del_p'])
+            # fig.canvas.widgetlock(tool_b._actions['del_p'])
 
             #tool_b._actions['pan'].setChecked(tool_b._active == 'PAN')
             #tool_b._actions['zoom'].setChecked(tool_b._active == 'ZOOM')
@@ -825,14 +803,15 @@ class SeqIm(list):
                     tool_b._active = 'DelR P'
 
                 if tool_b._idPress is not None:
-                    tool_b._idPress = fig.canvas.mpl_disconnect(tool_b._idPress)
+                    tool_b._idPress = fig.canvas.mpl_disconnect(
+                        tool_b._idPress)
                     tool_b.mode = ''
 
                 if tool_b._idRelease is not None:
                     tool_b._idRelease = fig.canvas.mpl_disconnect(
                         tool_b._idRelease)
-                    tool_b.mode = ''   
-            else:             
+                    tool_b.mode = ''
+            else:
                 if tool_b.mode == _Mode.ZOOM:
                     tool_b.mode = _Mode.NONE
                     tool_b._actions['zoom'].setChecked(False)
@@ -924,11 +903,18 @@ class SeqIm(list):
         out.filename = self.filenames
         out.filesangle = [i.info.gon_angles for i in self]
         if hasattr(self, 'EwP'):
-            out.EwP = {'pos': self.EwP.pos,
-                       'int': self.EwP.int,
-                       'rot_vect': self.EwP._rot_vect}
+            out.EwP = {'positions': self.EwP.pos,
+                       'intensity': self.EwP.int}
             if hasattr(self.EwP, 'axes'):
                 out.EwP['axes'] = self.EwP.axes
+            if hasattr(self.EwP, '_rot_vect'):
+                out.EwP['rot_vect'] = self.EwP._rot_vect
+            if hasattr(self.EwP, 'angles'):
+                out.EwP['angles'] = self.EwP.angles
+            if hasattr(self.EwP, '__rot__'):
+                out.EwP['r0'] = self.EwP.__rot__
+            if hasattr(self.EwP, '__rotz__'):
+                out.EwP['z0'] = self.EwP.__rotz__
         with open(filesave, "wb") as file_save:
             pickle.dump(out, file_save)
         return
@@ -952,19 +938,13 @@ class SeqIm(list):
             out[i].Peaks.int = Peaksi['inte']
             out[i].Peaks.ps_in = Peaksi['ps_in']
         if hasattr(inn, 'EwP'):
-            out.EwP = EwaldPeaks(inn.EwP['pos'],
-                                 inn.EwP['int'],
-                                 inn.EwP['rot_vect'])
-            if 'axes' in inn.EwP.keys():
-                out.EwP.axes = inn.EwP['axes']
-                out.EwP.set_cell()
+            out.EwP = EwaldPeaks(**inn.EwP)
         return out
 
 
 class EwaldPeaks(object):
     """Set of peaks position and intensity
-
-    this class manages peaks position and intensity and the methods related to 
+    this class manages peaks position and intensity and the methods related to
     lattice indexing and refinement
     could be created as an attribute EwP of a SeqIm class by using methods D3_peaks
     or by sum with an another EwaldPeaks class with the same first image
@@ -985,13 +965,13 @@ class EwaldPeaks(object):
         axis    (np.array): reciprocal basis set, 3 coloums
         cell    (dict): a dictionary witht the value of
                          real space cell
-
-
-
     """
 
-    def __init__(self, positions, intensity, rot_vect=None, axes=None,
-                 set_cell=True):
+    def __init__(self, positions, intensity,
+                 rot_vect=None, angles=None,
+                 r0=None, z0=None, pos0=None,
+                 scale=None,
+                 axes=None, set_cell=True):
         # list in whic pos are sotred for each image
         self.pos = positions
         self.int = intensity
@@ -1001,6 +981,16 @@ class EwaldPeaks(object):
             self._rot_vect = rot_vect
         else:
             self._rot_vect = [rot_vect] * len(self.int)
+        if angles is not None:
+            self._angles = angles
+        if r0 is not None:
+            self.__rot__ = r0
+        if z0 is not None:
+            self.__rotz__ = z0
+        if pos0 is not None:
+            self.__pos0__ = pos0
+        if scale is not None:
+            self.__scale__ = pos0
         if axes is not None:
             if set_cell:
                 self.set_cell(axes)
@@ -1008,12 +998,50 @@ class EwaldPeaks(object):
                 self.axes = axes
 
     def __add__(self, other):
-        pos = self.pos + other.pos[1:]
-        inte = self.int + other.int[1:]
+        """
+        """
+        pos = self.pos + other.pos
+        inte = self.int + other.int
         cond = hasattr(self, '_rot_vect') and hasattr(other, '_rot_vect')
         if cond:
             rot_vect = self._rot_vect + other._rot_vect
-        return EwaldPeaks(pos, inte, rot_vect)
+        return EwaldPeaks(pos, inte, rot_vect=rot_vect)
+
+    def merge(self, other, tollerance=0.61):
+        # all_peaks = [self.__pos0__[0][:, :2], other.__pos0__[0][:, :2]]
+        all_peaks = [self.pos[0][:, :2], other.pos[0][:, :2]]
+        rot = np.array([self.__rot__[0], other.__rot__[0]])
+
+        out = mt.find_common_peaks(tollerance, all_peaks)
+        print('found %d common peaks' % out.shape[1])
+        zangle, rot_vect = mt.find_zrot_correction(out, tollerance)
+
+        zrot = R.from_rotvec([0, 0, -zangle[1]])
+        print('angle correction', np.round(np.degrees(zangle), 2))
+        otherpos = [zrot.apply(i) for i in other.pos]
+
+        z0 = mt.find_z_rotation(rot, rot_vect)[0]
+        print('z0 angle %4.2f' % np.degrees(z0))
+        axis = mt.creaxex(rot, z0)
+        sign = np.where(axis @ rot_vect > 0, -1, 1)
+        angle = mt.mod(axis[0]) * sign
+
+        position = []
+        r = R.from_rotvec(rot_vect * -angle)
+        for i, peaks in enumerate(otherpos):
+            position.append(r.apply(peaks))
+
+        position = self.pos + position
+        inte = self.int + other.int
+        r0 = self.__rot__ + other.__rot__
+
+        # rot_vect = self._rot_vect + otherrotvect
+
+        # out = EwaldPeaks(position, inte, rot_vect=rot_vect)
+        out = EwaldPeaks(position, inte, r0=r0)
+        if hasattr(self, 'axes'):
+            out.set_cell(self.axes)
+        return out
 
     def plot(self):
         """open a D3plot graph
@@ -1150,7 +1178,7 @@ class EwaldPeaks(object):
                 print(ref[ext_c].T.shape)
                 ref_ext = Ort_mat @ ref[ext_c].T
             if np.any(~ext_c):
-                ref_act = Ort_mat @ ref[~ext_c].T     
+                ref_act = Ort_mat @ ref[~ext_c].T
 
             plt.figure()
             if size > 0:
@@ -1587,17 +1615,25 @@ class EwaldPeaks(object):
                        footer=footer, fmt='%10.5f', comments='')
             return
 
-        dict_data = dict(zip(['pos', 'int', 'rot_vect'],
-                             [self.pos, self.int, self._rot_vect]))
+        out = {'positions': self.EwP.pos, 'intensity': self.EwP.int}
         if hasattr(self, 'axes'):
-            dict_data['axes'] = self.axes
+            out['axes'] = self.axes
+        if hasattr(self, '_rot_vect'):
+            out['rot_vect'] = self._rot_vect
+        if hasattr(self, 'angles'):
+            out['angles'] = self.angles
+        if hasattr(self, '__rot__'):
+            out['r0'] = self.__rot__
+        if hasattr(self, '__rotz__'):
+            out['z0'] = self.__rotz__
+
         if dictionary:
-            return dict_data
+            return out
 
         if '.' not in filename:
             filename += '.ewp'
         with open(filename, 'wb') as filesave:
-            pickle.dump(dict_data, filesave)
+            pickle.dump(out, filesave)
         return
 
     @classmethod

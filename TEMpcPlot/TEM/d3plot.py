@@ -79,6 +79,17 @@ class D3plot(object):
         self.plot_ax()
         self.plot_hist()
 
+    def filter_layer(self, listn):
+        """conserve onlyt the layers in listn
+        """
+        pos_i = []
+        for j, i_pos in enumerate(self._EwPePos.pos):
+            if j in listn:
+                pos_i.append(self.r0.apply(i_pos))
+        self.pos_i = pos_i
+        self.plot_ax()
+        self.plot_hist()
+
     def plot_ax(self):
         self.ax.cla()
         self.ax.set_aspect(aspect='equal', adjustable='datalim')
