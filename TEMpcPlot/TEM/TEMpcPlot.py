@@ -920,7 +920,7 @@ class EwaldPeaks(object):
 
         position = self.pos + position
         inte = self.int + other.int
-        r0 = self.__rot__ + other.__rot__
+        r0 = np.vstack([self.__rot__, other.__rot__])
 
         # rot_vect = self._rot_vect + otherrotvect
 
