@@ -242,10 +242,9 @@ class PeakL(list):
         if isinstance(inlist, tuple):
             super().__init__(inlist)
         elif isinstance(inlist, Mimage):
-            if dist:
-                dist = [*inlist.center, dist]
             pos, intent = self.findpeaks(inlist.ima, int(min_dis),
-                                         threshold, dist, symf, circle, comass)
+                                         threshold, dist, symf, circle, 
+                                         comass, inlist.center)
             super().__init__(pos)
             self.int = intent
             self.ps_in = {'min_dis': int(min_dis), 'threshold': threshold,
@@ -264,7 +263,7 @@ class PeakL(list):
 
     @classmethod
     def findpeaks(cls, ima, min_dis=15, threshold=300, dist=None, symf=None,
-                  circle=True, comass=True):
+                  circle=True, comass=True, center=None):
 
         if circle:
             foot = cir_foot(min_dis)
@@ -313,12 +312,12 @@ class PeakL(list):
                 else:
                     print(np.max(np.abs(coor - newcoor)) < 2)
 
-        center = np.array([[dist[0]], [dist[1]]])
+        
         # distance parameter
-        if not(dist is None):
+        if dist:
             coor_d = coor - center
             coor_d = np.sqrt(np.sum(coor_d**2, axis=0))
-            coor = coor[:, coor_d < dist[2]]
+            coor = coor[:, coor_d < dist2]
 
         # symmetry parameter
         if symf:
