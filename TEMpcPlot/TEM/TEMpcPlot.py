@@ -1,7 +1,6 @@
-import matplotlib
 import matplotlib.pyplot as plt
 
-from matplotlib.widgets import Slider, Button
+from matplotlib.widgets import Slider, Button, CheckButtons
 # from matplotlib.backend_tools import ToolBase
 # plt.rcParams['toolbar'] = 'toolmanager'
 # from mpl_toolkits.mplot3d import Axes3D
@@ -12,8 +11,6 @@ from scipy.spatial.transform import Rotation as R
 from scipy.optimize import least_squares
 import pickle
 import glob
-import os
-
 
 from .. import dm3_lib as dm3
 from .. import Symmetry
@@ -746,7 +743,7 @@ class SeqIm(list):
         if fig is None:
             fig = plt.figure()
         if ax is None:
-            ax = plt.axes([0.0, 0.15, 0.75, 0.75])
+            ax = plt.axes([0.0, 0.10, 0.80, 0.80])
         if tool_b is None:
             tool_b = fig.canvas.manager.toolbar
 
@@ -760,37 +757,50 @@ class SeqIm(list):
 
         axcolor = 'lightgoldenrodyellow'
         axinte = plt.axes([0.75, 0.87, 0.20, 0.03], facecolor=axcolor)
-        axdist = plt.axes([0.75, 0.77, 0.20, 0.03], facecolor=axcolor)
-        axspac = plt.axes([0.75, 0.67, 0.20, 0.03], facecolor=axcolor)
+        axdist = plt.axes([0.75, 0.79, 0.20, 0.03], facecolor=axcolor)
+        axspac = plt.axes([0.75, 0.71, 0.20, 0.03], facecolor=axcolor)
+        axsym = plt.axes([0.75, 0.57, 0.15, 0.10], facecolor=axcolor)
 
         inteb = Slider(ax=axinte, label='int', valmin=0.1, valmax=10.0, valinit=5)  # , valstep=delta_f
         distb = Slider(ax=axdist, label='dis', valmin=1, valmax=512.0, valinit=500)
         spacb = Slider(ax=axspac, label='rad', valmin=0.1, valmax=10.0, valinit=1)  # , valstep=delta_f
+        symb = Slider(ax=axsym, label='sym', valmin=0.0, valmax=20.0, valinit=0)
+
+        # Create a `matplotlib.widgets.Button` to reset the sliders to initial values.
+        axapal = plt.axes([0.75, 0.47, 0.15, 0.04])
+        butpal = Button(axapal, 'apply to all', color=axcolor, hovercolor='0.975')
+
+        axvmax = plt.axes([0.75, 0.17, 0.15, 0.04])
+        vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100)
 
         def update(val):
-            nonlocal inteb
-            nonlocal distb
-            nonlocal spacb
-            nonlocal ax
+            nonlocal symB
             inte = inteb.val
             dist = distb.val
             spac = spacb.val
+            symB = symb.val
             plt.sca(ax)
-            self.ima.find_peaks(rad_c=spac, tr_c=inte / 100.0, dist=dist)
+            self.ima.find_peaks(rad_c=spac, tr_c=inte / 100.0,
+                                dist=dist, symf=symB)
 
         inteb.on_changed(update)
         distb.on_changed(update)
         spacb.on_changed(update)
-
-        # Create a `matplotlib.widgets.Button` to reset the sliders to initial values.
-        axapal = plt.axes([0.75, 0.57, 0.15, 0.04])
-        butpal = Button(axapal, 'apply to all', color=axcolor, hovercolor='0.975')
+        spacb.on_changed(update)
 
         def app_all(event):
             plt.sca(ax)
-            self.ima.find_peaks(rad_c=spac, tr_c=inte / 100.0, dist=dist)
+            self.find_peaks(rad_c=spac, tr_c=inte / 100.0, dist=dist)
         butpal.on_clicked(app_all)
-        #self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
+
+        def refresh(val):
+            mini = np.log(self.ima.ima.min()) if log else self.ima.ima.min()
+            maxi = np.log(self.ima.ima.max()) if log else self.ima.ima.max()
+            vmax = mini + vmaxb.val * (maxi - mini) / 100
+            plt.sca(ax)
+            self.ima.plot(new=0, log=log, vmax=vmax, *args, **kwds)
+        vmaxb.on_changed(refresh)
+        # self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
 
     def save(self, filesave):
         """
