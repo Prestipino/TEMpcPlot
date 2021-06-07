@@ -207,7 +207,7 @@ class PeakL(list):
     ----------------------------------------------------------
     """
 
-    def __init__(self, inlist, min_dis=15, threshold=300, dist=None,
+    def __init__(self, inlist, min_dis=15, threshold=300, dist=None, symf=None,
                  circle=False, comass=True):
         """
         input
@@ -235,7 +235,7 @@ class PeakL(list):
             if dist:
                 dist = [*inlist.center, dist]
             pos, intent = self.findpeaks(inlist.ima, int(min_dis),
-                                         threshold, dist, circle, comass)
+                                         threshold, dist, symf, circle, comass)
             super().__init__(pos)
             self.int = intent
             self.ps_in = {'min_dis': int(min_dis), 'threshold': threshold,
@@ -253,7 +253,7 @@ class PeakL(list):
             self.lp.figure.canvas.draw()
 
     @classmethod
-    def findpeaks(cls, ima, min_dis=15, threshold=300, dist=None,
+    def findpeaks(cls, ima, min_dis=15, threshold=300, dist=None, symf=None,
                   circle=True, comass=True):
 
         if circle:
@@ -303,14 +303,37 @@ class PeakL(list):
                 else:
                     print(np.max(np.abs(coor - newcoor)) < 2)
 
+        center = np.array([[dist[0]], [dist[1]]])
         # distance parameter
         if not(dist is None):
-            coor_d = coor - np.array([[dist[0]], [dist[1]]])
+            coor_d = coor - center
             coor_d = np.sqrt(np.sum(coor_d**2, axis=0))
             coor = coor[:, coor_d < dist[2]]
+
+        # symmetry parameter
+        if symf:
+            coor = coor.T
+            symf = symf**2
+            c_coor = coor - center
+            index = list(range(len(c_coor)))
+            sym_coor=[]
+            for i in index[:-1]:
+                if len(c_coor) < i+2:
+                    break
+                z = c_coor[i+1:] + c_coor[i]
+                z1 = np.sum(z**2, 1)
+                zam = z1.argmin()     
+                if  z1[zam] < symf:
+                    sym_coor.append(coor[i])
+                    sym_coor.append(c_coor[i+1+zam] + center)
+                    c_coor = np.delete(c_coor, i+1+zam, 0)
+                    del index[i+1+zam]
+            coor = np.array(sym_coor).T
+
         z = ((coor + .5).astype(int))
         # print('in peak', ima[z].shape, z.shape)
-        return tuple(coor), ima[tuple(z)] - ima_min[tuple(z)]
+        return tuple(coor), ima[tuple(z)] - ima_min[tuple(z)]   
+
 
     @property
     def r(self):
@@ -492,7 +515,7 @@ class Mimage():
         radius = np.sqrt(surf[l_max - 1] / np.pi)
         return coor, radius
 
-    def find_peaks(self, rad_c=1.5, tr_c=0.02, dist=None):
+    def find_peaks(self, rad_c=1.5, tr_c=0.02, dist=None, symf=None):
         '''
         finds peaks in the image
 
@@ -512,7 +535,8 @@ class Mimage():
             plot = False
 
         self.Peaks = PeakL(self, min_dis=round(self.rad * rad_c),
-                           threshold=tr_c * self.ima.max(), dist=dist)
+                           threshold=tr_c * self.ima.max(), dist=dist,
+                           symf=None)
 
         if plot:
             self.Peaks.plot()
@@ -632,7 +656,7 @@ class SeqIm(list):
         """
         print(self.__doc__)
 
-    def find_peaks(self, rad_c=1.5, tr_c=0.02, dist=None):
+    def find_peaks(self, rad_c=1.5, tr_c=0.02, dist=None, symf=None):
         """ findf the peak
         allows to search again the peaks in all the image witht the same
         parameter
