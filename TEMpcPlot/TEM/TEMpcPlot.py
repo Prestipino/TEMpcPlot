@@ -229,10 +229,9 @@ class PeakL(list):
         if isinstance(inlist, tuple):
             super().__init__(inlist)
         elif isinstance(inlist, Mimage):
-            if dist:
-                dist = [*inlist.center, dist]
             pos, intent = self.findpeaks(inlist.ima, int(min_dis),
-                                         threshold, dist, symf, circle, comass)
+                                         threshold, dist, symf, circle, comass,
+                                         np.array(inlist.center))
             super().__init__(pos)
             self.int = intent
             self.ps_in = {'min_dis': int(min_dis), 'threshold': threshold,
@@ -251,7 +250,7 @@ class PeakL(list):
 
     @classmethod
     def findpeaks(cls, ima, min_dis=15, threshold=300, dist=None, symf=None,
-                  circle=True, comass=True):
+                  circle=True, comass=True, center=None):
 
         if circle:
             foot = cir_foot(min_dis)
@@ -300,12 +299,11 @@ class PeakL(list):
                 else:
                     print(np.max(np.abs(coor - newcoor)) < 2)
 
-        center = np.array([[dist[0]], [dist[1]]])
         # distance parameter
-        if not(dist is None):
-            coor_d = coor - center
-            coor_d = np.sqrt(np.sum(coor_d**2, axis=0))
-            coor = coor[:, coor_d < dist[2]]
+        if dist:
+            coor_d = coor.T - center
+            coor_d = np.sqrt(np.sum(coor_d**2, axis=1))
+            coor = coor[:, coor_d < dist]
 
         # symmetry parameter
         if symf:
@@ -313,23 +311,23 @@ class PeakL(list):
             symf = symf**2
             c_coor = coor - center
             index = list(range(len(c_coor)))
-            sym_coor=[]
+            sym_coor = []
             for i in index[:-1]:
-                if len(c_coor) < i+2:
+                if len(c_coor) < i + 2:
                     break
-                z = c_coor[i+1:] + c_coor[i]
+                z = c_coor[i + 1:] + c_coor[i]
                 z1 = np.sum(z**2, 1)
-                zam = z1.argmin()     
-                if  z1[zam] < symf:
+                zam = z1.argmin()
+                if z1[zam] < symf:
                     sym_coor.append(coor[i])
-                    sym_coor.append(c_coor[i+1+zam] + center)
-                    c_coor = np.delete(c_coor, i+1+zam, 0)
-                    del index[i+1+zam]
+                    sym_coor.append(c_coor[i + 1 + zam] + center)
+                    c_coor = np.delete(c_coor, i + 1 + zam, 0)
+                    del index[i + 1 + zam]
             coor = np.array(sym_coor).T
 
         z = ((coor + .5).astype(int))
         # print('in peak', ima[z].shape, z.shape)
-        return tuple(coor), ima[tuple(z)] - ima_min[tuple(z)]   
+        return tuple(coor), ima[tuple(z)] - ima_min[tuple(z)]
 
 
     @property
@@ -533,7 +531,7 @@ class Mimage():
 
         self.Peaks = PeakL(self, min_dis=round(self.rad * rad_c),
                            threshold=tr_c * self.ima.max(), dist=dist,
-                           symf=None)
+                           symf=symf)
 
         if plot:
             self.Peaks.plot()
@@ -669,7 +667,7 @@ class SeqIm(list):
         for i in self:
             if hasattr(i, 'Peaks'):
                 del i.Peaks
-            i.find_peaks(rad_c, tr_c, dist)
+            i.find_peaks(rad_c, tr_c, dist, symf)
         if hasattr(self, 'ima'):
             self.ima.Peaks.plot()
 
@@ -707,8 +705,8 @@ class SeqIm(list):
 
         axis = mt.creaxex(self.__rot__, self.z0)
         sign = np.where(axis @ self.rot_vect > 0, -1, 1)
-        angle = np.array([mt.mod(i) for i in axis])
-        self.angle = np.insert(sign * angle, 0, 0.0)
+        angles = np.array([mt.mod(i) for i in axis])
+        self.angles = np.insert(sign * angles, 0, 0.0)
 
         intensity = []
         position = []
@@ -757,9 +755,9 @@ class SeqIm(list):
 
         axcolor = 'lightgoldenrodyellow'
         axinte = plt.axes([0.75, 0.87, 0.20, 0.03], facecolor=axcolor)
-        axdist = plt.axes([0.75, 0.79, 0.20, 0.03], facecolor=axcolor)
-        axspac = plt.axes([0.75, 0.71, 0.20, 0.03], facecolor=axcolor)
-        axsym = plt.axes([0.75, 0.57, 0.15, 0.10], facecolor=axcolor)
+        axdist = plt.axes([0.75, 0.82, 0.20, 0.03], facecolor=axcolor)
+        axspac = plt.axes([0.75, 0.77, 0.20, 0.03], facecolor=axcolor)
+        axsym = plt.axes([0.75, 0.72, 0.20, 0.03], facecolor=axcolor)
 
         inteb = Slider(ax=axinte, label='int', valmin=0.1, valmax=10.0, valinit=5)  # , valstep=delta_f
         distb = Slider(ax=axdist, label='dis', valmin=1, valmax=512.0, valinit=500)
@@ -767,14 +765,13 @@ class SeqIm(list):
         symb = Slider(ax=axsym, label='sym', valmin=0.0, valmax=20.0, valinit=0)
 
         # Create a `matplotlib.widgets.Button` to reset the sliders to initial values.
-        axapal = plt.axes([0.75, 0.47, 0.15, 0.04])
+        axapal = plt.axes([0.75, 0.67, 0.15, 0.04])
         butpal = Button(axapal, 'apply to all', color=axcolor, hovercolor='0.975')
 
         axvmax = plt.axes([0.75, 0.17, 0.15, 0.04])
         vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100)
 
         def update(val):
-            nonlocal symB
             inte = inteb.val
             dist = distb.val
             spac = spacb.val
@@ -786,7 +783,7 @@ class SeqIm(list):
         inteb.on_changed(update)
         distb.on_changed(update)
         spacb.on_changed(update)
-        spacb.on_changed(update)
+        symb.on_changed(update)
 
         def app_all(event):
             plt.sca(ax)
@@ -794,7 +791,9 @@ class SeqIm(list):
         butpal.on_clicked(app_all)
 
         def refresh(val):
-            mini = np.log(self.ima.ima.min()) if log else self.ima.ima.min()
+            mini = self.ima.ima.min()
+            if log:
+                mini = np.log(max(mini, 0.0001))
             maxi = np.log(self.ima.ima.max()) if log else self.ima.ima.max()
             vmax = mini + vmaxb.val * (maxi - mini) / 100
             plt.sca(ax)
