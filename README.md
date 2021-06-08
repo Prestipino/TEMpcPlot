@@ -24,7 +24,7 @@ Ex1.Ewp.create_layer(hkl)
 - install anaconda or miniconda
 - open an anaconda prompt
 - conda install -c cprestip tempcplot
-- facultative but significant better if ipython is installed
+### facultative but significant better if ipython is installed
 - conda install ipython
 
 
