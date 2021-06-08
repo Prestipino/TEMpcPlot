@@ -329,7 +329,6 @@ class PeakL(list):
         # print('in peak', ima[z].shape, z.shape)
         return tuple(coor), ima[tuple(z)] - ima_min[tuple(z)]
 
-
     @property
     def r(self):
         return list(reversed(self))
@@ -791,13 +790,20 @@ class SeqIm(list):
         butpal.on_clicked(app_all)
 
         def refresh(val):
-            mini = self.ima.ima.min()
+            mini = np.where(self.ima.ima > 0, self.ima.ima, np.inf).min()
+            maxi = self.ima.ima.max()
+            vmax = mini + vmaxb.val**3 * ((maxi - mini) / 1000000)
             if log:
-                mini = np.log(max(mini, 0.0001))
-            maxi = np.log(self.ima.ima.max()) if log else self.ima.ima.max()
-            vmax = mini + vmaxb.val * (maxi - mini) / 100
+                vmax = np.log(vmax)
             plt.sca(ax)
-            self.ima.plot(new=0, log=log, vmax=vmax, *args, **kwds)
+            nonlocal kwds
+            if kwds:
+                kwds.update({'vmax': vmax})
+            else:
+                kwds = {'vmax': vmax}
+            self.ima.plot(new=0, log=log, peaks=tbarplus.Peak_plot, *args, **kwds)
+            tbarplus.kwds = kwds
+
         vmaxb.on_changed(refresh)
         # self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
 

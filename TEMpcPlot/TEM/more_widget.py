@@ -310,10 +310,11 @@ class ToolbarPlus():
 
 
     def __init__(self, selfi, log=False, fig=None, ax=None, tool_b=None, *args, **kwds):
-
         index = 0
         lun = len(selfi)
-        Peak_plot = True
+        self.Peak_plot = True
+        self.args = args
+        self.kwds = kwds
 
         def UP_DO(up):
             nonlocal index
@@ -321,16 +322,15 @@ class ToolbarPlus():
             index -= up * lun * (abs(index) // lun)
             selfi.ima = selfi[index]
             plt.sca(ax)
-            selfi.ima.plot(new=0, log=log, peaks=Peak_plot, *args, **kwds)
+            selfi.ima.plot(new=0, log=log, peaks=self.Peak_plot, *self.args, **self.kwds)
             ax.set_axis_off()
             ax.set_frame_on(False)
             #self.canvas.draw_idle()
             fig.canvas.draw()
 
         def Plot_p():
-            nonlocal Peak_plot
-            Peak_plot = not(Peak_plot)
-            if Peak_plot:
+            self.Peak_plot = not(self.Peak_plot)
+            if self.Peak_plot:
                 selfi.ima.Peaks.plot()
             else:
                 selfi.ima.Peaks.deplot()
