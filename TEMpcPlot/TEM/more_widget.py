@@ -1,11 +1,22 @@
-from matplotlib.widgets import AxesWidget
 
+import os
 import numpy as np
 # from . import _api, cbook, colors, ticker
+import matplotlib
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
+from matplotlib.widgets import AxesWidget
 
+from matplotlib.backends.qt_compat import QtGui
+import matplotlib.pyplot as plt
+
+from packaging import version
+if version.parse(matplotlib.__version__) > version.parse("3.3.1"):
+    matplotlib_old = False
+    from matplotlib.backend_bases import _Mode
+else:
+    matplotlib_old = True
 
 import math
 
@@ -294,3 +305,153 @@ class RectangleBuilder(AxesWidget):
             self.canvas.blit(self.ax.bbox)
         else:
             self.canvas.draw_idle()
+
+class ToolbarPlus():
+
+
+    def __init__(self, selfi, log=False, fig=None, ax=None, tool_b=None, *args, **kwds):
+
+        index = 0
+        lun = len(selfi)
+        Peak_plot = True
+
+        def UP_DO(up):
+            nonlocal index
+            index += up
+            index -= up * lun * (abs(index) // lun)
+            selfi.ima = selfi[index]
+            plt.sca(ax)
+            selfi.ima.plot(new=0, log=log, peaks=Peak_plot, *args, **kwds)
+            ax.set_axis_off()
+            ax.set_frame_on(False)
+            #self.canvas.draw_idle()
+            fig.canvas.draw()
+
+        def Plot_p():
+            nonlocal Peak_plot
+            Peak_plot = not(Peak_plot)
+            if Peak_plot:
+                selfi.ima.Peaks.plot()
+            else:
+                selfi.ima.Peaks.deplot()
+            fig.canvas.draw()
+
+        def Del_p():
+            selfPL = selfi.ima.Peaks
+            if not hasattr(selfi.ima.Peaks, 'lp'):
+                return
+            if fig.canvas.widgetlock.locked():
+                return
+
+            def onpick(event):
+                if event.artist != selfi.ima.Peaks.lp:
+                    return
+                selfi.ima.Peaks.del_peak(event.ind[0])
+                return
+
+            def endpick(event):
+                if event is None:
+                    pass
+                elif event.button != 3:
+                    return
+                fig.canvas.mpl_disconnect(selfPL._cid)
+                fig.canvas.mpl_disconnect(selfPL._mid)
+                fig.canvas.widgetlock.release(tool_b._actions['del_p'])
+                tool_b._actions['del_p'].setChecked(False)
+                return
+
+            selfPL._cid = fig.canvas.mpl_connect('pick_event', onpick)
+            selfPL._mid = fig.canvas.mpl_connect('button_press_event', endpick)
+            # fig.canvas.widgetlock(self)
+            # fig.canvas.widgetlock(tool_b._actions['del_p'])
+
+            #tool_b._actions['pan'].setChecked(tool_b._active == 'PAN')
+            #tool_b._actions['zoom'].setChecked(tool_b._active == 'ZOOM')
+
+        def DelR_p():
+            if not hasattr(selfi.ima.Peaks, 'lp'):
+                return
+            if matplotlib_old:
+                if tool_b._active == 'DelR P':
+                    tool_b._active = None
+                else:
+                    tool_b._active = 'DelR P'
+
+                if tool_b._idPress is not None:
+                    tool_b._idPress = fig.canvas.mpl_disconnect(
+                        tool_b._idPress)
+                    tool_b.mode = ''
+
+                if tool_b._idRelease is not None:
+                    tool_b._idRelease = fig.canvas.mpl_disconnect(
+                        tool_b._idRelease)
+                    tool_b.mode = ''
+            else:
+                if tool_b.mode == _Mode.ZOOM:
+                    tool_b.mode = _Mode.NONE
+                    tool_b._actions['zoom'].setChecked(False)
+                if tool_b.mode == _Mode.PAN:
+                    tool_b.mode = _Mode.NONE
+                    tool_b._actions['pan'].setChecked(False)
+            selfi.ima.Peaks.del_PlotRange()
+
+        def lenght():
+            if hasattr(selfi.ima, 'line'):
+                del selfi.ima.line
+            selfi.ima.profile_Line(plot=True)
+            while not(hasattr(selfi.ima.line, 'fline')):
+                plt.pause(0.3)
+            at = '\nlengh of the vector'
+            le = selfi.ima.line.mod * selfi.ima.scale
+            print(f'{at} {10*le: 4.2f} 1/Ang.')
+            print(f'and {0.1/le: 4.2f} Ang. in direct space')
+            at = 'component of the vector'
+            le = selfi.ima.line.vect * selfi.ima.scale
+            print(f'{at} {le[0]: 4.2f} {le[1]: 4.2f} 1/nm')
+            print('\n\n')
+
+        def angle():
+            if hasattr(selfi.ima, 'line'):
+                del selfi.ima.line
+            angle = selfi.ima.angle()
+            at = 'angle between the vectors'
+            print(f'{at} {angle: 4.2f} degrees')
+            print('\n\n')
+
+        def press(event):
+            if event.key == 'f4':
+                DelR_p()
+
+        def _icon(name):
+            direct = os.path.dirname(__file__)
+            name = os.path.join(direct, name)
+            pm = QtGui.QPixmap(name)
+            if hasattr(pm, 'setDevicePixelRatio'):
+                pm.setDevicePixelRatio(fig.canvas._dpi_ratio)
+            return QtGui.QIcon(pm)
+
+
+
+        fig.canvas.toolbar.addSeparator()
+        a = tool_b.addAction(_icon('down.png'), 'back', lambda: UP_DO(-1))
+        a.setToolTip('Previous image')
+        a = tool_b.addAction(_icon('up.png'), 'foward', lambda: UP_DO(1))
+        a.setToolTip('Next image')
+
+        tool_b.addSeparator()
+        a = tool_b.addAction(_icon('PlotP.png'), 'Peaks', Plot_p)
+        a.setToolTip('Peaks On/Off')
+
+        a = tool_b.addAction(_icon('RemP.png'), 'Del_P', Del_p)
+        a.setCheckable(True)
+        a.setToolTip('Delete Peaks')
+        tool_b._actions['del_p'] = a
+
+        a = tool_b.addAction(_icon('RanP.png'), 'DelR P', DelR_p)
+        a.setToolTip('Delete Peaks in range (F4)')
+
+        tool_b.addSeparator()
+        a = tool_b.addAction(_icon('lenght.png'), 'len', lenght)
+        a.setToolTip('calculate lenght of a line and plot profile')
+        a = tool_b.addAction(_icon('angle.png'), 'angle', angle)
+        a.setToolTip('calculate angle between two lines')

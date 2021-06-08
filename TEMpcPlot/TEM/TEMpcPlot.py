@@ -1,17 +1,7 @@
 import matplotlib
 import matplotlib.pyplot as plt
-# import skimage
-from matplotlib.backends.qt_compat import QtGui
 
-
-from packaging import version
-if version.parse(matplotlib.__version__) > version.parse("3.3.1"):
-    matplotlib_old = False
-    from matplotlib.backend_bases import _Mode
-else:
-    matplotlib_old = True
-
-# from matplotlib.widgets import Slider
+from matplotlib.widgets import Slider, Button
 # from matplotlib.backend_tools import ToolBase
 # plt.rcParams['toolbar'] = 'toolmanager'
 # from mpl_toolkits.mplot3d import Axes3D
@@ -143,7 +133,7 @@ class LineBuilder:
         format data [[x0,x1][y0, y1]]
         """
         if not(data is None):
-            x0, x1, y0, y1 = *data[0], *data[-1]
+            y0, x0, y1, x1 = *data[0], *data[-1]
         self.origin = np.array([x0, y0])
         self.vect = np.array([x1 - x0, y1 - y0])
         self.mod = np.sqrt(self.vect.dot(self.vect))
@@ -419,7 +409,6 @@ class Mimage():
     self.find_centralpeak(satur=0.8)
     self.find_peaks(rad_c=1.5, tr_c=0.02, dist=None)
     self.plot(new=True, log=False, peaks=True, *args, **kwds)
-    self.profile_Line(data=None, lw=1, order=1, plot=True)
     self.angle()
     ----------------------------------------------------------
 
@@ -563,11 +552,12 @@ class Mimage():
             self.line.calc(data)
 
     def angle(self):
+        fig = plt.gcf()
         self.line = [LineBuilder(), LineBuilder()]
-        self.line[0].defFplot(ima=self.ima)
+        self.line[0].defFplot(fig.axes[0], plot=False, ima=self.ima)
         while not(hasattr(self.line[0], 'fline')):
             plt.pause(0.3)
-        self.line[1].defFplot(ima=self.ima)
+        self.line[1].defFplot(fig.axes[0], plot=False, ima=self.ima)
         while not(hasattr(self.line[1], 'fline')):
             plt.pause(0.3)
         angle = acosd((self.line[0].vect @ self.line[1].vect) /
@@ -737,7 +727,7 @@ class SeqIm(list):
         # abs_rotz
         return
 
-    def plot(self, log=False, *args, **kwds):
+    def plot(self, log=False, fig=None, ax=None, tool_b=None, *args, **kwds):
         '''
         plot the images of the sequences with peaks
 
@@ -752,157 +742,54 @@ class SeqIm(list):
             >>> Exp1.plot(0)
             >>> Exp1.plot(vmin = 10, )
         '''
-        fig = plt.figure()
-        ax = plt.axes([0.1, 0.15, 0.8, 0.75])
-        tool_b = fig.canvas.manager.toolbar
+        if fig is None:
+            fig = plt.figure()
+        if ax is None:
+            ax = plt.axes([0.0, 0.15, 0.75, 0.75])
+        if tool_b is None:
+            tool_b = fig.canvas.manager.toolbar
 
         self.ima = self[0]
         self.ima.plot(new=0, log=log, *args, **kwds)
         ax.set_axis_off()
         ax.set_frame_on(False)
 
-        index = 0
-        lun = len(self)
-        Peak_plot = True
+        tbarplus = mw.ToolbarPlus(self, log=log, fig=fig,
+                                  ax=ax, tool_b=tool_b, *args, **kwds)
 
-        def UP_DO(up):
-            nonlocal index
-            index += up
-            index -= up * lun * (abs(index) // lun)
-            self.ima = self[index]
-            self.ima.plot(new=0, log=log, peaks=Peak_plot, *args, **kwds)
-            ax.set_axis_off()
-            ax.set_frame_on(False)
-            plt.draw()
+        axcolor = 'lightgoldenrodyellow'
+        axinte = plt.axes([0.75, 0.87, 0.20, 0.03], facecolor=axcolor)
+        axdist = plt.axes([0.75, 0.77, 0.20, 0.03], facecolor=axcolor)
+        axspac = plt.axes([0.75, 0.67, 0.20, 0.03], facecolor=axcolor)
 
-        def Plot_p():
-            nonlocal Peak_plot
-            Peak_plot = not(Peak_plot)
-            if Peak_plot:
-                self.ima.Peaks.plot()
-            else:
-                self.ima.Peaks.deplot()
-            plt.draw()
+        inteb = Slider(ax=axinte, label='int', valmin=0.1, valmax=10.0, valinit=5)  # , valstep=delta_f
+        distb = Slider(ax=axdist, label='dis', valmin=1, valmax=512.0, valinit=500)
+        spacb = Slider(ax=axspac, label='rad', valmin=0.1, valmax=10.0, valinit=1)  # , valstep=delta_f
 
-        def Del_p():
-            selfPL = self.ima.Peaks
-            if not hasattr(self.ima.Peaks, 'lp'):
-                return
-            if fig.canvas.widgetlock.locked():
-                return
+        def update(val):
+            nonlocal inteb
+            nonlocal distb
+            nonlocal spacb
+            nonlocal ax
+            inte = inteb.val
+            dist = distb.val
+            spac = spacb.val
+            plt.sca(ax)
+            self.ima.find_peaks(rad_c=spac, tr_c=inte / 100.0, dist=dist)
 
-            def onpick(event):
-                if event.artist != self.ima.Peaks.lp:
-                    return
-                self.ima.Peaks.del_peak(event.ind[0])
-                return
+        inteb.on_changed(update)
+        distb.on_changed(update)
+        spacb.on_changed(update)
 
-            def endpick(event):
-                if event is None:
-                    pass
-                elif event.button != 3:
-                    return
-                fig.canvas.mpl_disconnect(selfPL._cid)
-                fig.canvas.mpl_disconnect(selfPL._mid)
-                fig.canvas.widgetlock.release(tool_b._actions['del_p'])
-                tool_b._actions['del_p'].setChecked(False)
-                return
+        # Create a `matplotlib.widgets.Button` to reset the sliders to initial values.
+        axapal = plt.axes([0.75, 0.57, 0.15, 0.04])
+        butpal = Button(axapal, 'apply to all', color=axcolor, hovercolor='0.975')
 
-            selfPL._cid = fig.canvas.mpl_connect('pick_event', onpick)
-            selfPL._mid = fig.canvas.mpl_connect('button_press_event', endpick)
-            # fig.canvas.widgetlock(self)
-            # fig.canvas.widgetlock(tool_b._actions['del_p'])
-
-            #tool_b._actions['pan'].setChecked(tool_b._active == 'PAN')
-            #tool_b._actions['zoom'].setChecked(tool_b._active == 'ZOOM')
-
-        def DelR_p():
-            if not hasattr(self.ima.Peaks, 'lp'):
-                return
-            if matplotlib_old:
-                if tool_b._active == 'DelR P':
-                    tool_b._active = None
-                else:
-                    tool_b._active = 'DelR P'
-
-                if tool_b._idPress is not None:
-                    tool_b._idPress = fig.canvas.mpl_disconnect(
-                        tool_b._idPress)
-                    tool_b.mode = ''
-
-                if tool_b._idRelease is not None:
-                    tool_b._idRelease = fig.canvas.mpl_disconnect(
-                        tool_b._idRelease)
-                    tool_b.mode = ''
-            else:
-                if tool_b.mode == _Mode.ZOOM:
-                    tool_b.mode = _Mode.NONE
-                    tool_b._actions['zoom'].setChecked(False)
-                if tool_b.mode == _Mode.PAN:
-                    tool_b.mode = _Mode.NONE
-                    tool_b._actions['pan'].setChecked(False)
-            self.ima.Peaks.del_PlotRange()
-
-        def lenght():
-            if hasattr(self.ima, 'line'):
-                del self.ima.line
-            self.ima.profile_Line(plot=True)
-            while not(hasattr(self.ima.line, 'fline')):
-                plt.pause(0.3)
-            at = '\nlengh of the vector'
-            le = self.ima.line.mod * self.ima.scale
-            print(f'{at} {10*le: 4.2f} 1/Ang.')
-            print(f'and {0.1/le: 4.2f} Ang. in direct space')
-            at = 'component of the vector'
-            le = self.ima.line.vect * self.ima.scale
-            print(f'{at} {le[0]: 4.2f} {le[1]: 4.2f} 1/nm')
-            print('\n\n')
-
-        def angle():
-            if hasattr(self.ima, 'line'):
-                del self.ima.line
-            angle = self.ima.angle()
-            at = 'angle between the vectors'
-            print(f'{at} {angle: 4.2f} degrees')
-            print('\n\n')
-
-        def press(event):
-            if event.key == 'f4':
-                DelR_p()
-
-        def _icon(name):
-            direct = os.path.dirname(__file__)
-            name = os.path.join(direct, name)
-            pm = QtGui.QPixmap(name)
-            if hasattr(pm, 'setDevicePixelRatio'):
-                pm.setDevicePixelRatio(fig.canvas._dpi_ratio)
-            return QtGui.QIcon(pm)
-
-        fig.canvas.toolbar.addSeparator()
-        a = tool_b.addAction(_icon('down.png'), 'back', lambda: UP_DO(-1))
-        a.setToolTip('Previous image')
-        a = tool_b.addAction(_icon('up.png'), 'foward', lambda: UP_DO(1))
-        a.setToolTip('Next image')
-
-        tool_b.addSeparator()
-        a = tool_b.addAction(_icon('PlotP.png'), 'Peaks', Plot_p)
-        a.setToolTip('Peaks On/Off')
-
-        a = tool_b.addAction(_icon('RemP.png'), 'Del_P', Del_p)
-        a.setCheckable(True)
-        a.setToolTip('Delete Peaks')
-        tool_b._actions['del_p'] = a
-
-        a = tool_b.addAction(_icon('RanP.png'), 'DelR P', DelR_p)
-        a.setToolTip('Delete Peaks in range (F4)')
-
-        tool_b.addSeparator()
-        a = tool_b.addAction(_icon('lenght.png'), 'len', lenght)
-        a.setToolTip('calculate lenght of a line and plot profile')
-        a = tool_b.addAction(_icon('angle.png'), 'angle', angle)
-        a.setToolTip('calculate angle between two lines')
-
-        self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
+        def app_all(event):
+            plt.sca(ax)
+            self.ima.find_peaks(rad_c=spac, tr_c=inte / 100.0, dist=dist)
+        butpal.on_clicked(app_all)
+        #self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
 
     def save(self, filesave):
         """
