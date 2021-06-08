@@ -677,6 +677,10 @@ class SeqIm(list):
 
     def D3_peaks(self, tollerance=15):
         """sum and correct the peaks of all images
+            the function works in 3 step 
+            a) find common peaks for all images (i.e. the rotation axis)
+            b) z rotate the peaks to correct deviations of the rotation axis
+            c) rotate the peaks depending from tilts values
         Args:
             tollerance () = pixel tollerance to determine if a peak
                         in two images is the same peak.
