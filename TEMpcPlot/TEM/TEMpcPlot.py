@@ -457,9 +457,9 @@ class Mimage():
             ax.cla()
 
         if log:
-            pltim = plt.imshow(np.log(np.abs(self.ima)), *args, **kwds)
+            self.pltim = plt.imshow(np.log(np.abs(self.ima)), *args, **kwds)
         else:
-            pltim = plt.imshow(self.ima, *args, **kwds)
+            self.pltim = plt.imshow(self.ima, *args, **kwds)
         pltcenter = plt.plot(*reversed(self.center), 'bx')
         ax = plt.gca()
         plt.title(f'Image {self.info.filename}')
@@ -685,21 +685,21 @@ class SeqIm(list):
         # find possible rotation on the plane of the rotation axes
         # evaluated between the fitted line that pass for the common peaks
         # return the angle of cortrection and a vector passing from all points
-        angle, self.rot_vect = mt.find_zrot_correction(out, tollerance)
-        print('angle correction', np.round(np.degrees(angle), 2))
+        self.zangles, self.rot_vect = mt.find_zrot_correction(out, tollerance)
+        print('angle correction', np.round(np.degrees(self.zangles), 2))
 
         # calibration for rotation of the image i the plane
         # and correct the center on the basis of average difference of out
         for i, peaks in enumerate(all_peaks):
             if i != 0:
-                peaks = peaks @ mt.zrotm(-angle[i])
-                shift = out[0] - (out[i] @ mt.zrotm(-angle[i]))
+                peaks = peaks @ mt.zrotm(-self.zangles[i])
+                shift = out[0] - (out[i] @ mt.zrotm(-self.zangles[i]))
                 shift = shift.sum(axis=0) / len(out[i])
                 all_peaks[i] = peaks + shift
                 # print(shift)
         all_peaks = [np.column_stack((i, np.zeros(len(i)))) for i in all_peaks]
 
-        # absolute rotation
+        # absolute rotation of the camera
         self.z0 = mt.find_z_rotation(self.__rot__, self.rot_vect)[0]
 
         axis = mt.creaxex(self.__rot__, self.z0)
@@ -721,6 +721,43 @@ class SeqIm(list):
                               angles=self.angles, r0=self.__rot__, z0=self.z0)
         # abs_rotz
         return
+
+    def plot_cal(self, index, axes, log=False, *args, **kwds):
+        fig = plt.figure()
+        ax = plt.axes([0.05, 0.10, 0.75, 0.80])
+        ima = self[index]
+        ima.plot(new=0, log=log, peaks=False, *args, **kwds)
+        # paasage to axes base
+        P = inv(axes)
+        Rot = R.from_rotvec([0, 0, -self.zangles[index]])
+        Rot = R.from_rotvec(self.rot_vect * self.angles[index]) * Rot
+
+        def format_coord(x, y):
+            xc = (x - self[index].center[1]) * self.scale
+            yc = (y - self[index].center[0]) * self.scale
+            d2 = np.round(1 / np.sqrt(xc**2 + yc**2), 3)
+            xy3d = Rot.apply([yc, xc, 0])
+            hkl = np.round( P @ xy3d, 2)
+            # return f'{z:s} d={dist2:2.4f} [{dist1:2.4f} pixel]'
+            z = f'x={y:4.1f}, y={x:4.1f}, hkl={hkl},  d_sp={d2:4.4f}nm'
+            return f'{z:s}             '
+        ax.format_coord = format_coord
+        #image.set_clim(vmin=10)
+
+        axvmax = plt.axes([0.80, 0.10, 0.04, 0.80])
+        vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100,
+                       orientation="vertical")
+
+        def refresh(val):
+            mini = np.where(ima.ima > 0, ima.ima, np.inf).min()
+            maxi = ima.ima.max()
+            vmax = mini + vmaxb.val**3 * ((maxi - mini) / 1000000)
+            if log:
+                vmax = np.log(vmax)
+            plt.sca(ax)
+            ima.pltim.set_clim(vmax=vmax)
+
+        vmaxb.on_changed(refresh)
 
     def plot(self, log=False, fig=None, ax=None, tool_b=None, *args, **kwds):
         '''
