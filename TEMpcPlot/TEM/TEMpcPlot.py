@@ -1,7 +1,6 @@
-import matplotlib
 import matplotlib.pyplot as plt
 
-from matplotlib.widgets import Slider, Button
+from matplotlib.widgets import Slider, Button, CheckButtons
 # from matplotlib.backend_tools import ToolBase
 # plt.rcParams['toolbar'] = 'toolmanager'
 # from mpl_toolkits.mplot3d import Axes3D
@@ -12,8 +11,6 @@ from scipy.spatial.transform import Rotation as R
 from scipy.optimize import least_squares
 import pickle
 import glob
-import os
-
 
 from .. import dm3_lib as dm3
 from .. import Symmetry
@@ -233,8 +230,8 @@ class PeakL(list):
             super().__init__(inlist)
         elif isinstance(inlist, Mimage):
             pos, intent = self.findpeaks(inlist.ima, int(min_dis),
-                                         threshold, dist, symf, circle, 
-                                         comass, inlist.center)
+                                         threshold, dist, symf, circle, comass,
+                                         np.array(inlist.center))
             super().__init__(pos)
             self.int = intent
             self.ps_in = {'min_dis': int(min_dis), 'threshold': threshold,
@@ -302,12 +299,11 @@ class PeakL(list):
                 else:
                     print(np.max(np.abs(coor - newcoor)) < 2)
 
-        
         # distance parameter
         if dist:
-            coor_d = coor - center
-            coor_d = np.sqrt(np.sum(coor_d**2, axis=0))
-            coor = coor[:, coor_d < dist2]
+            coor_d = coor.T - center
+            coor_d = np.sqrt(np.sum(coor_d**2, axis=1))
+            coor = coor[:, coor_d < dist]
 
         # symmetry parameter
         if symf:
@@ -315,23 +311,23 @@ class PeakL(list):
             symf = symf**2
             c_coor = coor - center
             index = list(range(len(c_coor)))
-            sym_coor=[]
+            sym_coor = []
             for i in index[:-1]:
-                if len(c_coor) < i+2:
+                if len(c_coor) < i + 2:
                     break
-                z = c_coor[i+1:] + c_coor[i]
+                z = c_coor[i + 1:] + c_coor[i]
                 z1 = np.sum(z**2, 1)
-                zam = z1.argmin()     
-                if  z1[zam] < symf:
+                zam = z1.argmin()
+                if z1[zam] < symf:
                     sym_coor.append(coor[i])
-                    sym_coor.append(c_coor[i+1+zam] + center)
-                    c_coor = np.delete(c_coor, i+1+zam, 0)
-                    del index[i+1+zam]
+                    sym_coor.append(c_coor[i + 1 + zam] + center)
+                    c_coor = np.delete(c_coor, i + 1 + zam, 0)
+                    del index[i + 1 + zam]
             coor = np.array(sym_coor).T
 
         z = ((coor + .5).astype(int))
         # print('in peak', ima[z].shape, z.shape)
-        return tuple(coor), ima[tuple(z)] - ima_min[tuple(z)]   
+        return tuple(coor), ima[tuple(z)] - ima_min[tuple(z)]
 
 
     @property
@@ -535,7 +531,7 @@ class Mimage():
 
         self.Peaks = PeakL(self, min_dis=round(self.rad * rad_c),
                            threshold=tr_c * self.ima.max(), dist=dist,
-                           symf=None)
+                           symf=symf)
 
         if plot:
             self.Peaks.plot()
@@ -671,16 +667,12 @@ class SeqIm(list):
         for i in self:
             if hasattr(i, 'Peaks'):
                 del i.Peaks
-            i.find_peaks(rad_c, tr_c, dist)
+            i.find_peaks(rad_c, tr_c, dist, symf)
         if hasattr(self, 'ima'):
             self.ima.Peaks.plot()
 
     def D3_peaks(self, tollerance=15):
         """sum and correct the peaks of all images
-            the function works in 3 step 
-            a) find common peaks for all images (i.e. the rotation axis)
-            b) z rotate the peaks to correct deviations of the rotation axis
-            c) rotate the peaks depending from tilts values
         Args:
             tollerance () = pixel tollerance to determine if a peak
                         in two images is the same peak.
@@ -713,8 +705,8 @@ class SeqIm(list):
 
         axis = mt.creaxex(self.__rot__, self.z0)
         sign = np.where(axis @ self.rot_vect > 0, -1, 1)
-        angle = np.array([mt.mod(i) for i in axis])
-        self.angle = np.insert(sign * angle, 0, 0.0)
+        angles = np.array([mt.mod(i) for i in axis])
+        self.angles = np.insert(sign * angles, 0, 0.0)
 
         intensity = []
         position = []
@@ -749,7 +741,7 @@ class SeqIm(list):
         if fig is None:
             fig = plt.figure()
         if ax is None:
-            ax = plt.axes([0.0, 0.15, 0.75, 0.75])
+            ax = plt.axes([0.0, 0.10, 0.80, 0.80])
         if tool_b is None:
             tool_b = fig.canvas.manager.toolbar
 
@@ -763,37 +755,51 @@ class SeqIm(list):
 
         axcolor = 'lightgoldenrodyellow'
         axinte = plt.axes([0.75, 0.87, 0.20, 0.03], facecolor=axcolor)
-        axdist = plt.axes([0.75, 0.77, 0.20, 0.03], facecolor=axcolor)
-        axspac = plt.axes([0.75, 0.67, 0.20, 0.03], facecolor=axcolor)
+        axdist = plt.axes([0.75, 0.82, 0.20, 0.03], facecolor=axcolor)
+        axspac = plt.axes([0.75, 0.77, 0.20, 0.03], facecolor=axcolor)
+        axsym = plt.axes([0.75, 0.72, 0.20, 0.03], facecolor=axcolor)
 
         inteb = Slider(ax=axinte, label='int', valmin=0.1, valmax=10.0, valinit=5)  # , valstep=delta_f
         distb = Slider(ax=axdist, label='dis', valmin=1, valmax=512.0, valinit=500)
         spacb = Slider(ax=axspac, label='rad', valmin=0.1, valmax=10.0, valinit=1)  # , valstep=delta_f
+        symb = Slider(ax=axsym, label='sym', valmin=0.0, valmax=20.0, valinit=0)
+
+        # Create a `matplotlib.widgets.Button` to reset the sliders to initial values.
+        axapal = plt.axes([0.75, 0.67, 0.15, 0.04])
+        butpal = Button(axapal, 'apply to all', color=axcolor, hovercolor='0.975')
+
+        axvmax = plt.axes([0.75, 0.17, 0.15, 0.04])
+        vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100)
 
         def update(val):
-            nonlocal inteb
-            nonlocal distb
-            nonlocal spacb
-            nonlocal ax
             inte = inteb.val
             dist = distb.val
             spac = spacb.val
+            symB = symb.val
             plt.sca(ax)
-            self.ima.find_peaks(rad_c=spac, tr_c=inte / 100.0, dist=dist)
+            self.ima.find_peaks(rad_c=spac, tr_c=inte / 100.0,
+                                dist=dist, symf=symB)
 
         inteb.on_changed(update)
         distb.on_changed(update)
         spacb.on_changed(update)
-
-        # Create a `matplotlib.widgets.Button` to reset the sliders to initial values.
-        axapal = plt.axes([0.75, 0.57, 0.15, 0.04])
-        butpal = Button(axapal, 'apply to all', color=axcolor, hovercolor='0.975')
+        symb.on_changed(update)
 
         def app_all(event):
             plt.sca(ax)
-            self.ima.find_peaks(rad_c=spac, tr_c=inte / 100.0, dist=dist)
+            self.find_peaks(rad_c=spac, tr_c=inte / 100.0, dist=dist)
         butpal.on_clicked(app_all)
-        #self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
+
+        def refresh(val):
+            mini = self.ima.ima.min()
+            if log:
+                mini = np.log(max(mini, 0.0001))
+            maxi = np.log(self.ima.ima.max()) if log else self.ima.ima.max()
+            vmax = mini + vmaxb.val * (maxi - mini) / 100
+            plt.sca(ax)
+            self.ima.plot(new=0, log=log, vmax=vmax, *args, **kwds)
+        vmaxb.on_changed(refresh)
+        # self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
 
     def save(self, filesave):
         """
@@ -947,7 +953,7 @@ class EwaldPeaks(object):
 
         position = self.pos + position
         inte = self.int + other.int
-        r0 = self.__rot__ + other.__rot__
+        r0 = np.vstack([self.__rot__, other.__rot__])
 
         # rot_vect = self._rot_vect + otherrotvect
 
