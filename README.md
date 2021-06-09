@@ -5,27 +5,7 @@ The library TEMpcPlot has as object the treatments of a Sequence of electropn di
 
 The library is divided in two main class
 ** TEMpcPlot.SeqIm **
-
-    this class is supposed to use a sequence of image.
-    each element of the class is an image
-
-    Args:
-        filenames (list): list string describing the exception.
-        filesangle (str): Human readable file with angles
-
-
-    Attributes:
-        EwP  (TEMpcPlot.EwaldPeaks): Ewald peaks 3D set of peaks
-        rot_vect (list): list of Rotation vector for each image
-        scale  (list): scale(magnification) of the images
-        ima  (TEMpcPlot.Mimage): current image of the sequence
-
-    Note:
-        | Methods to use:
-        | def D3_peaks(tollerance=15)
-        | def plot(log=False)
-        | def plot_cal(axes)
-    """
+    a sequence of image where each element of the class is an image
 
 ** EwaldPeaks **
     Set of peaks position and intensity
@@ -34,24 +14,7 @@ The library is divided in two main class
     could be created as an attribute EwP of a SeqIm class by using methods D3_peaks
     or by sum with an another EwaldPeaks class with the same first image
 
-    Example:
-        >>>Exp1.D3_peaks(tollerance=5)
-        >>>EWT= Exp1.EwP +  Exp2.EwP
-
-    Args:
-        positions (list): list containing the coordonates of peaks
-        intensity (list): list containing the intensity of peaks
-
-    Attributes:
-        pos  (list): Ewald peaks 3D set of peaks
-        int (list): list of Rotation vector for each image
-        pos_cal (np.array): array witht he position in the new basis
-        rMT     (np.array): reciprocal metric tensor
-        axis    (np.array): reciprocal basis set, 3 coloums
-        cell    (dict): a dictionary witht the value of
-                         real space cell
-
-
+## Typical sequence of commands
 The mode of use is relativelly simple :
 create a SeqIm object
 
