@@ -88,7 +88,7 @@ conda install ipython
 ```
 * * *
 ## in order to work
-The library is divided in two main class 
+The library is divided in severals main classes 
 
 
 * * *
@@ -100,38 +100,16 @@ sequence of images
 this class is supposed to use a sequence of image. each element of the class is an image
 
 Parameters
-
-*   **filenames** (_list_) – list string describing the exception.
-    
+*   **filenames** (_list_) – list string describing the exception.   
 *   **filesangle** (_str_) – Human readable file with angles
     
 
 Variables
-
-*   **EwP** ([_TEMpcPlot.EwaldPeaks_](#TEMpcPlot.EwaldPeaks "TEMpcPlot.EwaldPeaks")) – Ewald peaks 3D set of peaks
-    
-*   **rot\_vect** (_list_) – list of Rotation vector for each image
-    
+*   **EwP** ([_TEMpcPlot.EwaldPeaks_](#TEMpcPlot.EwaldPeaks "TEMpcPlot.EwaldPeaks")) – Ewald peaks 3D set of peaks   
+*   **rot\_vect** (_list_) – list of Rotation vector for each image   
 *   **scale** (_list_) – scale(magnification) of the images
-    
 *   **ima** (_TEMpcPlot.Mimage_) – current image of the sequence
     
-
-Note
-
-Methods to use:
-
-def D3\_peaks(tollerance=15)
-
-def plot(log=False)
-
-def plot\_cal(axes)
-
-def save(axes)
-
-def load(axes)
-
-def help()
 
 #### `D3_peaks`(_tollerance\=15_)[¶](#TEMpcPlot.SeqIm.D3_peaks "Permalink to this definition")
 
