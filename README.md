@@ -289,14 +289,14 @@ ___
 
 Class used to plot a set of 3D peaks
 ___
-#### `allign_a`()[¶](#TEMpcPlot.TEM.d3plot.D3plot.allign_a "Permalink to this definition")
+#### `D3plot.allign_a`()[¶](#TEMpcPlot.TEM.d3plot.D3plot.allign_a "Permalink to this definition")
 
 rotate the peaks in order to allign to a\* axis to z same command for b\* and c\*
 
 Example
 > Exp1.EwP.graph.allign\_a()
 ___
-####  `define_axis`(_abc_, _m_)[¶](#TEMpcPlot.TEM.d3plot.D3plot.define_axis "Permalink to this definition")
+####  `D3plot.define_axis`(_abc_, _m_)[¶](#TEMpcPlot.TEM.d3plot.D3plot.define_axis "Permalink to this definition")
 
 define axis define axis graphically tracing a line
 
