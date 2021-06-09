@@ -19,7 +19,8 @@ else:
     matplotlib_old = True
 
 import math
-
+from scipy.spatial.transform import Rotation as R
+from numpy.linalg import inv
 
 rpd = math.pi / 180.0
 
@@ -308,7 +309,6 @@ class RectangleBuilder(AxesWidget):
 
 class ToolbarPlus():
 
-
     def __init__(self, selfi, log=False, fig=None, ax=None, tool_b=None, *args, **kwds):
         index = 0
         lun = len(selfi)
@@ -455,3 +455,57 @@ class ToolbarPlus():
         a.setToolTip('calculate lenght of a line and plot profile')
         a = tool_b.addAction(_icon('angle.png'), 'angle', angle)
         a.setToolTip('calculate angle between two lines')
+
+
+class ToolbarPlusCal():
+    def __init__(self, selfi, axes, log=False, fig=None, ax=None, tool_b=None, *args, **kwds):
+        self.index = 0
+        lun = len(selfi)
+        self.args = args
+        self.kwds = kwds
+
+        # paasage to axes base
+        P = inv(axes)
+        Rot = R.from_rotvec([0, 0, -selfi.zangles[self.index]])
+        Rot = R.from_rotvec(selfi.rot_vect * selfi.angles[self.index]) * Rot
+
+        def format_coord(x, y):
+            xc = (x - selfi[self.index].center[1]) * selfi.scale
+            yc = (y - selfi[self.index].center[0]) * selfi.scale
+            d2 = np.round(1 / np.sqrt(xc**2 + yc**2), 3)
+            xy3d = Rot.apply([yc, xc, 0])
+            hkl = np.round(P @ xy3d, 2)
+            # return f'{z:s} d={dist2:2.4f} [{dist1:2.4f} pixel]'
+            z = f'x={y:4.1f}, y={x:4.1f}, hkl={hkl},  d_sp={d2:4.4f}nm'
+            return f'{z:s}             '
+
+        def UP_DO(up):
+            nonlocal Rot
+            self.index += up
+            self.index -= up * lun * (abs(self.index) // lun)
+            selfi.ima = selfi[self.index]
+            plt.sca(ax)
+            selfi[self.index].plot(new=0, log=log, peaks=False, *self.args, **self.kwds)
+            ax.set_axis_off()
+            ax.set_frame_on(False)
+            Rot = R.from_rotvec([0, 0, -selfi.zangles[self.index]])
+            Rot = R.from_rotvec(selfi.rot_vect * selfi.angles[self.index]) * Rot
+            fig.canvas.draw()
+            ax.format_coord = format_coord
+
+        def _icon(name):
+            direct = os.path.dirname(__file__)
+            name = os.path.join(direct, name)
+            pm = QtGui.QPixmap(name)
+            if hasattr(pm, 'setDevicePixelRatio'):
+                pm.setDevicePixelRatio(fig.canvas._dpi_ratio)
+            return QtGui.QIcon(pm)
+
+        fig.canvas.toolbar.addSeparator()
+        a = tool_b.addAction(_icon('down.png'), 'back', lambda: UP_DO(-1))
+        a.setToolTip('Previous image')
+        a = tool_b.addAction(_icon('up.png'), 'foward', lambda: UP_DO(1))
+        a.setToolTip('Next image')
+
+        UP_DO(0)
+

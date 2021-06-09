@@ -146,7 +146,9 @@ def find_common_peaks(tollerance, all_peaks):
 
 def find_zrot_correction(common_pic, tollerance):
     """
-    common peak list of common peak
+    from a common peaks list lying on a line
+    return the angle between the different lines and the 
+    normalized vector describing the line using first image as reference
     """
     def fl(x):
         return ransac_lin(x.T, threshDist=tollerance, inlierRatio=0.7)
@@ -164,6 +166,7 @@ def find_z_rotation(rot, rot_vect):
     """
         find the angle between the tilt rotvector and 
         and the absolute rotation 
+        i.e. camera rotation
     """
     axis = creaxex(rot, 0)
     z_ang = zrot_among_vectors(axis, rot_vect)
@@ -174,8 +177,6 @@ def find_z_rotation(rot, rot_vect):
         print('zrot', np.round(np.degrees(z_ang), 1))
         raise ValueError
     return z_ang
-
-
 
 
 def zrotm(theta):
@@ -193,6 +194,8 @@ def rotxyz(x, y, z):
 def creaxex(tilts, zrot):
     """
     create the rotation vector based on tilt and camera rotation
+    tilts = [[1,-5],[2,-10],[3,-15]]
+    zrot rotation of the camera
     """
     r0 = rotxyz(tilts[0][0], tilts[0][1], zrot)
     r0i = r0.inv()
