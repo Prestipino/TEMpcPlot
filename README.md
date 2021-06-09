@@ -84,7 +84,7 @@ conda install -c cprestip tempcplot```
 ```bash
 conda install ipython
 ```
-
+* * *
 ## in order to work
 The library is divided in two main class 
 
@@ -363,7 +363,7 @@ Parameters
 **deg** (_float_) – angle in degree to rotate
 
 Examples
-> Exp1.EwP.graph.rotatex(30)
+> Exp1.EwP.graph.rotatex(30)\
 > Exp1.EwP.graph.rotatex(\-30)
 
 * * *
@@ -380,7 +380,7 @@ Return type: floats, string
 
 
 Examples:
-> pt\_p(34, ‘sym’)
+> pt\_p(34, ‘sym’)\
 >pt\_p(‘Cu’, ‘At\_w’)
 
   
