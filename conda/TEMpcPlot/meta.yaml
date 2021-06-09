@@ -33,6 +33,7 @@ requirements:
     - scipy
     - pillow
     - uncertainties    
+    - packaging
 
 test:
   import:
