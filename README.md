@@ -82,1048 +82,326 @@ Ex1.Ewp.create_layer(hkl)
 ## Step by step instructions for installation
 - install anaconda or miniconda(https://docs.conda.io/en/latest/miniconda.html)
 - open an anaconda prompt on the start menu
-- type```bash
-conda install -c cprestip tempcplot
-```
+- type ```bash
+conda install -c cprestip tempcplot```
+
 #### facultative but significant better if ipython is installed
+
 ```bash
 conda install ipython
 ```
 
 ## in order to work
-The library is divided in two main class
+The library is divided in two main class 
 
-
-
-
-
-<div class="document">
-
-<div class="documentwrapper">
-
-<div class="bodywrapper">
-
-<div class="body" role="main">
-
-<div class="section" id="module-TEMpcPlot"><span id="welcome-to-tempcplot-s-documentation"></span>
-
-# Welcome to TEMpcPLOT’s documentation![¶](#module-TEMpcPlot "Permalink to this headline")
-
-The library TEMpcPlot has as object the treatments of a Sequence of electropn diffraction cliches to obtain a three dimensional redcipriocal lattice. The idea behind is to find a way of work for TEM, available on pc, with graphycal approach (TEMpcPlot)
-
-<dl>
-
-<dt>The mode of use is relativelly simple :</dt>
-
-<dd>
-
-1.  create a SeqIm object
-
-<div class="doctest highlight-default notranslate">
-
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Ex1</span> <span class="o">=</span> <span class="n">TEMpcPlot</span><span class="p">(</span><span class="n">filelist</span><span class="p">,</span> <span class="n">angles</span><span class="p">)</span>
-</pre>
-
-</div>
-
-</div>
-
-1.  construct a unindixed reciprocal lattice
-
-<div class="doctest highlight-default notranslate">
-
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Ex1</span><span class="o">.</span><span class="n">D3_peaks</span><span class="p">(</span><span class="n">tollerance</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
-</pre>
-
-</div>
-
-</div>
-
-1.  Index manually the reciprocal space
-
-<div class="doctest highlight-default notranslate">
-
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Ex1</span><span class="o">.</span><span class="n">EwP</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
-</pre>
-
-</div>
-
-</div>
-
-1.  reconstruct reciprocal space
-
-<div class="doctest highlight-default notranslate">
-
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Ex1</span><span class="o">.</span><span class="n">Ewp</span><span class="o">.</span><span class="n">create_layer</span><span class="p">(</span><span class="n">hkl</span><span class="p">)</span>
-</pre>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
 
 * * *
 
-<dl class="py class">
-
-<dt id="TEMpcPlot.SeqIm">_class_ `TEMpcPlot.``SeqIm`<span class="sig-paren">(</span>_<span class="n">filenames</span>_, _<span class="n">filesangle</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="o">*</span><span class="n">args</span>_, _<span class="o">**</span><span class="n">kwords</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.SeqIm "Permalink to this definition")</dt>
-
-<dd>
+### _class_ TEMpcPlot.SeqIm(_filenames_, _filesangle\=None_, _\*args_, _\*\*kwords_)[¶](#TEMpcPlot.SeqIm "Permalink to this definition")
 
 sequence of images
 
 this class is supposed to use a sequence of image. each element of the class is an image
 
-<dl class="field-list simple">
-
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
+Parameters
 
 *   **filenames** (_list_) – list string describing the exception.
-
+    
 *   **filesangle** (_str_) – Human readable file with angles
+    
 
-</dd>
-
-<dt class="field-even">Variables</dt>
-
-<dd class="field-even">
+Variables
 
 *   **EwP** ([_TEMpcPlot.EwaldPeaks_](#TEMpcPlot.EwaldPeaks "TEMpcPlot.EwaldPeaks")) – Ewald peaks 3D set of peaks
-
-*   **rot_vect** (_list_) – list of Rotation vector for each image
-
+    
+*   **rot\_vect** (_list_) – list of Rotation vector for each image
+    
 *   **scale** (_list_) – scale(magnification) of the images
-
+    
 *   **ima** (_TEMpcPlot.Mimage_) – current image of the sequence
-
-</dd>
-
-</dl>
-
-<div class="admonition note">
+    
 
 Note
 
-<div class="line-block">
+Methods to use:
 
-<div class="line">Methods to use:</div>
+def D3\_peaks(tollerance=15)
 
-<div class="line">def D3_peaks(tollerance=15)</div>
+def plot(log=False)
 
-<div class="line">def plot(log=False)</div>
+def plot\_cal(axes)
 
-<div class="line">def plot_cal(axes)</div>
+def save(axes)
 
-<div class="line">def save(axes)</div>
+def load(axes)
 
-<div class="line">def load(axes)</div>
+def help()
 
-<div class="line">def help()</div>
-
-</div>
-
-</div>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.SeqIm.D3_peaks">`D3_peaks`<span class="sig-paren">(</span>_<span class="n">tollerance</span><span class="o">=</span><span class="default_value">15</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.SeqIm.D3_peaks "Permalink to this definition")</dt>
-
-<dd>
+#### `D3_peaks`(_tollerance\=15_)[¶](#TEMpcPlot.SeqIm.D3_peaks "Permalink to this definition")
 
 sum and correct the peaks of all images :param tollerance () = pixel tollerance to determine if a peak: in two images is the same peak.
 
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.SeqIm.find_peaks">`find_peaks`<span class="sig-paren">(</span>_<span class="n">rad_c</span><span class="o">=</span><span class="default_value">1.5</span>_, _<span class="n">tr_c</span><span class="o">=</span><span class="default_value">0.02</span>_, _<span class="n">dist</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">symf</span><span class="o">=</span><span class="default_value">None</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.SeqIm.find_peaks "Permalink to this definition")</dt>
-
-<dd>
+#### `find_peaks`(_rad\_c\=1.5_, _tr\_c\=0.02_, _dist\=None_, _symf\=None_)[¶](#TEMpcPlot.SeqIm.find_peaks "Permalink to this definition")
 
 findf the peak allows to search again the peaks in all the image witht the same parameter
 
-<dl class="field-list simple">
+Parameters
 
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
-
-*   **tr_c** (_float_) – total range coefficent the minimal intensity of the peak should be at list tr_c*self.ima.max()
-
-*   **rad_c** (_float_) – coefficent in respect of the center radious peaks should be separate from at list self.rad*rad_c
-
+*   **tr\_c** (_float_) – total range coefficent the minimal intensity of the peak should be at list tr\_c\*self.ima.max()
+    
+*   **rad\_c** (_float_) – coefficent in respect of the center radious peaks should be separate from at list self.rad\*rad\_c
+    
 *   **dist** – (float): maximum distance in pixel
-
-</dd>
-
-</dl>
+    
 
 Examples
 
-<div class="doctest highlight-default notranslate">
+\>>> Exp1.find\_peaks()
 
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">find_peaks</span><span class="p">()</span>
-</pre>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.SeqIm.help">`help`<span class="sig-paren">(</span><span class="sig-paren">)</span>[¶](#TEMpcPlot.SeqIm.help "Permalink to this definition")</dt>
-
-<dd>
+#### `help`()[¶](#TEMpcPlot.SeqIm.help "Permalink to this definition")
 
 print class help
 
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.SeqIm.load">_classmethod_ `load`<span class="sig-paren">(</span>_<span class="n">filename</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.SeqIm.load "Permalink to this definition")</dt>
-
-<dd>
+####  `load`(_filename_)[¶](#TEMpcPlot.SeqIm.load "Permalink to this definition")
 
 load a saved project it is necessary that images remain in the same relative position :param filename: filename to open :type filename: str
 
 Examples
 
-<div class="doctest highlight-default notranslate">
+\>>> exp1 \= SeqIm.load('exp1.sqm')
 
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">exp1</span> <span class="o">=</span> <span class="n">SeqIm</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">'exp1.sqm'</span><span class="p">)</span>
-</pre>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.SeqIm.plot">`plot`<span class="sig-paren">(</span>_<span class="n">log</span><span class="o">=</span><span class="default_value">False</span>_, _<span class="n">fig</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">ax</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">tool_b</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="o">*</span><span class="n">args</span>_, _<span class="o">**</span><span class="n">kwds</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.SeqIm.plot "Permalink to this definition")</dt>
-
-<dd>
+####  `plot`(_log\=False_, _fig\=None_, _ax\=None_, _tool\_b\=None_, _\*args_, _\*\*kwds_)[¶](#TEMpcPlot.SeqIm.plot "Permalink to this definition")
 
 plot the images of the sequences with peaks
 
-<dl class="field-list simple">
-
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
+Parameters
 
 *   **log** (_Bool_) – plot logaritm of intyensity
-
+    
 *   **anf keyworg directly of matplotlib plot** (_aargs_) –
-
-</dd>
-
-</dl>
+    
 
 Examples
 
-<div class="doctest highlight-default notranslate">
+\>>> Exp1.plot(log\=True)
+\>>> Exp1.plot(True)
+\>>> Exp1.plot(1)
+\>>> Exp1.plot(0)
+\>>> Exp1.plot(vmin \= 10, )
 
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">vmin</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="p">)</span>
-</pre>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.SeqIm.plot_cal">`plot_cal`<span class="sig-paren">(</span>_<span class="n">axes</span>_, _<span class="n">log</span><span class="o">=</span><span class="default_value">False</span>_, _<span class="o">*</span><span class="n">args</span>_, _<span class="o">**</span><span class="n">kwds</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.SeqIm.plot_cal "Permalink to this definition")</dt>
-
-<dd>
+#### `plot_cal`(_axes_, _log\=False_, _\*args_, _\*\*kwds_)[¶](#TEMpcPlot.SeqIm.plot_cal "Permalink to this definition")
 
 plot the images of the sequences with peaks
 
-<dl class="field-list simple">
-
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
+Parameters
 
 *   **base for reciprocal space as** (_axes_) – one defined in EwP
-
+    
 *   **log** (_Bool_) – plot logaritm of intyensity
-
+    
 *   **anf keyworg directly of matplotlib plot** (_aargs_) –
-
-</dd>
-
-</dl>
+    
 
 Examples
 
-<div class="doctest highlight-default notranslate">
+\>>> Exp1.plot(Exp1.EwP.axes, log\=True)
+\>>> Exp1.plot(Exp1.EwP.axes)
 
-<div class="highlight">
+####  `save`(_filesave_)[¶](#TEMpcPlot.SeqIm.save "Permalink to this definition")
 
-<pre><span></span><span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Exp1</span><span class="o">.</span><span class="n">EwP</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Exp1</span><span class="o">.</span><span class="n">EwP</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
-</pre>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.SeqIm.save">`save`<span class="sig-paren">(</span>_<span class="n">filesave</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.SeqIm.save "Permalink to this definition")</dt>
-
-<dd>
-
-> <div>
-> 
 > save the project to open later formats available: None: pickel format good for python
-> 
-> </div>
 
-<dl class="field-list simple">
-
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
-
+Parameters\
 **filename** (_str_) – filename to save
 
-</dd>
+Examples\
+> Exp1.save('exp1')
 
-</dl>
+* * *
 
-Examples
+### _class_ `TEMpcPlot.EwaldPeaks`(_positions_, _intensity_, _rot\_vect\=None_, _angles\=None_, _r0\=None_, _z0\=None_, _pos0\=None_, _scale\=None_, _axes\=None_, _set\_cell\=True_)[¶]
 
-<div class="doctest highlight-default notranslate">
+Set of peaks position and intensity this class manages peaks position and intensity and the methods related to lattice indexing and refinement could be created as an attribute EwP of a SeqIm class by using methods D3\_peaks or by sum with an another EwaldPeaks class with the same first image
 
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">'exp1'</span><span class="p">)</span>
-</pre>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
-
-</dd>
-
-</dl>
-
-<dl class="py class">
-
-<dt id="TEMpcPlot.EwaldPeaks">_class_ `TEMpcPlot.``EwaldPeaks`<span class="sig-paren">(</span>_<span class="n">positions</span>_, _<span class="n">intensity</span>_, _<span class="n">rot_vect</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">angles</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">r0</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">z0</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">pos0</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">scale</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">axes</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">set_cell</span><span class="o">=</span><span class="default_value">True</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks "Permalink to this definition")</dt>
-
-<dd>
-
-Set of peaks position and intensity this class manages peaks position and intensity and the methods related to lattice indexing and refinement could be created as an attribute EwP of a SeqIm class by using methods D3_peaks or by sum with an another EwaldPeaks class with the same first image
-
-<dl class="field-list simple">
-
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
-
+*Parameters*
 *   **positions** (_list_) – list containing the coordonates of peaks
-
 *   **intensity** (_list_) – list containing the intensity of peaks
+    
 
-</dd>
-
-<dt class="field-even">Variables</dt>
-
-<dd class="field-even">
-
+*Variables*
 *   **pos** (_list_) – Ewald peaks 3D set of peaks
-
-*   **int** (_list_) – list of Rotation vector for each image
-
-*   **pos_cal** (_np.array_) – array witht he position in the new basis
-
-*   **rMT** (_np.array_) – reciprocal metric tensor
-
-*   **axis** (_np.array_) – reciprocal basis set, 3 coloums
-
-*   **cell** (_dict_) – a dictionary witht the value of real space cell
-
+*   **int** (_list_) – list of Rotation vector for each image    
+*   **pos\_cal** (_np.array_) – array witht he position in the new basis    
+*   **rMT** (_np.array_) – reciprocal metric tensor   
+*   **axis** (_np.array_) – reciprocal basis set, 3 coloums   
+*   **cell** (_dict_) – a dictionary witht the value of real space cell   
 *   **graph** (_D3plot.D3plot_) – graph Ewald peaks 3D set of peaks used to index
 
-</dd>
+*Examples*:
+> Exp1.D3\_peaks(tollerance=5)\
+> Exp1.EwP is defined\
+> EWT= Exp1.EwP + Exp2.EwP\
 
-</dl>
 
-<div class="admonition note">
 
-Note
 
-<div class="line-block">
-
-<div class="line">Examples:</div>
-
-<div class="line-block">
-
-<div class="line">>>>Exp1.D3_peaks(tollerance=5)</div>
-
-<div class="line">>>>Exp1.EwP is defined</div>
-
-<div class="line">>>>EWT= Exp1.EwP + Exp2.EwP</div>
-
-</div>
-
-<div class="line">Methods to use:</div>
-
-<div class="line">def D3_peaks(tollerance=15)</div>
-
-<div class="line">def plot_int()</div>
-
-<div class="line">def plot_proj_int()</div>
-
-<div class="line">def plot_reduce</div>
-
-<div class="line">def plot_reduce</div>
-
-<div class="line">def refine_axes</div>
-
-<div class="line">def set_cell</div>
-
-<div class="line">def create_layer</div>
-
-<div class="line">def save(name)</div>
-
-<div class="line">def load(name)</div>
-
-<div class="line">def help()</div>
-
-</div>
-
-</div>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.cr_cond">`cr_cond`<span class="sig-paren">(</span>_<span class="n">operator</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">lim</span><span class="o">=</span><span class="default_value">None</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.cr_cond "Permalink to this definition")</dt>
-
-<dd>
-
-define filtering condition
-
-fuch function create a function that filter the data following the condition
-
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.create_layer">`create_layer`<span class="sig-paren">(</span>_<span class="n">hkl</span>_, _<span class="n">n</span>_, _<span class="n">size</span><span class="o">=</span><span class="default_value">0.25</span>_, _<span class="n">toll</span><span class="o">=</span><span class="default_value">0.15</span>_, _<span class="n">mir</span><span class="o">=</span><span class="default_value">0</span>_, _<span class="n">spg</span><span class="o">=</span><span class="default_value">None</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.create_layer "Permalink to this definition")</dt>
-
-<dd>
+#### `create_layer`(_hkl_, _n_, _size\=0.25_, _toll\=0.15_, _mir\=0_, _spg\=None_)[¶](#TEMpcPlot.EwaldPeaks.create_layer "Permalink to this definition")
 
 create a specific layer create a reciprocal space layer
 
-<dl class="field-list simple">
-
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
-
+Parameters
 *   **hkl** (_str_) – constant index for the hkl plane to plot, format(‘k’)
-
 *   **n** (_float__,_ _int_) – value of hkl
-
-*   **size** (_float_) – intensity scaling * if positive, scale intensity of each peaks respect the max * if negative, scale a common value for all peaks
-
-*   **mir** (_bool_) – mirror in respect of n meaning =/-n
-
-*   **tollerance** (_float_) – exclude from the plot peaks at higher distance
-
+*   **size** (_float_) – intensity scaling \* if positive, scale intensity of each peaks respect the max \* if negative, scale a common value for all peaks
+*   **mir** (_bool_) – mirror in respect of n meaning =/-n    
+*   **tollerance** (_float_) – exclude from the plot peaks at higher distance    
 *   **spg** (_str_) – allows to index the peaks, and check if they are extinted
+    
 
-</dd>
-
-</dl>
-
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.load">_classmethod_ `load`<span class="sig-paren">(</span>_<span class="n">filename</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.load "Permalink to this definition")</dt>
-
-<dd>
+#### `load`(_filename_)[¶](#TEMpcPlot.EwaldPeaks.load "Permalink to this definition")
 
 load EwP in python format Example: >>>cr1 = EwaldPeaks.load(‘cr1.ewp’)
 
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.plot">`plot`<span class="sig-paren">(</span><span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.plot "Permalink to this definition")</dt>
-
-<dd>
+#### `plot`()[¶](#TEMpcPlot.EwaldPeaks.plot "Permalink to this definition")
 
 open a D3plot graph :ivar ~EwaldPeaks.plot.graph: graph Ewald peaks 3D set of peaks used to index
 
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.plot_int">`plot_int`<span class="sig-paren">(</span><span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.plot_int "Permalink to this definition")</dt>
-
-<dd>
+#### `plot_int`()[¶](#TEMpcPlot.EwaldPeaks.plot_int "Permalink to this definition")
 
 Plot instogramm of intensity of the peaks
 
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.plot_proj_int">`plot_proj_int`<span class="sig-paren">(</span>_<span class="n">cell</span><span class="o">=</span><span class="default_value">True</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.plot_proj_int "Permalink to this definition")</dt>
-
-<dd>
+#### `plot_proj_int`(_cell\=True_)[¶](#TEMpcPlot.EwaldPeaks.plot_proj_int "Permalink to this definition")
 
 plot peak presence instogramm as a function of the cell
 
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.plot_reduce">`plot_reduce`<span class="sig-paren">(</span>_<span class="n">tollerance</span><span class="o">=</span><span class="default_value">0.1</span>_, _<span class="n">condition</span><span class="o">=</span><span class="default_value">None</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.plot_reduce "Permalink to this definition")</dt>
-
-<dd>
+#### `plot_reduce`(_tollerance\=0.1_, _condition\=None_)[¶](#TEMpcPlot.EwaldPeaks.plot_reduce "Permalink to this definition")
 
 plot collapsed reciprocal space plot the position of the peaks in cell coordinatete and all reduced to a single cell. it create a self.reduce attribute containingt he graph
 
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.refine_angles">`refine_angles`<span class="sig-paren">(</span>_<span class="n">axes</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">tollerance</span><span class="o">=</span><span class="default_value">0.1</span>_, _<span class="n">zero_tol</span><span class="o">=</span><span class="default_value">0.1</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.refine_angles "Permalink to this definition")</dt>
-
-<dd>
+#### `refine_angles`(_axes\=None_, _tollerance\=0.1_, _zero\_tol\=0.1_)[¶](#TEMpcPlot.EwaldPeaks.refine_angles "Permalink to this definition")
 
 refine reciprocal cell basis refine the reciprocal cell basis in respect to data that are indexed in the tollerance range.
 
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.refine_axang">`refine_axang`<span class="sig-paren">(</span>_<span class="n">axes</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">tollerance</span><span class="o">=</span><span class="default_value">0.1</span>_, _<span class="n">zero_tol</span><span class="o">=</span><span class="default_value">0.1</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.refine_axang "Permalink to this definition")</dt>
-
-<dd>
+#### `refine_axang`(_axes\=None_, _tollerance\=0.1_, _zero\_tol\=0.1_)[¶](#TEMpcPlot.EwaldPeaks.refine_axang "Permalink to this definition")
 
 refine reciprocal cell basis refine the reciprocal cell basis in respect to data that are indexed in the tollerance range.
 
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.refine_axes">`refine_axes`<span class="sig-paren">(</span>_<span class="n">axes</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">tollerance</span><span class="o">=</span><span class="default_value">0.1</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.refine_axes "Permalink to this definition")</dt>
-
-<dd>
+#### `refine_axes`(_axes\=None_, _tollerance\=0.1_)[¶](#TEMpcPlot.EwaldPeaks.refine_axes "Permalink to this definition")
 
 refine reciprocal cell basis refine the reciprocal cell basis in respect to data that are indexed in the tollerance range.
 
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.save">`save`<span class="sig-paren">(</span>_<span class="n">filename</span>_, _<span class="n">dictionary</span><span class="o">=</span><span class="default_value">False</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.save "Permalink to this definition")</dt>
-
-<dd>
+#### `save`(_filename_, _dictionary\=False_)[¶](#TEMpcPlot.EwaldPeaks.save "Permalink to this definition")
 
 save EwP
 
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.EwaldPeaks.set_cell">`set_cell`<span class="sig-paren">(</span>_<span class="n">axes</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">axes_std</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">tollerance</span><span class="o">=</span><span class="default_value">0.1</span>_, _<span class="n">cond</span><span class="o">=</span><span class="default_value">None</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.EwaldPeaks.set_cell "Permalink to this definition")</dt>
-
-<dd>
+#### `set_cell`(_axes\=None_, _axes\_std\=None_, _tollerance\=0.1_, _cond\=None_)[¶](#TEMpcPlot.EwaldPeaks.set_cell "Permalink to this definition")
 
 calculation of the cell effect the calculation to obtain the cell
 
-<dl class="field-list simple">
-
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
+Parameters
 
 **axis** (_np.array 3__,__3_) – the new reciprocal basis to be used in the format if axis is not inoput the programm seach if a new basis has been defined graphically
+axes format: np.array(\[\
+\[a1, b1, c1\],\
+\[a2, b2, c2\],\
+\[a3, b3, c3\]\])
 
-</dd>
 
-</dl>
 
-<div class="line-block">
+Variables
 
-<div class="line">axes format: np.array([</div>
-
-<div class="line-block">
-
-<div class="line">[a1, b1, c1],</div>
-
-<div class="line">[a2, b2, c2],</div>
-
-<div class="line">[a3, b3, c3]])</div>
-
-</div>
-
-</div>
-
-<dl class="field-list simple">
-
-<dt class="field-odd">Returns</dt>
-
-<dd class="field-odd">
-
-nothing
-
-</dd>
-
-<dt class="field-even">Variables</dt>
-
-<dd class="field-even">
-
-*   **self.rMT** (_np.array_) – reciprocal metric tensor
-
+*   **self.rMT** (_np.array_) – reciprocal metric tensor  
 *   **self.cell** (_dict_) – a dictionary witht the value of real space cell
-
 *   **self.rMT** – reciprocal metric tensor
-
 *   **self.cell** – a dictionary witht the value of real space cell
-
-</dd>
-
-</dl>
-
-</dd>
-
-</dl>
-
-</dd>
-
-</dl>
-
-<dl class="py function">
-
-<dt id="TEMpcPlot.pt_p">`TEMpcPlot.``pt_p`<span class="sig-paren">(</span>_<span class="n">atom</span>_, _<span class="n">property</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.pt_p "Permalink to this definition")</dt>
-
-<dd>
+    
+* * *
+### `TEMpcPlot.``pt_p`(_atom_, _property_)[¶](#TEMpcPlot.pt_p "Permalink to this definition")
 
 Atomic properties Tables with atomic properties
 
-<dl class="field-list simple">
-
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
-
+Parameters:\
 **property** (_str_) – property type
 
-</dd>
+Returns: property of the atoms
 
-<dt class="field-even">Returns</dt>
+Return type: floats, string
 
-<dd class="field-even">
 
-property of the atoms
+Examples:
+> pt\_p(34, ‘sym’)
+>pt\_p(‘Cu’, ‘At\_w’)
 
-</dd>
+  
+*Notes*
+‘At\_w’ : atomic weight\
+‘Z’ : atomic number\
+‘cov\_r’ : covalent radii\
+‘sym’ : atomic symbol\
+‘e\_conf’ : electronic conf.\
+‘ox\_st’ : oxydation state\
+‘bon\_dis’ : typical bond distances\
+‘edges’ : x-ray edges\
 
-<dt class="field-odd">Return type</dt>
-
-<dd class="field-odd">
-
-floats, string
-
-</dd>
-
-</dl>
-
-<div class="admonition note">
-
-Note
-
-<div class="line-block">
-
-<div class="line">Examples:</div>
-
-<div class="line-block">
-
-<div class="line">>>>pt_p(34, ‘sym’)</div>
-
-<div class="line">>>>pt_p(‘Cu’, ‘At_w’)</div>
-
-</div>
-
-<div class="line">‘At_w’ : atomic weight</div>
-
-<div class="line">‘Z’ : atomic number</div>
-
-<div class="line">‘cov_r’ : covalent radii</div>
-
-<div class="line">‘sym’ : atomic symbol</div>
-
-<div class="line">‘e_conf’ : electronic conf.</div>
-
-<div class="line">‘ox_st’ : oxydation state</div>
-
-<div class="line">‘bon_dis’ : typical bond distances</div>
-
-<div class="line">‘edges’ : x-ray edges</div>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
-
-<span class="target" id="module-TEMpcPlot.TEM.d3plot"></span>
-
-<dl class="py class">
-
-<dt id="TEMpcPlot.TEM.d3plot.D3plot">_class_ `TEMpcPlot.TEM.d3plot.``D3plot`<span class="sig-paren">(</span>_<span class="n">EwPePos</span>_, _<span class="n">size</span><span class="o">=</span><span class="default_value">'o'</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.TEM.d3plot.D3plot "Permalink to this definition")</dt>
-
-<dd>
+* * *
+### _class_ `TEMpcPlot.TEM.d3plot.``D3plot`(_EwPePos_, _size\='o'_)[¶](#TEMpcPlot.TEM.d3plot.D3plot "Permalink to this definition")
 
 Class used to plot a set of 3D peaks
 
-<dl class="py method">
+#### `allign_a`()[¶](#TEMpcPlot.TEM.d3plot.D3plot.allign_a "Permalink to this definition")
 
-<dt id="TEMpcPlot.TEM.d3plot.D3plot.allign_a">`allign_a`<span class="sig-paren">(</span><span class="sig-paren">)</span>[¶](#TEMpcPlot.TEM.d3plot.D3plot.allign_a "Permalink to this definition")</dt>
-
-<dd>
-
-rotate the peaks in order to allign to a* axis to z same command for b* and c*
+rotate the peaks in order to allign to a\* axis to z same command for b\* and c\*
 
 Example
+> Exp1.EwP.graph.allign\_a()
 
-<div class="doctest highlight-default notranslate">
-
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">EwP</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">allign_a</span><span class="p">()</span>
-</pre>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.TEM.d3plot.D3plot.define_axis">`define_axis`<span class="sig-paren">(</span>_<span class="n">abc</span>_, _<span class="n">m</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.TEM.d3plot.D3plot.define_axis "Permalink to this definition")</dt>
-
-<dd>
+####  `define_axis`(_abc_, _m_)[¶](#TEMpcPlot.TEM.d3plot.D3plot.define_axis "Permalink to this definition")
 
 define axis define axis graphically tracing a line
 
-<dl class="field-list simple">
-
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
-
+Parameters
 *   **abc** (_str_) – name of the axis
-
 *   **m** (_int_) – multiple that will be traCED
-
-</dd>
-
-</dl>
+    
 
 Example
+> Exp1.EwP.graph.define\_axis(‘a’, 4)
 
->>>Exp1.EwP.graph.define_axis(‘a’, 4)
+#### `filter_int`(_operator\=None_, _lim\=None_)[¶](#TEMpcPlot.TEM.d3plot.D3plot.filter_int "Permalink to this definition")
 
-</dd>
+conserve only peaks respecting an intensity condition conserve only peaks respecting an intensity condition, to determine the most usefull values use Exp1.EwP.plot\_int()  
 
-</dl>
+Example
+> Exp1.EwP.graph.filter\_int('>', 1000)
+> Exp1.EwP.graph.filter\_int('<', 1000)
 
-<dl class="py method">
-
-<dt id="TEMpcPlot.TEM.d3plot.D3plot.filter_int">`filter_int`<span class="sig-paren">(</span>_<span class="n">operator</span><span class="o">=</span><span class="default_value">None</span>_, _<span class="n">lim</span><span class="o">=</span><span class="default_value">None</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.TEM.d3plot.D3plot.filter_int "Permalink to this definition")</dt>
-
-<dd>
-
-conserve only peaks respecting an intensity condition conserve only peaks respecting an intensity condition, to determine the most usefull values use Exp1.EwP.plot_int() .. rubric:: Example
-
-<div class="doctest highlight-default notranslate">
-
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">EwP</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">filter_int</span><span class="p">(</span><span class="s1">'>'</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
-<span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">EwP</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">filter_int</span><span class="p">(</span><span class="s1">'<'</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
-</pre>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.TEM.d3plot.D3plot.filter_layer">`filter_layer`<span class="sig-paren">(</span>_<span class="n">listn</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.TEM.d3plot.D3plot.filter_layer "Permalink to this definition")</dt>
-
-<dd>
+#### `filter_layer`(_listn_)[¶](#TEMpcPlot.TEM.d3plot.D3plot.filter_layer "Permalink to this definition")
 
 conserve only the layers in list
 
 Examples
+> Exp1.EwP.graph.filter\_layer(\[0,1,2\])
 
-<div class="doctest highlight-default notranslate">
-
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">EwP</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">filter_layer</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span>
-</pre>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.TEM.d3plot.D3plot.rotate_0">`rotate_0`<span class="sig-paren">(</span><span class="sig-paren">)</span>[¶](#TEMpcPlot.TEM.d3plot.D3plot.rotate_0 "Permalink to this definition")</dt>
-
-<dd>
+#### `rotate_0`()[¶](#TEMpcPlot.TEM.d3plot.D3plot.rotate_0 "Permalink to this definition")
 
 rotate to first orientation
 
 Example
+> Exp1.EwP.graph.rotate\_0()
 
-<div class="doctest highlight-default notranslate">
-
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">EwP</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">rotate_0</span><span class="p">()</span>
-</pre>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.TEM.d3plot.D3plot.rotatex">`rotatex`<span class="sig-paren">(</span>_<span class="n">deg</span><span class="o">=</span><span class="default_value">90</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.TEM.d3plot.D3plot.rotatex "Permalink to this definition")</dt>
-
-<dd>
+#### `rotatex`(_deg\=90_)[¶](#TEMpcPlot.TEM.d3plot.D3plot.rotatex "Permalink to this definition")
 
 rotate along the x axis default value 90 same command for y and z
 
-<dl class="field-list simple">
-
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
-
+Parameters
 **deg** (_float_) – angle in degree to rotate
 
-</dd>
-
-</dl>
-
 Examples
+> Exp1.EwP.graph.rotatex(30)
+> Exp1.EwP.graph.rotatex(\-30)
 
-<div class="doctest highlight-default notranslate">
 
-<div class="highlight">
-
-<pre><span></span><span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">EwP</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">rotatex</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
-<span class="gp">>>></span> <span class="n">Exp1</span><span class="o">.</span><span class="n">EwP</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">rotatex</span><span class="p">(</span><span class="o">-</span><span class="mi">30</span><span class="p">)</span>
-</pre>
-
-</div>
-
-</div>
-
-</dd>
-
-</dl>
-
-</dd>
-
-</dl>
-
-<dl class="py class">
-
-<dt id="TEMpcPlot.TEM.d3plot.D3plotr">_class_ `TEMpcPlot.TEM.d3plot.``D3plotr`<span class="sig-paren">(</span>_<span class="n">EwPePos</span>_, _<span class="n">origin</span>_, _<span class="n">size</span><span class="o">=</span><span class="default_value">'o'</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.TEM.d3plot.D3plotr "Permalink to this definition")</dt>
-
-<dd>
-
-<dl class="py method">
-
-<dt id="TEMpcPlot.TEM.d3plot.D3plotr.define_axis">`define_axis`<span class="sig-paren">(</span>_<span class="n">abc</span>_, _<span class="n">m</span>_, _<span class="n">origin</span><span class="o">=</span><span class="default_value">[0, 0, 0]</span>_<span class="sig-paren">)</span>[¶](#TEMpcPlot.TEM.d3plot.D3plotr.define_axis "Permalink to this definition")</dt>
-
-<dd>
-
-define axis define axis graphically tracing a line
-
-<dl class="field-list simple">
-
-<dt class="field-odd">Parameters</dt>
-
-<dd class="field-odd">
-
-*   **abc** (_str_) – name of the axis
-
-*   **m** (_int_) – multiple that will be traCED
-
-</dd>
-
-</dl>
-
-Example
-
->>>Exp1.EwP.graph.define_axis(‘a’, 4)
-
-</dd>
-
-</dl>
-
-</dd>
-
-</dl>
-
-</div>
-
-<div class="section" id="indices-and-tables">
-
-# Indices and tables[¶](#indices-and-tables "Permalink to this headline")
-
-*   [<span class="std std-ref">Index</span>](genindex.html)
-
-*   [<span class="std std-ref">Module Index</span>](py-modindex.html)
-
-*   [<span class="std std-ref">Search Page</span>](search.html)
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-<div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-
-<div class="sphinxsidebarwrapper">
-
-# [TEMpcPlot](#)
-
-### Navigation
-
-<div class="relations">
-
-### Related Topics
-
-*   [Documentation overview](#)
-
-</div>
-
-<div id="searchbox" style="display: none" role="search">
-
-### Quick search
-
-<div class="searchformwrapper">
-
-<form class="search" action="search.html" method="get"><input type="text" name="q" aria-labelledby="searchlabel"> <input type="submit" value="Go"></form>
-
-</div>
-
-</div>
-
-<script>$('#searchbox').show(0);</script></div>
-
-</div>
-
-</div>
-
-<div class="footer">©2020, C. Prestipino. | Powered by [Sphinx 3.0.4](http://sphinx-doc.org/) & [Alabaster 0.7.12](https://github.com/bitprophet/alabaster) | [Page source](_sources/index.rst.txt)</div>
-    
+©2020, C. Prestipino. | Powered by [Sphinx 3.0.4](http://sphinx-doc.org/) & [Alabaster 0.7.12](https://github.com/bitprophet/alabaster) | [Page source](_sources/index.rst.txt)
    
 
 ## License
