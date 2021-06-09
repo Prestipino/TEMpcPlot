@@ -53,15 +53,6 @@ The library is divided in two main class
                          real space cell
 
 
-
-
-
-
-
-
-
-
-
 The mode of use is relativelly simple :
 create a SeqIm object
 
@@ -75,6 +66,9 @@ Index manually the reciprocal space
 
 Ex1.EwP.plot()
 reconstruct reciprocal space
+
+Ex1.EwP.set_cell()
+take in account the recipriocal cell
 
 Ex1.Ewp.create_layer(hkl)
 
@@ -316,34 +310,6 @@ Variables
 *   **self.cell** – a dictionary witht the value of real space cell
     
 * * *
-### `TEMpcPlot.``pt_p`(_atom_, _property_)[¶](#TEMpcPlot.pt_p "Permalink to this definition")
-
-Atomic properties Tables with atomic properties
-
-Parameters:\
-**property** (_str_) – property type
-
-Returns: property of the atoms
-
-Return type: floats, string
-
-
-Examples:
-> pt\_p(34, ‘sym’)
->pt\_p(‘Cu’, ‘At\_w’)
-
-  
-*Notes*
-‘At\_w’ : atomic weight\
-‘Z’ : atomic number\
-‘cov\_r’ : covalent radii\
-‘sym’ : atomic symbol\
-‘e\_conf’ : electronic conf.\
-‘ox\_st’ : oxydation state\
-‘bon\_dis’ : typical bond distances\
-‘edges’ : x-ray edges\
-
-* * *
 ### _class_ `TEMpcPlot.TEM.d3plot.``D3plot`(_EwPePos_, _size\='o'_)[¶](#TEMpcPlot.TEM.d3plot.D3plot "Permalink to this definition")
 
 Class used to plot a set of 3D peaks
@@ -400,6 +366,33 @@ Examples
 > Exp1.EwP.graph.rotatex(30)
 > Exp1.EwP.graph.rotatex(\-30)
 
+* * *
+### `TEMpcPlot.pt_p`(_atom_, _property_)[¶](#TEMpcPlot.pt_p "Permalink to this definition")
+
+Atomic properties Tables with atomic properties
+
+Parameters:\
+**property** (_str_) – property type
+
+Returns: property of the atoms
+
+Return type: floats, string
+
+
+Examples:
+> pt\_p(34, ‘sym’)
+>pt\_p(‘Cu’, ‘At\_w’)
+
+  
+*Notes*
+‘At\_w’ : atomic weight\
+‘Z’ : atomic number\
+‘cov\_r’ : covalent radii\
+‘sym’ : atomic symbol\
+‘e\_conf’ : electronic conf.\
+‘ox\_st’ : oxydation state\
+‘bon\_dis’ : typical bond distances\
+‘edges’ : x-ray edges\
 
 ©2020, C. Prestipino. | Powered by [Sphinx 3.0.4](http://sphinx-doc.org/) & [Alabaster 0.7.12](https://github.com/bitprophet/alabaster) | [Page source](_sources/index.rst.txt)
    
