@@ -14,27 +14,6 @@ The library is divided in two main class
     could be created as an attribute EwP of a SeqIm class by using methods D3_peaks
     or by sum with an another EwaldPeaks class with the same first image
 
-## Typical sequence of commands
-The mode of use is relativelly simple :
-create a SeqIm object
-
-Ex1 = TEMpcPlot.SeqIm('cr2.sqi')
-construct a unindixed reciprocal lattice
-
-Ex1.plot()
-
-Ex1.D3_peaks(tollerance=15)
-Index manually the reciprocal space
-
-Ex1.EwP.plot()
-reconstruct reciprocal space
-
-Ex1.EwP.set_cell()
-take in account the recipriocal cell
-
-Ex1.Ewp.create_layer(hkl)
-
-
 ## Step by step instructions for installation
 - install anaconda or miniconda(https://docs.conda.io/en/latest/miniconda.html)
 - open an anaconda prompt on the start menu
@@ -44,9 +23,14 @@ conda install -c cprestip tempcplot
 ```
 
 ##### facultative, but significant better if ipython is installed
-
 ```bash
 conda install ipython
+```
+## UPDATE
+The code is still in rapid change and cold present several bug
+please update with the following command on an anaconda prompt  
+```bash
+conda update --force-reinstall tempcplot
 ```
 * * *
 ## In order to work
@@ -80,6 +64,30 @@ import TEMpcPlot as TP
 > Exp1 = TP.SeqIm('filename.sqi')
 
 * * *
+
+
+## Typical sequence of commands
+The mode of use is relativelly simple :
+create a SeqIm object
+
+Ex1 = TEMpcPlot.SeqIm('cr2.sqi')
+construct a unindixed reciprocal lattice
+
+Ex1.plot()
+
+Ex1.D3_peaks(tollerance=15)
+Index manually the reciprocal space
+
+Ex1.EwP.plot()
+reconstruct reciprocal space
+
+Ex1.EwP.set_cell()
+take in account the recipriocal cell
+
+Ex1.Ewp.create_layer(hkl)
+
+
+
 * * *
 ## usefull command Documentation
 the main class documentaion to look are 
