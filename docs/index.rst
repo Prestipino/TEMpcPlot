@@ -7,14 +7,17 @@ Welcome to TEMpcPLOT's documentation!
 =====================================
 
 .. automodule:: TEMpcPlot
-   :members: SeqIm, EwaldPeaks, SpaceGroup, SytSym, spgbyNum, pt_p
-
+   :members: SeqIm, EwaldPeaks, Symmetry, pt_p
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-
+.. automodule:: TEMpcPlot.TEM.d3plot
+   :members: 
+.. toctree::
+   :maxdepth: 1
+   :caption: Contents:
 
 Indices and tables
 ==================

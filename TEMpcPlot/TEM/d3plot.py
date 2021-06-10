@@ -15,7 +15,8 @@ plt.ion()
 
 class D3plot(object):
     """
-    Class used to stored a set of 3D peaks
+    Class used to plot a set of 3D peaks
+
     """
 
     def __init__(self, EwPePos, size='o'):
@@ -66,6 +67,13 @@ class D3plot(object):
                                                  lambda event: rezize_g())
 
     def filter_int(self, operator=None, lim=None):
+        """conserve only peaks respecting an intensity condition
+        conserve only peaks respecting an intensity condition, to 
+        determine the most usefull values use Exp1.EwP.plot_int()
+        Example:
+            >>> Exp1.EwP.graph.filter_int('>', 1000)
+            >>> Exp1.EwP.graph.filter_int('<', 1000)            
+        """
         if operator == '>':
             def lcond(x):
                 return x > lim
@@ -80,7 +88,10 @@ class D3plot(object):
         self.plot_hist()
 
     def filter_layer(self, listn):
-        """conserve onlyt the layers in listn
+        """conserve only the layers in list
+
+        Examples:
+            >>> Exp1.EwP.graph.filter_layer([0,1,2])
         """
         pos_i = []
         for j, i_pos in enumerate(self._EwPePos.pos):
@@ -198,6 +209,17 @@ class D3plot(object):
         self.plot_hist()
 
     def rotatex(self, deg=90):
+        """
+        rotate along the x axis default value 90
+        same command for y and z
+
+        Args:
+            deg (float): angle in degree to rotate
+        Examples:
+            >>> Exp1.EwP.graph.rotatex(30)
+            >>> Exp1.EwP.graph.rotatex(-30)
+
+        """
         self._c_rotate('x', deg)
 
     def rotatey(self, deg=90):
@@ -207,6 +229,12 @@ class D3plot(object):
         self._c_rotate('z', deg)
 
     def rotate_0(self):
+        """
+        rotate to first orientation
+
+        Example:
+            >>> Exp1.EwP.graph.rotate_0()
+        """
         r = self.r0.inv()
         self.__rotate(r)
         self.__stab_rot(r)
@@ -229,6 +257,13 @@ class D3plot(object):
         self.__stab_rot(r)
 
     def allign_a(self):
+        """
+        rotate the peaks in order to allign to a* axis to z
+        same command for b* and c*
+
+        Example:
+            >>> Exp1.EwP.graph.allign_a()
+        """
         self._c_allign('a')
 
     def allign_b(self):
@@ -276,6 +311,8 @@ class D3plot(object):
         Args:
             abc (str): name of the axis
             m (int): multiple that will be traCED
+        Example:
+            >>>Exp1.EwP.graph.define_axis('a', 4)
         """
         assert abc in 'abc', 'only three axis a, b, c '
         self.fig.canvas.mpl_disconnect(self.__cid)
@@ -331,7 +368,7 @@ class LineAxes:
         text = plt.text(0, 0, '')
         canv = self.line.figure.canvas
         p_line = [Line2D([0], [0], linestyle='--',
-                         color='grey', lw=1) for i in range(self.m)]
+                         color='grey', lw=1) for i in range(self.m + 1)]
         for pline_i in p_line:
             self.line.axes.add_line(pline_i)
 
@@ -362,8 +399,8 @@ class LineAxes:
             pdatax = lim * np.array((-event.ydata, event.ydata))
             pdatay = lim * np.array((event.xdata, -event.xdata))
             for i, pline_i in enumerate(p_line):
-                pline_i.set_data(pdatax + (event.xdata * (i + 1) / self.m),
-                                 pdatay + (event.ydata * (i + 1) / self.m))
+                pline_i.set_data(pdatax + (event.xdata * (i) / self.m),
+                                 pdatay + (event.ydata * (i) / self.m))
             for pline_i in p_line:
                 self.line.axes.draw_artist(pline_i)
             #
@@ -466,15 +503,6 @@ class D3plotr(D3plot):
         plt.draw()
 
     def define_axis(self, abc, m, origin=[0, 0, 0]):
-        """define axis
-        define axis graphically tracing a line
-
-        Args:
-            abc (str): name of the axis
-            m (int): multiple that will be traCED
-            origin np.array(shape = 3): whic origin [0, 0 ,0]
-                                        or [0,1,0] for an another corner
-        """
         self.fig.canvas.mpl_disconnect(self._D3plot__cid)
         origin = np.where(np.array(origin) == 1, -self.origin, self.origin)
         self.axes[abc] = LineAxesr(abc, m, origin=origin, rot=self.r0)

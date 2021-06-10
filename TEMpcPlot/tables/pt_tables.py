@@ -14,28 +14,32 @@ bond_distances  dict       bond distance           Angstrom
 
 def pt_p(atom, property):
     """Atomic properties 
-        Args:
-            property (str):  property type
-        Return:
-            floats, string : property of the atoms
-        Notes:
-            'At_w'    : atomic weight  
-            'Z'       : atomic number   
-            'cov_r'   : covalent radii
-            'sym'     : atomic symbol        
-            'e_conf'  : electronic conf.
-            'ox_st'   : oxydation state
-            'bon_dis' : typical bond distances
-            'edges'   : x-ray edges
-            -------------------------
-        Examples:
-        >>>pt_p(34, 'sym')
+    Tables with atomic properties
 
-        >>>pt_p('Cu', 'At_w')
-       
+    Args:
+        property (str):  property type
+
+    Return:
+        floats, string : property of the atoms
+
+    Note:
+        |    Examples:
+        |        >>>pt_p(34, 'sym')
+        |        >>>pt_p('Cu', 'At_w')
+        |
+        |    'At_w'    : atomic weight  
+        |    'Z'       : atomic number   
+        |    'cov_r'   : covalent radii
+        |    'sym'     : atomic symbol        
+        |    'e_conf'  : electronic conf.
+        |    'ox_st'   : oxydation state
+        |    'bon_dis' : typical bond distances
+        |    'edges'   : x-ray edges
+
+
     """
     ava_prop=['At_w', 'Z', 'cov_r', 'sym', 'e_conf', 'ox_st', 'edges', 'bon_dis']
-    if atom:    
+    if atom:
         if isinstance(atom, int):
            if property=='sym':return elements[atom]
            else: atom = elements[atom]   

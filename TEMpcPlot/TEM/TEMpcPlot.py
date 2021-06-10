@@ -329,7 +329,6 @@ class PeakL(list):
         # print('in peak', ima[z].shape, z.shape)
         return tuple(coor), ima[tuple(z)] - ima_min[tuple(z)]
 
-
     @property
     def r(self):
         return list(reversed(self))
@@ -458,9 +457,9 @@ class Mimage():
             ax.cla()
 
         if log:
-            pltim = plt.imshow(np.log(np.abs(self.ima)), *args, **kwds)
+            self.pltim = plt.imshow(np.log(np.abs(self.ima)), *args, **kwds)
         else:
-            pltim = plt.imshow(self.ima, *args, **kwds)
+            self.pltim = plt.imshow(self.ima, *args, **kwds)
         pltcenter = plt.plot(*reversed(self.center), 'bx')
         ax = plt.gca()
         plt.title(f'Image {self.info.filename}')
@@ -583,9 +582,12 @@ class SeqIm(list):
 
     Note:
         | Methods to use:
-        | def find_peaks(rad_c=1.5, tr_c=0.02, dist=None)
-        | def D3_peaks(stollerance)
+        | def D3_peaks(tollerance=15)
         | def plot(log=False)
+        | def plot_cal(axes)    
+        | def save(axes)
+        | def load(axes)
+        | def help()
     """
 
     def __init__(self, filenames, filesangle=None, *args, **kwords):
@@ -662,7 +664,7 @@ class SeqIm(list):
             dist: (float): maximum distance in pixel
 
         Examples:
-        >>> Exp1.find_peaks()
+            >>> Exp1.find_peaks()
         """
         for i in self:
             if hasattr(i, 'Peaks'):
@@ -686,21 +688,21 @@ class SeqIm(list):
         # find possible rotation on the plane of the rotation axes
         # evaluated between the fitted line that pass for the common peaks
         # return the angle of cortrection and a vector passing from all points
-        angle, self.rot_vect = mt.find_zrot_correction(out, tollerance)
-        print('angle correction', np.round(np.degrees(angle), 2))
+        self.zangles, self.rot_vect = mt.find_zrot_correction(out, tollerance)
+        print('angle correction', np.round(np.degrees(self.zangles), 2))
 
         # calibration for rotation of the image i the plane
         # and correct the center on the basis of average difference of out
         for i, peaks in enumerate(all_peaks):
             if i != 0:
-                peaks = peaks @ mt.zrotm(-angle[i])
-                shift = out[0] - (out[i] @ mt.zrotm(-angle[i]))
+                peaks = peaks @ mt.zrotm(-self.zangles[i])
+                shift = out[0] - (out[i] @ mt.zrotm(-self.zangles[i]))
                 shift = shift.sum(axis=0) / len(out[i])
                 all_peaks[i] = peaks + shift
                 # print(shift)
         all_peaks = [np.column_stack((i, np.zeros(len(i)))) for i in all_peaks]
 
-        # absolute rotation
+        # absolute rotation of the camera
         self.z0 = mt.find_z_rotation(self.__rot__, self.rot_vect)[0]
 
         axis = mt.creaxex(self.__rot__, self.z0)
@@ -722,6 +724,50 @@ class SeqIm(list):
                               angles=self.angles, r0=self.__rot__, z0=self.z0)
         # abs_rotz
         return
+
+    def plot_cal(self, axes, log=False, *args, **kwds):
+        '''
+        plot the images of the sequences with peaks
+
+        Args:
+            axes base for reciprocal space as 
+             one defined in EwP
+            log (Bool): plot logaritm of intyensity
+            aargs anf keyworg directly of matplotlib plot
+
+        Examples:
+            >>> Exp1.plot(Exp1.EwP.axes, log=True)
+            >>> Exp1.plot(Exp1.EwP.axes)
+        '''
+
+        fig = plt.figure()
+        ax = plt.axes([0.05, 0.10, 0.75, 0.80])
+        tool_b = fig.canvas.manager.toolbar
+
+        tbarplus = mw.ToolbarPlusCal(self, axes, log=log, fig=fig,
+                                     ax=ax, tool_b=tool_b, *args, **kwds)
+
+        axvmax = plt.axes([0.80, 0.10, 0.04, 0.80])
+        vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100,
+                       orientation="vertical")
+
+        def refresh(val):
+            i = tbarplus.index
+            mini = np.where(self[i].ima > 0, self[i].ima, np.inf).min()
+            maxi = self[i].ima.max()
+            vmax = mini + vmaxb.val**3 * ((maxi - mini) / 1000000)
+            if log:
+                vmax = np.log(vmax)
+            plt.sca(ax)
+            nonlocal kwds
+            if kwds:
+                kwds.update({'vmax': vmax})
+            else:
+                kwds = {'vmax': vmax}
+            self[i].pltim.set_clim(vmax=vmax)
+            tbarplus.kwds = kwds
+
+        vmaxb.on_changed(refresh)
 
     def plot(self, log=False, fig=None, ax=None, tool_b=None, *args, **kwds):
         '''
@@ -791,13 +837,20 @@ class SeqIm(list):
         butpal.on_clicked(app_all)
 
         def refresh(val):
-            mini = self.ima.ima.min()
+            mini = np.where(self.ima.ima > 0, self.ima.ima, np.inf).min()
+            maxi = self.ima.ima.max()
+            vmax = mini + vmaxb.val**3 * ((maxi - mini) / 1000000)
             if log:
-                mini = np.log(max(mini, 0.0001))
-            maxi = np.log(self.ima.ima.max()) if log else self.ima.ima.max()
-            vmax = mini + vmaxb.val * (maxi - mini) / 100
+                vmax = np.log(vmax)
             plt.sca(ax)
-            self.ima.plot(new=0, log=log, vmax=vmax, *args, **kwds)
+            nonlocal kwds
+            if kwds:
+                kwds.update({'vmax': vmax})
+            else:
+                kwds = {'vmax': vmax}
+            self.ima.pltim.set_clim(vmax=vmax)
+            tbarplus.kwds = kwds
+
         vmaxb.on_changed(refresh)
         # self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
 
@@ -848,7 +901,7 @@ class SeqIm(list):
             filename (str): filename to open
 
         Examples:
-            >>> exp1 = SeqIm.load(exp1.pkl)
+            >>> exp1 = SeqIm.load('exp1.sqm')
 
         """
         inn = pickle.load(open(filename, 'rb'))
@@ -869,10 +922,6 @@ class EwaldPeaks(object):
     could be created as an attribute EwP of a SeqIm class by using methods D3_peaks
     or by sum with an another EwaldPeaks class with the same first image
 
-    Example:
-        >>>Exp1.D3_peaks(tollerance=5)
-        >>>EWT= Exp1.EwP +  Exp2.EwP
-
     Args:
         positions (list): list containing the coordonates of peaks
         intensity (list): list containing the intensity of peaks
@@ -885,7 +934,29 @@ class EwaldPeaks(object):
         axis    (np.array): reciprocal basis set, 3 coloums
         cell    (dict): a dictionary witht the value of
                          real space cell
+        graph  (D3plot.D3plot):graph Ewald peaks 3D set of peaks used to index
+
+
+    Note:
+        | Examples:
+        |     >>>Exp1.D3_peaks(tollerance=5)
+        |     >>>Exp1.EwP is defined
+        |     >>>EWT= Exp1.EwP +  Exp2.EwP
+        |
+        | Methods to use:
+        | def D3_peaks(tollerance=15)
+        | def plot_int()
+        | def plot_proj_int()
+        | def plot_reduce
+        | def plot_reduce
+        | def refine_axes
+        | def set_cell
+        | def create_layer
+        | def save(name)
+        | def load(name)
+        | def help()
     """
+
 
     def __init__(self, positions, intensity,
                  rot_vect=None, angles=None,
@@ -918,8 +989,6 @@ class EwaldPeaks(object):
                 self.axes = axes
 
     def __add__(self, other):
-        """
-        """
         pos = self.pos + other.pos
         inte = self.int + other.int
         cond = hasattr(self, '_rot_vect') and hasattr(other, '_rot_vect')
@@ -964,16 +1033,22 @@ class EwaldPeaks(object):
         return out
 
     def plot(self):
-        """open a D3plot graph
+        """ open a D3plot graph
+            Attributes:
+                graph  (D3plot.D3plot): graph Ewald peaks 3D set of peaks used to index
         """
         self.graph = d3plot.D3plot(self)
 
     def plot_int(self):
+        """Plot instogramm of intensity of the peaks
+        """
         intens = np.hstack([i for i in self.int])
         plt.figure()
         plt.hist(sorted(intens), bins=100, rwidth=4)
 
     def plot_proj_int(self, cell=True):
+        """plot peak presence instogramm as a function of the cell 
+        """ 
         if cell:
             print([i.shape for i in self.pos_cal])
             pos = np.vstack([i for i in self.pos_cal])
@@ -1001,6 +1076,9 @@ class EwaldPeaks(object):
 
     def plot_reduce(self, tollerance=0.1, condition=None):
         """plot collapsed reciprocal space
+           plot the position of the peaks in cell coordinatete and all
+           reduced to a single cell.
+           it create a self.reduce attribute containingt he graph  
         """
         pos = np.vstack([i for i in self.pos_cal])
 
@@ -1380,13 +1458,17 @@ class EwaldPeaks(object):
     def set_cell(self, axes=None, axes_std=None, tollerance=0.1, cond=None):
         ''' calculation of the cell
         effect the calculation to obtain the cell
+
         Args:
             axis (np.array 3,3): the new reciprocal basis to be used in the format
-                         | np.array[[a1, b1, c1],
-                         |         [a2, b2, c2],
-                         |         [a3, b3, c3]]
-                if axis is not inoput the programm seach if a new basis
-                has been defined graphically
+                                 if axis is not inoput the programm seach if a new basis
+                                 has been defined graphically 
+
+
+        | axes format: np.array([
+        |  [a1, b1, c1],
+        |  [a2, b2, c2],
+        |  [a3, b3, c3]])
 
         return:
                 nothing
@@ -1395,10 +1477,8 @@ class EwaldPeaks(object):
             self.rMT   (np.array) : reciprocal metric tensor
             self.cell   (dict)    : a dictionary witht the value of
                                         real space cell
-
-        """
             self.rMT    : reciprocal metric tensor
-           self.cell   : a dictionary witht the value of
+            self.cell   : a dictionary witht the value of
                          real space cell
         '''
         if axes is None:
@@ -1521,9 +1601,6 @@ class EwaldPeaks(object):
 
     def save(self, filename, dictionary=False):
         """ save EwP
-            formats available:
-               None: pickel format good for python
-               Idx : for Ind_x
         """
         if filename[-3:].lower() == 'idx':
             pos = np.vstack([i for i in self.pos]) / 10
@@ -1558,6 +1635,10 @@ class EwaldPeaks(object):
 
     @classmethod
     def load(cls, filename):
+        """load EwP in python format
+            Example:
+            >>>cr1 = EwaldPeaks.load('cr1.ewp')
+        """
         dd = pickle.load(open(filename, 'rb'))
         z = EwaldPeaks(dd['pos'], dd['int'], dd['rot_vect'])
         if 'axes' in dd.keys():
