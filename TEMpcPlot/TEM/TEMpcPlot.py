@@ -12,6 +12,8 @@ from scipy.optimize import least_squares
 import pickle
 import glob
 
+from importlib import reload
+
 from .. import dm3_lib as dm3
 from .. import Symmetry
 from . import plt_p
@@ -725,7 +727,7 @@ class SeqIm(list):
         # abs_rotz
         return
 
-    def plot_cal(self, axes, log=False, *args, **kwds):
+    def plot_cal(self, axes=None, log=False, *args, **kwds):
         '''
         plot the images of the sequences with peaks
 
@@ -739,9 +741,15 @@ class SeqIm(list):
             >>> Exp1.plot(Exp1.EwP.axes, log=True)
             >>> Exp1.plot(Exp1.EwP.axes)
         '''
-
+        reload(plt)
         fig = plt.figure()
         ax = plt.axes([0.05, 0.10, 0.75, 0.80])
+        if axes is None:
+            try:
+                axes = self.EwP.axes
+            except AttributeError as A:
+                raise A
+
         tool_b = fig.canvas.manager.toolbar
 
         tbarplus = mw.ToolbarPlusCal(self, axes, log=log, fig=fig,
@@ -753,7 +761,7 @@ class SeqIm(list):
 
         def refresh(val):
             i = tbarplus.index
-            mini = np.where(self[i].ima > 0, self[i].ima, np.inf).min()
+            mini = np.abs(self[i].ima).min()
             maxi = self[i].ima.max()
             vmax = mini + vmaxb.val**3 * ((maxi - mini) / 1000000)
             if log:
@@ -764,10 +772,11 @@ class SeqIm(list):
                 kwds.update({'vmax': vmax})
             else:
                 kwds = {'vmax': vmax}
-            self[i].pltim.set_clim(vmax=vmax)
+            tbarplus.pltim.set_clim(vmax=vmax)
             tbarplus.kwds = kwds
 
         vmaxb.on_changed(refresh)
+        plt.sca(axvmax)
 
     def plot(self, log=False, fig=None, ax=None, tool_b=None, *args, **kwds):
         '''
@@ -875,6 +884,9 @@ class SeqIm(list):
                       'ps_in': i.Peaks.ps_in} for i in self]
         out.filename = self.filenames
         out.filesangle = [i.info.gon_angles for i in self]
+        if hasattr(self, 'zangles'):
+            out.zangles = self.zangles
+            out.rot_vect = self.rot_vect
         if hasattr(self, 'EwP'):
             out.EwP = {'positions': self.EwP.pos,
                        'intensity': self.EwP.int}
@@ -906,6 +918,9 @@ class SeqIm(list):
         """
         inn = pickle.load(open(filename, 'rb'))
         out = SeqIm(inn.filename, inn.filesangle)
+        if hasattr(inn, 'zangles'):
+            out.zangles = inn.zangles
+            out.rot_vect = inn.rot_vect
         for i, Peaksi in enumerate(inn.peaks):
             out[i].Peaks = PeakL(Peaksi['pos'])
             out[i].Peaks.int = Peaksi['inte']

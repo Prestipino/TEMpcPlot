@@ -470,10 +470,8 @@ class ToolbarPlusCal():
         Rot = R.from_rotvec(selfi.rot_vect * selfi.angles[self.index]) * Rot
 
         def format_coord(x, y):
-            xc = (x - selfi[self.index].center[1]) * selfi.scale
-            yc = (y - selfi[self.index].center[0]) * selfi.scale
-            d2 = np.round(1 / np.sqrt(xc**2 + yc**2), 3)
-            xy3d = Rot.apply([yc, xc, 0])
+            d2 = np.round(1 / np.sqrt(x**2 + y**2), 3)
+            xy3d = Rot.apply([y, x, 0])
             hkl = np.round(P @ xy3d, 2)
             # return f'{z:s} d={dist2:2.4f} [{dist1:2.4f} pixel]'
             z = f'x={y:4.1f}, y={x:4.1f}, hkl={hkl},  d_sp={d2:4.4f}nm'
@@ -483,11 +481,23 @@ class ToolbarPlusCal():
             nonlocal Rot
             self.index += up
             self.index -= up * lun * (abs(self.index) // lun)
-            selfi.ima = selfi[self.index]
+            self.ima = selfi[self.index]
+            centro = np.array(self.ima.center) * self.ima.scale
+            forma = np.array(self.ima.ima.shape) * self.ima.scale
+            estensione = [-centro[1], forma[0] - centro[1],
+                          forma[1] - centro[0], -centro[0], ]
             plt.sca(ax)
-            selfi[self.index].plot(new=0, log=log, peaks=False, *self.args, **self.kwds)
-            ax.set_axis_off()
-            ax.set_frame_on(False)
+            if log:
+                self.pltim = plt.imshow(np.log(np.abs(self.ima.ima)),
+                                        extent=estensione,
+                                        cmap='binary', *self.args, **self.kwds)
+            else:
+                self.pltim = plt.imshow(self.ima.ima, extent=estensione,
+                                        cmap='binary', *args, **kwds)
+            plt.title(f'Image {self.ima.info.filename}')
+            #ax.set_frame_on(False)
+            ax.set_xlabel(r'$nm^{-1}$')
+            ax.set_ylabel(r'$nm^{-1}$')
             Rot = R.from_rotvec([0, 0, -selfi.zangles[self.index]])
             Rot = R.from_rotvec(selfi.rot_vect * selfi.angles[self.index]) * Rot
             fig.canvas.draw()
