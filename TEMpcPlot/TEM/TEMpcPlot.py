@@ -1045,6 +1045,8 @@ class EwaldPeaks(object):
         intens = np.hstack([i for i in self.int])
         plt.figure()
         plt.hist(sorted(intens), bins=100, rwidth=4)
+        plt.xlabel('peaks intensity')
+        plt.ylabel('n. of peaks')
 
     def plot_proj_int(self, cell=True):
         """plot peak presence instogramm as a function of the cell 
