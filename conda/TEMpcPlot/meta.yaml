@@ -34,6 +34,7 @@ requirements:
     - pillow
     - uncertainties    
     - packaging
+    - conda-forge::mplcursors
 
 test:
   import:

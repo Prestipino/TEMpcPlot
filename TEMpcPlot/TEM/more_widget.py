@@ -11,6 +11,8 @@ from matplotlib.widgets import AxesWidget
 from matplotlib.backends.qt_compat import QtGui
 import matplotlib.pyplot as plt
 
+import mplcursors
+
 from packaging import version
 if version.parse(matplotlib.__version__) > version.parse("3.3.1"):
     matplotlib_old = False
@@ -463,13 +465,30 @@ class ToolbarPlusCal():
         lun = len(selfi)
         self.args = args
         self.kwds = kwds
+        self.round = 0
+
 
         # paasage to axes base
         P = inv(axes)
         Rot = R.from_rotvec([0, 0, -selfi.zangles[self.index]])
         Rot = R.from_rotvec(selfi.rot_vect * selfi.angles[self.index]) * Rot
 
+        def HKL_integer(appr):
+            if appr:
+                self.round = 0
+            else:
+                self.round = 2
+
+
         def format_coord(x, y):
+            d2 = np.round(1 / np.sqrt(x**2 + y**2), 3)
+            xy3d = Rot.apply([y, x, 0])
+            hkl = np.round(P @ xy3d, 2)
+            # return f'{z:s} d={dist2:2.4f} [{dist1:2.4f} pixel]'
+            z = f'x={y:4.1f}, y={x:4.1f}, hkl={hkl},  d_sp={d2:4.4f}nm'
+            return f'{z:s}             '
+
+        def label(x, y):
             d2 = np.round(1 / np.sqrt(x**2 + y**2), 3)
             xy3d = Rot.apply([y, x, 0])
             hkl = np.round(P @ xy3d, 2)
@@ -503,6 +522,26 @@ class ToolbarPlusCal():
             fig.canvas.draw()
             ax.format_coord = format_coord
 
+            c1 = mplcursors.cursor(self.pltim, multiple=True)
+
+            @c1.connect("add")
+            def _(sel):
+                centro = np.array(self.ima.center)
+                x, y = sel.target.index
+                xc = (x - centro[0]) * selfi.scale
+                yc = (y - centro[1]) * selfi.scale
+                xy3d = Rot.apply([yc, xc, 0])
+                hkl = P @ xy3d
+                if self.round == 0:
+                    hkl = np.round(P @ xy3d, self.round).astype('int')
+                else:
+                    hkl = np.round(P @ xy3d, self.round)
+                sel.annotation.get_bbox_patch().set(fc="white", alpha=.5)
+                sel.annotation.set(text=str(tuple(hkl)))
+                sel.annotation.arrow_patch.set(arrowstyle="simple", fc="white", alpha=.5)
+
+
+
         def _icon(name):
             direct = os.path.dirname(__file__)
             name = os.path.join(direct, name)
@@ -511,11 +550,24 @@ class ToolbarPlusCal():
                 pm.setDevicePixelRatio(fig.canvas._dpi_ratio)
             return QtGui.QIcon(pm)
 
+
         fig.canvas.toolbar.addSeparator()
+        a = tool_b.addAction(_icon(' '), 'int', lambda: HKL_integer(True))
+        a.setToolTip('Integer HKL')
+        a = tool_b.addAction(_icon(' '), 'float', lambda: HKL_integer(False))
+        a.setToolTip('Float HKL')
+
         a = tool_b.addAction(_icon('down.png'), 'back', lambda: UP_DO(-1))
         a.setToolTip('Previous image')
         a = tool_b.addAction(_icon('up.png'), 'foward', lambda: UP_DO(1))
         a.setToolTip('Next image')
 
+
         UP_DO(0)
+
+
+
+
+
+
 

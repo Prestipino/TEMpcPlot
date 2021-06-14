@@ -814,7 +814,7 @@ class SeqIm(list):
         axspac = plt.axes([0.75, 0.77, 0.20, 0.03], facecolor=axcolor)
         axsym = plt.axes([0.75, 0.72, 0.20, 0.03], facecolor=axcolor)
 
-        inteb = Slider(ax=axinte, label='int', valmin=0.1, valmax=10.0, valinit=5)  # , valstep=delta_f
+        inteb = Slider(ax=axinte, label='int', valmin=0.01, valmax=10.0, valinit=5)  # , valstep=delta_f
         distb = Slider(ax=axdist, label='dis', valmin=1, valmax=512.0, valinit=500)
         spacb = Slider(ax=axspac, label='rad', valmin=0.1, valmax=10.0, valinit=1)  # , valstep=delta_f
         symb = Slider(ax=axsym, label='sym', valmin=0.0, valmax=20.0, valinit=0)
@@ -827,13 +827,16 @@ class SeqIm(list):
         vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100)
 
         def update(val):
-            inte = inteb.val
+            inte = inteb.val**2 / 101
             dist = distb.val
             spac = spacb.val
             symB = symb.val
             plt.sca(ax)
-            self.ima.find_peaks(rad_c=spac, tr_c=inte / 100.0,
-                                dist=dist, symf=symB)
+            try:
+                self.ima.find_peaks(rad_c=spac, tr_c=inte,
+                                    dist=dist, symf=symB)
+            except ValueError:
+                pass
 
         inteb.on_changed(update)
         distb.on_changed(update)
