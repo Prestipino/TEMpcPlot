@@ -730,16 +730,21 @@ class SeqIm(list):
     def plot_cal(self, axes=None, log=False, *args, **kwds):
         '''
         plot the images of the sequences with peaks
+        if axes is not defined and an EwP.axes is defined such bases will be used
 
         Args:
             axes base for reciprocal space as 
-             one defined in EwP
+                            one defined in EwP
             log (Bool): plot logaritm of intyensity
             aargs anf keyworg directly of matplotlib plot
 
         Examples:
             >>> Exp1.plot(Exp1.EwP.axes, log=True)
             >>> Exp1.plot(Exp1.EwP.axes)
+
+        left button define an annotation 
+        right button remoce an anotation
+        left button + move drag ana annotation
         '''
         reload(plt)
         fig = plt.figure()
