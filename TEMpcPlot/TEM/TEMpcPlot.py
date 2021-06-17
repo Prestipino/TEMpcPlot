@@ -13,6 +13,7 @@ import pickle
 import glob
 
 from importlib import reload
+import os
 
 from .. import dm3_lib as dm3
 from .. import Symmetry
@@ -635,6 +636,8 @@ class SeqIm(list):
             if isinstance(filenames, list):
                 gon_angles = np.array(filesangle)
 
+        for i in self.filenames:
+            assert os.path.isfile(i), f'No such file: \'{i}\''
         super().__init__([Mimage(i) for i in self.filenames])
         for i, im in enumerate(self):
             setattr(im.info, 'gon_angles', gon_angles[i])

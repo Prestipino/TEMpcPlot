@@ -506,6 +506,7 @@ class ToolbarPlusCal():
             estensione = [-centro[1], forma[0] - centro[1],
                           forma[1] - centro[0], -centro[0], ]
             plt.sca(ax)
+            ax.clear()
             if log:
                 self.pltim = plt.imshow(np.log(np.abs(self.ima.ima)),
                                         extent=estensione,
@@ -530,7 +531,7 @@ class ToolbarPlusCal():
                 x, y = sel.target.index
                 xc = (x - centro[0]) * selfi.scale
                 yc = (y - centro[1]) * selfi.scale
-                xy3d = Rot.apply([yc, xc, 0])
+                xy3d = Rot.apply([xc, yc, 0])
                 hkl = P @ xy3d
                 if self.round == 0:
                     hkl = np.round(P @ xy3d, self.round).astype('int')
