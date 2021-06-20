@@ -827,9 +827,9 @@ class SeqIm(list):
         spacb = Slider(ax=axspac, label='rad', valmin=0.1, valmax=10.0, valinit=1)  # , valstep=delta_f
         symb = Slider(ax=axsym, label='sym', valmin=0.0, valmax=20.0, valinit=0)
 
-        # Create a `matplotlib.widgets.Button` to reset the sliders to initial values.
+        # Create a `matplotlib.widgets.Button` to apply to all
         axapal = plt.axes([0.75, 0.67, 0.15, 0.04])
-        butpal = Button(axapal, 'apply to all', color=axcolor, hovercolor='0.975')
+        tbarplus.butpal = Button(axapal, 'apply to all', color=axcolor, hovercolor='0.975')
 
         axvmax = plt.axes([0.75, 0.17, 0.15, 0.04])
         vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100)
@@ -852,9 +852,14 @@ class SeqIm(list):
         symb.on_changed(update)
 
         def app_all(event):
+            inte = inteb.val**2 / 101
+            dist = distb.val
+            spac = spacb.val
+            symB = symb.val
             plt.sca(ax)
-            self.find_peaks(rad_c=spac, tr_c=inte / 100.0, dist=dist)
-        butpal.on_clicked(app_all)
+            self.find_peaks(rad_c=spac, tr_c=inte,
+                            dist=dist, symf=symB)
+        tbarplus.butpal.on_clicked(app_all)
 
         def refresh(val):
             mini = np.where(self.ima.ima > 0, self.ima.ima, np.inf).min()
