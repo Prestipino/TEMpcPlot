@@ -9,7 +9,7 @@ Symmetry library
 """
 from .spacegroup import Spacegroup
 
-from .CFML_exti import Search_Extinctions
+from .CFML_exti import Search_Extinctions, Hkl_Ref_Conditions
 
 from .GSASIIspc import spgbyNum
 

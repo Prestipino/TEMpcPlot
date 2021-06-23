@@ -12,6 +12,9 @@ from scipy.optimize import least_squares
 import pickle
 import glob
 
+from importlib import reload
+import os
+
 from .. import dm3_lib as dm3
 from .. import Symmetry
 from . import plt_p
@@ -633,6 +636,8 @@ class SeqIm(list):
             if isinstance(filenames, list):
                 gon_angles = np.array(filesangle)
 
+        for i in self.filenames:
+            assert os.path.isfile(i), f'No such file: \'{i}\''
         super().__init__([Mimage(i) for i in self.filenames])
         for i, im in enumerate(self):
             setattr(im.info, 'gon_angles', gon_angles[i])
@@ -725,23 +730,34 @@ class SeqIm(list):
         # abs_rotz
         return
 
-    def plot_cal(self, axes, log=False, *args, **kwds):
+    def plot_cal(self, axes=None, log=False, *args, **kwds):
         '''
         plot the images of the sequences with peaks
+        if axes is not defined and an EwP.axes is defined such bases will be used
 
         Args:
             axes base for reciprocal space as 
-             one defined in EwP
+                            one defined in EwP
             log (Bool): plot logaritm of intyensity
             aargs anf keyworg directly of matplotlib plot
 
         Examples:
             >>> Exp1.plot(Exp1.EwP.axes, log=True)
             >>> Exp1.plot(Exp1.EwP.axes)
-        '''
 
+        left button define an annotation 
+        right button remoce an anotation
+        left button + move drag ana annotation
+        '''
+        reload(plt)
         fig = plt.figure()
         ax = plt.axes([0.05, 0.10, 0.75, 0.80])
+        if axes is None:
+            try:
+                axes = self.EwP.axes
+            except AttributeError as A:
+                raise A
+
         tool_b = fig.canvas.manager.toolbar
 
         tbarplus = mw.ToolbarPlusCal(self, axes, log=log, fig=fig,
@@ -753,7 +769,7 @@ class SeqIm(list):
 
         def refresh(val):
             i = tbarplus.index
-            mini = np.where(self[i].ima > 0, self[i].ima, np.inf).min()
+            mini = np.abs(self[i].ima).min()
             maxi = self[i].ima.max()
             vmax = mini + vmaxb.val**3 * ((maxi - mini) / 1000000)
             if log:
@@ -764,10 +780,11 @@ class SeqIm(list):
                 kwds.update({'vmax': vmax})
             else:
                 kwds = {'vmax': vmax}
-            self[i].pltim.set_clim(vmax=vmax)
+            tbarplus.pltim.set_clim(vmax=vmax)
             tbarplus.kwds = kwds
 
         vmaxb.on_changed(refresh)
+        plt.sca(axvmax)
 
     def plot(self, log=False, fig=None, ax=None, tool_b=None, *args, **kwds):
         '''
@@ -805,26 +822,29 @@ class SeqIm(list):
         axspac = plt.axes([0.75, 0.77, 0.20, 0.03], facecolor=axcolor)
         axsym = plt.axes([0.75, 0.72, 0.20, 0.03], facecolor=axcolor)
 
-        inteb = Slider(ax=axinte, label='int', valmin=0.1, valmax=10.0, valinit=5)  # , valstep=delta_f
+        inteb = Slider(ax=axinte, label='int', valmin=0.01, valmax=10.0, valinit=5)  # , valstep=delta_f
         distb = Slider(ax=axdist, label='dis', valmin=1, valmax=512.0, valinit=500)
         spacb = Slider(ax=axspac, label='rad', valmin=0.1, valmax=10.0, valinit=1)  # , valstep=delta_f
         symb = Slider(ax=axsym, label='sym', valmin=0.0, valmax=20.0, valinit=0)
 
-        # Create a `matplotlib.widgets.Button` to reset the sliders to initial values.
+        # Create a `matplotlib.widgets.Button` to apply to all
         axapal = plt.axes([0.75, 0.67, 0.15, 0.04])
-        butpal = Button(axapal, 'apply to all', color=axcolor, hovercolor='0.975')
+        tbarplus.butpal = Button(axapal, 'apply to all', color=axcolor, hovercolor='0.975')
 
         axvmax = plt.axes([0.75, 0.17, 0.15, 0.04])
         vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100)
 
         def update(val):
-            inte = inteb.val
+            inte = inteb.val**2 / 101
             dist = distb.val
             spac = spacb.val
             symB = symb.val
             plt.sca(ax)
-            self.ima.find_peaks(rad_c=spac, tr_c=inte / 100.0,
-                                dist=dist, symf=symB)
+            try:
+                self.ima.find_peaks(rad_c=spac, tr_c=inte,
+                                    dist=dist, symf=symB)
+            except ValueError:
+                pass
 
         inteb.on_changed(update)
         distb.on_changed(update)
@@ -832,9 +852,14 @@ class SeqIm(list):
         symb.on_changed(update)
 
         def app_all(event):
+            inte = inteb.val**2 / 101
+            dist = distb.val
+            spac = spacb.val
+            symB = symb.val
             plt.sca(ax)
-            self.find_peaks(rad_c=spac, tr_c=inte / 100.0, dist=dist)
-        butpal.on_clicked(app_all)
+            self.find_peaks(rad_c=spac, tr_c=inte,
+                            dist=dist, symf=symB)
+        tbarplus.butpal.on_clicked(app_all)
 
         def refresh(val):
             mini = np.where(self.ima.ima > 0, self.ima.ima, np.inf).min()
@@ -875,6 +900,9 @@ class SeqIm(list):
                       'ps_in': i.Peaks.ps_in} for i in self]
         out.filename = self.filenames
         out.filesangle = [i.info.gon_angles for i in self]
+        if hasattr(self, 'zangles'):
+            out.zangles = self.zangles
+            out.rot_vect = self.rot_vect
         if hasattr(self, 'EwP'):
             out.EwP = {'positions': self.EwP.pos,
                        'intensity': self.EwP.int}
@@ -906,6 +934,9 @@ class SeqIm(list):
         """
         inn = pickle.load(open(filename, 'rb'))
         out = SeqIm(inn.filename, inn.filesangle)
+        if hasattr(inn, 'zangles'):
+            out.zangles = inn.zangles
+            out.rot_vect = inn.rot_vect
         for i, Peaksi in enumerate(inn.peaks):
             out[i].Peaks = PeakL(Peaksi['pos'])
             out[i].Peaks.int = Peaksi['inte']
@@ -1045,6 +1076,8 @@ class EwaldPeaks(object):
         intens = np.hstack([i for i in self.int])
         plt.figure()
         plt.hist(sorted(intens), bins=100, rwidth=4)
+        plt.xlabel('peaks intensity')
+        plt.ylabel('n. of peaks')
 
     def plot_proj_int(self, cell=True):
         """plot peak presence instogramm as a function of the cell 
