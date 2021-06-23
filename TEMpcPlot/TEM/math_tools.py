@@ -40,6 +40,12 @@ RSQ2PI = 1. / np.sqrt(2. * np.pi)
 SQ2 = np.sqrt(2.)
 
 
+def project_v(vect, base):
+    '''project a verctor in respect to a base
+    base should be as colums vectors and vect
+     as row vectors'''
+    return np.abs(vect @ base / mod(base.T)**2)
+
 def dist_p2vect(origin, vec, coor):
     """return the distances of a set of point from the line
        the position of the point if given by an iterable of shape 2xN
@@ -59,14 +65,18 @@ def perp_vect(vect):
 
 def mod(vect):
     """
-    modulus along axis 1
+    modulus along axis 1 i.e.|vect|
     """
+    if vect.ndim == 0:
+        return abs(vect)
     if vect.ndim == 1:
         return np.sqrt(vect @ vect)
     return np.sqrt(np.sum(np.power(vect, 2), axis=1))
 
 
 def norm(vect):
+    """unitary vector
+    """
     return np.array(vect, dtype=float) / mod(vect)
 
 
