@@ -15,8 +15,12 @@ The library is divided in two main class
     or by sum with an another EwaldPeaks class with the same first image
 
 ## Step by step instructions for installation
+For use unfamiliar with conda install package
 - install anaconda or miniconda(https://docs.conda.io/en/latest/miniconda.html)
-- open an anaconda prompt on the start menu
+    - option local (just for me )
+    - option not register in the path
+
+- open an anaconda prompt typing anaconda on the start menu
 - type:
 ```bash
 conda install -c cprestip tempcplot
