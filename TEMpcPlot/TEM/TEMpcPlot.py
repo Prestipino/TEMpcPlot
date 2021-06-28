@@ -693,7 +693,7 @@ class SeqIm(list):
         angle, self.rot_vect = mt.find_zrot_correction(out, tollerance)
         print('angle correction', np.round(np.degrees(angle), 2))
 
-        indexingVec = [ind.Find_unit_cell(j, tol_ang, tol_in) for j in self]
+        indexingVec = [ind.Find_2D_uc(j, tol_ang, tol_in) for j in self]
 
         # calibration for rotation of the image i the plane
         # and correct the center on the basis of average difference of out

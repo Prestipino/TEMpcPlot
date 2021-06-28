@@ -41,7 +41,7 @@ SQ2 = np.sqrt(2.)
 
 
 def project_v(vect, base):
-    '''project a verctor in respect to a base
+    '''project a vector in respect to a base
     base should be as column vectors and vect
      as row vectors'''
     return np.abs(vect @ base / mod(base.T)**2)

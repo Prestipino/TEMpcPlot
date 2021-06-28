@@ -9,9 +9,6 @@ from . import math_tools as mt
 
 
 
-
-
-
 def Peak_find_vectors(Peaks, toll=0.087):
     """ Finds the first or 2 first  smallest non colinear vectors for each peak in an image
     Input : 
@@ -29,8 +26,7 @@ def Peak_find_vectors(Peaks, toll=0.087):
             return vectors[[minarg[0], vect_m]]
     return np.array([vectors[minarg[0]]])
 
-
-def find_all_2vectors(Peaks, toll=5):
+def Find_all_2vectors(Peaks, toll=5):
     """
     Finds for each peaks the first 2 smallest non collinear vectors 
     
@@ -117,7 +113,6 @@ def check_calib(ImageO, vects, toll):
     argsm = np.argsort(n_index)
     return np.array(vects)[argsm[-2:]]
         
-
 def check_sums(a,b):
     """
     Check whether a linear combinaison of 2 vectors can is shorter than the originals
@@ -133,8 +128,7 @@ def check_sums(a,b):
     mods = np.argsort([mt.mod(i) for i in vector])[:2]    
     return vector[mods]
 
-
-def Find_unit_cell(ima, toll_angle=5, toll_index=0.10):
+def Find_2D_uc(ima, toll_angle=5, toll_index=0.10):
     """
     Finds the best fitting unit cell given a sequence of images
     
@@ -151,34 +145,30 @@ def Find_unit_cell(ima, toll_angle=5, toll_index=0.10):
     vecti = check_calib(ima, unit_vectors , toll_index)
     return check_sums(*vecti)
 
-def sort_3D_vect(SeqIma, cell, sort_by_dist= True):
+def sort_3D_vect(allpos, cell):
     """
     Sort 3D cell vectors by number of peaks indexed (by default) or by distance only (option)
     
     Input :
-    - SeqIma : sequence of images 
-    - cell : sequence of images cell vectors found by using col_3D (row vectors)
-    - sort_by_dist : boolean 
+    - allpos : array with peak positions
+    - cell : 3D array sequence of images cell vectors found by using col_3D (row vectors)
     
     Output :
-    - n_index : list of number of peaks reindexed by cell vector
     - sort : list of cell vectors index sorted by indexing number
     - sort_dist : list of cell vectors index sorted by shortest length
     """
-    
-    allpos = np.vstack(SeqIma.EwP.pos)
     n_index = []
-    n_index_dist = []
     for i in cell :
         proj = (mt.project_v(allpos, i)).T #Peaks projection into i_vect basis
         n_index.append(np.sum(mt.rest_int(proj,0.1))) #number of peaks whose remainder from the projection > tolerance
-        if sort_by_dist :
-            n_index_dist.append(mt.mod(i))   
-    sort = np.argsort(n_index)[::-1] #sort vectors by highest number of indexed peaks
-    sort_dist = np.argsort(n_index_dist) #sort vectors by shortest length
-    return n_index, sort, sort_dist
-    
-def check_3D_lin_comb(redcell, tol_degree=5):
+    return  np.argsort(n_index)[::-1], np.argsort(mt.mod(cell))
+
+
+#n_index, sort, sort_dist = sort_3D_vect(a, cell)
+#redcell = cell[sort_dist]
+
+
+def check_3D_coplanarity(redcell, tol=5):
     """
     check the linear combination of 3 vectors in 3D space i.e. if they are coplanar
     
@@ -190,9 +180,33 @@ def check_3D_lin_comb(redcell, tol_degree=5):
     - cell : 3*3 row vectors containing 3 non coplanar cell vectors
     """
     b = np.cross(redcell[0], redcell[1])
-    for i in range(0, len(redcell)):
-        angle = (mt.angle_between_vectors(b, redcell[i]))*180/np.pi
-        if angle > 90+tol_degree or angle < 90-tol_degree : #if the 3 vectors are coplanar
-            cell = np.array([redcell[0], redcell[1], redcell[i]])
+    for third in  redcell[2:]:
+        if abs(mt.angle_between_vectors(b, third) - np.pi/2) > tol * mt.rpd: #if the 3 vectors are coplanar
+            return  np.array([redcell[0], redcell[1], third])
+    else:
+        raise ValueError('less than 3 linearly independent vectors') 
+        
+        
+    
+def check_3Dlincomb(vectors):
+    """
+    Check whether one vector is a linear combinaison of the first 2 smallest vectors
+    
+    Input : 
+    - vectors : n*3 column vectors 
+    
+    Output :
+    - y : x*2 column vectors filtered from linear combinaison
+    
+    """
+
+    while True :
+        bt = True
+        for i, vec in enumerate(vectors): # for each vectors except the 1st 2
+            for j in [-1,-2]:               
+                vectors[i], vectors[i+j] = check_sums(vectors[i], vectors[i+j])                
+                if any(vectors[i] != vec):
+                    bt = False
+        if bt:
             break
-    return cell
+    return vectors
