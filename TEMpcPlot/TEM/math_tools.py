@@ -88,6 +88,7 @@ def mod(vect):
     """
     modulus along axis 1 i.e.|vect|
     """
+    vect = np.array(vect)
     if vect.ndim == 0:
         return abs(vect)
     if vect.ndim == 1:

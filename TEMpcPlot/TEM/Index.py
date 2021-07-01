@@ -7,7 +7,22 @@ from . import math_tools as mt
 
 
 
-
+def Find_2D_uc(Peaks, toll_angle=5, toll_index=0.10):
+    """
+    Finds the best fitting unit cell for an image
+    
+    Input : 
+    
+    SeqIma : sequence of images
+    
+    Output :
+    - out : array of unit vectors of length : number_of_images_in_sequence*2
+    
+    """      
+    unit_vectors = find_all_2vectors(Peaks, toll_angle)  
+    unit_vectors = check_lin_comb(unit_vectors, toll_index)
+    vecti = check_calib(Peaks, unit_vectors , toll_index)
+    return check_sums(*vecti)
 
 def Peak_find_vectors(Peaks, toll=0.087):
     """ Finds the first or 2 first  smallest non colinear vectors for each peak in an image
@@ -24,41 +39,31 @@ def Peak_find_vectors(Peaks, toll=0.087):
         vangle = mt.angle_between_vectors(vectors[minarg[0]], vectors[vect_m]) #angle between 2 vectors in radian
         if  (vangle < np.pi-toll) and (vangle > toll): # colinearity check
             return vectors[[minarg[0], vect_m]]
-    return np.array([vectors[minarg[0]]])
+    return np.array([vectors[minarg[0]]])  
+
 
 def Find_all_2vectors(Peaks, toll=5):
     """
     Finds for each peaks the first 2 smallest non collinear vectors 
     
     Input :
-    - Peaks : 2*N list containing image peaks coordinates 
+    - Peaks : Nx2 list containing image peaks coordinates 
     - toll : precision (default number is 5%)
     
     Output :
     - vectors : n*2 array of vectors sorted by modulus
     """
-    atoll = 5 * mt.rpd
-    Peaks = np.array(Peaks).T
-    if Peaks.shape[0] ==2:
-        Peaks = Peaks.T
-    vectors = list(Peak_find_vectors(Peaks, atoll)) #first 2 smallest non colinear vectors
-    for i in range(1,len(Peaks)-2):
-        vec = Peak_find_vectors(Peaks[i:], atoll) #finds 2 smallest non colinear vectors for each peak
-        for vec_i in vec:
-            addv = True
-            for k, k_vectors in enumerate(vectors): #test for every vector in vectors for each vec_i in vec
-                angle1 = mt.angle_between_vectors(vec_i, k_vectors) 
-                if (angle1>np.pi-atoll) or (angle1<atoll):   # if is colinear
-                    addv = False 
-                    if mt.mod(vec_i) < mt.mod(k_vectors): # if the vector is colinear and smaller than the other
-                        vectors[k] = vec_i #replace with smallest
-                    break
-            if addv: # if not colinear add vector
-                vectors.append(vec_i)
+    atoll = toll * mt.rpd
+    vectors = [] #first 2 smallest non colinear vectors
+    for i in range(len(Peaks)-2):
+        xx = Peak_find_vectors(Peaks[i:], atoll)
+        vectors = np.append(vectors, xx.flat ) #finds 2 smallest non colinear vectors for each peak
+  
+    vectors = vectors.reshape(int(len(vectors)/Peaks.shape[1]), Peaks.shape[1])
+    print (vectors[:15])
+    return check_colinearity(vectors, toll=5)
                     
-    vec_mod = mt.mod(np.array(vectors)) # computes "a" vectors (n*2) array modulus into a (n*1) array
-    return np.array(vectors)[np.argsort(vec_mod)] 
-            
+ 
 def check_projection(vect, a, b):
     """
     
@@ -76,6 +81,9 @@ def check_projection(vect, a, b):
     z = np.array(mt.project_v(vect, bas) % 1) # 1D array containing the remainder of the vector projection into basis
     z = np.where(z < 0.5, z , 1-z) # convert remainder into number <0.5
     return z
+
+
+################################################################
 
 def check_lin_comb(vectors, tol = 0.1):
     """
@@ -96,7 +104,7 @@ def check_lin_comb(vectors, tol = 0.1):
             np.append(y,i)
     return y
 
-def check_calib(ImageO, vects, toll):
+def check_calib(Peaks, vects, toll):
     """
     Check if a set of vectors can reindex the peaks projected into its basis
     
@@ -105,7 +113,6 @@ def check_calib(ImageO, vects, toll):
     - Vects a row vector
     - toll : calibration tolerance 
     """
-    Peaks = np.array(ImageO.Peaks).T - np.array(ImageO.center)
     n_index = []
     for i_vect in vects :
         proj = (mt.project_v(Peaks, i_vect)).T #Peaks projection into i_vect basis
@@ -128,23 +135,6 @@ def check_sums(a,b):
     mods = np.argsort([mt.mod(i) for i in vector])[:2]    
     return vector[mods]
 
-def Find_2D_uc(ima, toll_angle=5, toll_index=0.10):
-    """
-    Finds the best fitting unit cell given a sequence of images
-    
-    Input : 
-    
-    SeqIma : sequence of images
-    
-    Output :
-    - out : array of unit vectors of length : number_of_images_in_sequence*2
-    
-    """      
-    unit_vectors = find_all_2vectors(ima.Peaks, toll_angle)  
-    unit_vectors = check_lin_comb(unit_vectors, toll_index)
-    vecti = check_calib(ima, unit_vectors , toll_index)
-    return check_sums(*vecti)
-
 def sort_3D_vect(allpos, cell):
     """
     Sort 3D cell vectors by number of peaks indexed (by default) or by distance only (option)
@@ -166,7 +156,25 @@ def sort_3D_vect(allpos, cell):
 
 #n_index, sort, sort_dist = sort_3D_vect(a, cell)
 #redcell = cell[sort_dist]
-
+def check_colinearity(vectors, toll=5):
+    """ remove all the colinear vectors with longher module 
+        the output is ordered by mod
+    """
+    toll = np.pi * (toll / 180)
+    vectors3D = []    
+    modu = mt.mod(vectors)
+    print(len(vectors))
+    for i in range(len(vectors)-1) :
+        for j in range(i+1, len(vectors)) :
+            ang3D = mt.angle_between_vectors(vectors[i], vectors[j])
+            if (ang3D > (np.pi - toll)) or (ang3D < toll) : #if colinear
+                print('angle', (ang3D / np.pi) * 180)
+                if modu[i] > modu[j] :
+                     break
+        else: 
+            vectors3D.append(vectors[i])
+    argmod = np.argsort(mt.mod(vectors3D))
+    return np.array(vectors3D)[argmod]
 
 def check_3D_coplanarity(redcell, tol=5):
     """
@@ -184,8 +192,7 @@ def check_3D_coplanarity(redcell, tol=5):
         if abs(mt.angle_between_vectors(b, third) - np.pi/2) > tol * mt.rpd: #if the 3 vectors are coplanar
             return  np.array([redcell[0], redcell[1], third])
     else:
-        raise ValueError('less than 3 linearly independent vectors') 
-        
+        raise ValueError('less than 3 linearly independent vectors')        
         
     
 def check_3Dlincomb(vectors):

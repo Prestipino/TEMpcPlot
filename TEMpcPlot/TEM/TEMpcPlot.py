@@ -1122,6 +1122,16 @@ class EwaldPeaks(object):
             plt.ylabel('n. peaks')
             plt.draw()
 
+    def find_cell(self, cond =None, layers=None):
+        if layers is None:
+            layers = range(len(self))
+        vectors = []
+        for i in layers:
+            vectors.append(ind.Find_2D_uc(self.pos[i], toll_angle=5, toll_index=0.10))
+            
+
+
+
     def plot_reduce(self, tollerance=0.1, condition=None):
         """plot collapsed reciprocal space
            plot the position of the peaks in cell coordinatete and all
