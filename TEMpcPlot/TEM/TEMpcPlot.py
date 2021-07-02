@@ -311,7 +311,7 @@ class PeakL(list):
         if dist:
             cond = cond &  (coor_d < dist)
         coor = coor[:, cond]
-        coor = np.append(coor, center, axis = 0)
+        coor = np.insert(coor, 0, center, axis=1)
 
 
         # symmetry parameter
@@ -1122,13 +1122,16 @@ class EwaldPeaks(object):
             plt.ylabel('n. peaks')
             plt.draw()
 
-    def find_cell(self, cond =None, layers=None):
+    def find_cell(self, cond=None, layers=None):
         if layers is None:
             layers = range(len(self))
         vectors = []
         for i in layers:
-            vectors.append(ind.Find_2D_uc(self.pos[i], toll_angle=5, toll_index=0.10))
-            
+            vectors.extend(ind.Find_2D_uc(self.pos[i], toll_angle=5,
+                                          toll_index=0.10))
+        vectors = ind.check_colinearity(vectors, toll_angle=5)
+
+        return
 
 
 

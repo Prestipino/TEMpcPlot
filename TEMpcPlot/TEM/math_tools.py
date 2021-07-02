@@ -40,20 +40,15 @@ RSQ2PI = 1. / np.sqrt(2. * np.pi)
 SQ2 = np.sqrt(2.)
 
 
-def project_v(vect, base):
-    '''project a vector in respect to a base
-    base should be as column vectors and vect
-     as row vectors'''
-    return np.abs(vect @ base / mod(base.T)**2)
-
 def change_basis(coor, base):
     '''change a set of coordinate vector in a new base
-     base should be as column vectors and coor a 2(3..) row column
+     base should be as column vectors 
+     coor a ncoor X 2(3..) column
      as row vectors
      out a row vector of coordinate'''
-    P = np.linalg.inv(base)  # inverse of column matrix with the base (2*2 square matrix)
-    return  np.dot(P, coor).T # Peaks coordinates in unit cell basis
- 
+    P = np.linalg.inv(base)  # inv column matrix with the base
+    return np.dot(P, coor.T).T  # Peaks coordinates in unit cell basis
+
 def rest_int(coor, tollerance):
     """return the coor that are integer inside a tollerance
        coor is a row matrix 
