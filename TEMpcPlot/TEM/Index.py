@@ -43,7 +43,7 @@ def find_all_2vectors(Peaks, toll=5):
         xx = Peak_find_vectors(Peaks[i:], atoll)
         # finds 2 smallest non colinear vectors for each peak
         vectors.extend(xx)
-    return check_colinearity(np.array(vectors), toll=5)
+    return check_colinearity(np.array(vectors), toll_angle=5)
 
 
 def check_sums(a, b):
@@ -63,7 +63,7 @@ def check_sums(a, b):
     return vector[mods]
 
 
-def check_LayerCalib(Peaks, vects, toll=0.1):
+def sort_LayerCalib(Peaks, vects, toll=0.1):
     """
     Check if a set of vectors can reindex the peaks projected into its basis
 
@@ -74,12 +74,14 @@ def check_LayerCalib(Peaks, vects, toll=0.1):
     """
     n_index = []
     z = mt.norm(np.cross(*vects[:2]))
-    bases = list(itertools.combinations(vects, dim))
+    bases = list(itertools.combinations(vects, 2))
     for i_vect in bases:
         npos = mt.change_basis(Peaks, np.vstack([z, *i_vect]).T)
         n_index.append(np.sum(mt.rest_int(npos, toll)))
     argsm = np.argmax(n_index)
     return np.vstack(bases[argsm])
+
+
 
 
 def Find_2D_uc(Peaks, toll_angle=5, toll_index=0.10):
@@ -93,40 +95,39 @@ def Find_2D_uc(Peaks, toll_angle=5, toll_index=0.10):
     - out : array of unit vectors of length : number_of_images_in_sequence*2
     """
     unit_vectors = find_all_2vectors(Peaks, toll_angle)
-    vecti = check_LayerCalib(Peaks, unit_vectors, toll_index)
+    vecti = sort_LayerCalib(Peaks, unit_vectors, toll_index)
     return check_sums(*vecti)
 
 
 ################################################################
 
 
-def check_LayerCalib(allpos, cell):
+def sort_Calib(Peaks, vects, toll=0.1):
+
     """
-    Sort 3D cell vectors by number of peaks indexed (by default) or by distance only (option)
+    Check if a set of vectors can reindex the peaks projected into its basis
 
     Input :
-    - allpos : array with peak positions
-    - cell : 3D array sequence of images cell vectors found by using col_3D (row vectors)
-
-    Output :
-    - sort : list of cell vectors index sorted by indexing number
-    - sort_dist : list of cell vectors index sorted by shortest length
+    - Peaks is always a row vector
+    - Vects a row vector
+    - toll : calibration tolerance
     """
     n_index = []
-    for i in cell:
+    bases = list(itertools.combinations(vects, 3))
+    for i_vect in bases:
+        npos = mt.change_basis(Peaks, np.vstack(i_vect).T)
+        n_index.append(np.sum(mt.rest_int(npos, toll)))
+    argsm = np.argmax(n_index)
+    return np.vstack(bases[argsm])
 
-        proj = (mt.project_v(allpos, i)).T
 
-    return np.argsort(n_index)[::-1], np.argsort(mt.mod(cell))
-
-
-def check_colinearity(vectors, toll=5):
+def check_colinearity(vectors, toll_angle=5):
     """ remove all the colinear vectors with longher module 
         the output is ordered by mod
     """
-    toll = np.pi * (toll / 180)
+    toll = np.radians(toll_angle)
     vectors3D = []
-    vectors = vectors[mt.mod(vectors).argsort()][::-1]
+    vectors = np.array(vectors)[mt.mod(vectors).argsort()][::-1]
     for i in range(len(vectors) - 1):
         for j in range(i + 1, len(vectors)):
             ang3D = mt.angle_between_vectors(vectors[i], vectors[j])
@@ -159,7 +160,7 @@ def check_3D_coplanarity(redcell, tol=5):
 
 def check_3Dlincomb(vect):
     """
-    Check whether one vector is a linear combinaison of the first 2 smallest vectors
+    Check whether a linear combinaison is shorter
 
     Input : 
     - vectors : n*3 column vectors 
@@ -169,13 +170,16 @@ def check_3Dlincomb(vect):
 
     """
 
+    combinations = [(0,1), (0,2), (1,2)]
     while True:
-        bt = True
-        for i, vec in enumerate(vect):  # for each vectors except the 1st 2
-            for j in [-1, -2]:
-                vect[i], vect[i + j] = check_sums(vect[i], vect[i + j])
-                if any(vect[i] != vec):
-                    bt = False
-        if bt:
+        for i, j in combinations:  # for each vectors except the 1st 2
+            vec = check_sums(vect[i], vect[j])
+            if any(vect[i] != vec[0]):
+                vect[i] = vec[0]
+                break
+            if any(vect[j] != vec[1]):
+                vect[j] = vec[1]
+                break
+        else:
             break
-    return vectors
+    return vect

@@ -704,7 +704,7 @@ class SeqIm(list):
         angle, self.rot_vect = mt.find_zrot_correction(out, tollerance)
         print('angle correction', np.round(np.degrees(angle), 2))
 
-        indexingVec = [ind.Find_2D_uc(j, tol_ang, tol_in) for j in self]
+        #indexingVec = [ind.Find_2D_uc(j, tol_ang, tol_in) for j in self]
 
         # calibration for rotation of the image i the plane
         # and correct the center on the basis of average difference of out
@@ -715,9 +715,9 @@ class SeqIm(list):
                 shift = shift.sum(axis=0) / len(out[i])
                 all_peaks[i] = peaks + shift
                 # rotation of indexing vector
-                indexingVec[i] = indexingVec[i] @ mt.zrotm(-angle[i])
+                #indexingVec[i] = indexingVec[i] @ mt.zrotm(-angle[i])
         all_peaks = [np.column_stack((i, np.zeros(len(i)))) for i in all_peaks]
-        all_indVec = [np.column_stack([i, np.zeros(2)]) for i in indexingVec]        
+        #all_indVec = [np.column_stack([i, np.zeros(2)]) for i in indexingVec]        
 
         # absolute rotation
         self.z0 = mt.find_z_rotation(self.__rot__, self.rot_vect)[0]
@@ -735,17 +735,17 @@ class SeqIm(list):
             else:
                 r = R.from_rotvec(self.rot_vect * self.angles[i])
                 position.append(r.apply(peaks))
-                all_indVec[i] = r.apply(all_indVec[i])
+                #all_indVec[i] = r.apply(all_indVec[i])
         
         intensity = [i.Peaks.int for i in self]
         position = [i * self.scale for i in position]
 
-        indVec = np.vstack(all_indVec)* self.scale
+        #indVec = np.vstack(all_indVec)* self.scale
 
         self.EwP = EwaldPeaks(position, intensity, rot_vect=self.rot_vect,
                               angles=self.angles, r0=self.__rot__, z0=self.z0)
         # abs_rotz
-        return indVec
+        return 
 
     def plot_cal(self, axes=None, log=False, *args, **kwds):
         '''
@@ -952,6 +952,11 @@ class SeqIm(list):
             out[i].Peaks.int = Peaksi['inte']
             out[i].Peaks.ps_in = Peaksi['ps_in']
         if hasattr(inn, 'EwP'):
+            try:
+                inn.EwP.update({'positions': inn.EwP['pos'],
+                                'intensity': inn.EwP['int']})
+            except:
+                pass
             out.EwP = EwaldPeaks(**inn.EwP)
         return out
 
@@ -1006,7 +1011,7 @@ class EwaldPeaks(object):
                  rot_vect=None, angles=None,
                  r0=None, z0=None, pos0=None,
                  scale=None,
-                 axes=None, set_cell=True):
+                 axes=None, set_cell=True, **kwds):
         # list in whic pos are sotred for each image
         self.pos = positions
         self.int = intensity
@@ -1122,17 +1127,26 @@ class EwaldPeaks(object):
             plt.ylabel('n. peaks')
             plt.draw()
 
-    def find_cell(self, cond=None, layers=None):
+    def find_cell(self, sort=0, cond=None, layers=None):
         if layers is None:
-            layers = range(len(self))
+            layers = range(len(self.pos))
+        if cond is None:
+            cond = lambda pos, inte: pos
+        pos=[cond(self.pos[i], self.int[i]) for i in layers]
+
         vectors = []
         for i in layers:
-            vectors.extend(ind.Find_2D_uc(self.pos[i], toll_angle=5,
+            vectors.extend(ind.Find_2D_uc(pos[i], toll_angle=5,
                                           toll_index=0.10))
         vectors = ind.check_colinearity(vectors, toll_angle=5)
-
-        return
-
+        if sort:
+            allpos = np.vstack(pos)
+            vectors = ind.sort_Calib(allpos, vectors, toll=0.1) 
+        else:
+            vectors =  vectors[:3]   
+        vectors = ind.check_3Dlincomb(vectors)
+        self.set_cell(vectors.T)
+        return 
 
 
     def plot_reduce(self, tollerance=0.1, condition=None):
