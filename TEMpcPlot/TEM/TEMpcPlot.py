@@ -701,23 +701,20 @@ class SeqIm(list):
         # find possible rotation on the plane of the rotation axes
         # evaluated between the fitted line that pass for the common peaks
         # return the angle of cortrection and a vector passing from all points
-        angle, self.rot_vect = mt.find_zrot_correction(out, tollerance)
-        print('angle correction', np.round(np.degrees(angle), 2))
+        self.zangles, self.rot_vect = mt.find_zrot_correction(out, tollerance)
+        print('angle correction', np.round(np.degrees(self.zangles), 2))
 
-        #indexingVec = [ind.Find_2D_uc(j, tol_ang, tol_in) for j in self]
 
         # calibration for rotation of the image i the plane
         # and correct the center on the basis of average difference of out
         for i, peaks in enumerate(all_peaks):
             if i != 0:
-                peaks = peaks @ mt.zrotm(-angle[i])
-                shift = out[0] - (out[i] @ mt.zrotm(-angle[i]))
+                peaks = peaks @ mt.zrotm(-self.zangles[i])
+                shift = out[0] - (out[i] @ mt.zrotm(-self.zangles[i]))
                 shift = shift.sum(axis=0) / len(out[i])
                 all_peaks[i] = peaks + shift
-                # rotation of indexing vector
-                #indexingVec[i] = indexingVec[i] @ mt.zrotm(-angle[i])
         all_peaks = [np.column_stack((i, np.zeros(len(i)))) for i in all_peaks]
-        #all_indVec = [np.column_stack([i, np.zeros(2)]) for i in indexingVec]        
+      
 
         # absolute rotation
         self.z0 = mt.find_z_rotation(self.__rot__, self.rot_vect)[0]
@@ -735,12 +732,9 @@ class SeqIm(list):
             else:
                 r = R.from_rotvec(self.rot_vect * self.angles[i])
                 position.append(r.apply(peaks))
-                #all_indVec[i] = r.apply(all_indVec[i])
         
         intensity = [i.Peaks.int for i in self]
         position = [i * self.scale for i in position]
-
-        #indVec = np.vstack(all_indVec)* self.scale
 
         self.EwP = EwaldPeaks(position, intensity, rot_vect=self.rot_vect,
                               angles=self.angles, r0=self.__rot__, z0=self.z0)
