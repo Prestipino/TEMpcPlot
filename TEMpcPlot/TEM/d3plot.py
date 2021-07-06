@@ -208,6 +208,12 @@ class D3plot(object):
         self.__stab_rot(r)
         self.plot_hist()
 
+    def _set__axes(self, axes):
+        for i, abc in enumerate('abc'):
+            self.axes[abc] = LineAxes(abc, 1,
+                                      axis=axes.T[i],
+                                      rot=self.r0)
+
     def rotatex(self, deg=90):
         """
         rotate along the x axis default value 90
@@ -228,7 +234,7 @@ class D3plot(object):
     def rotatez(self, deg=90):
         self._c_rotate('z', deg)
 
-    def rotate_0(self):
+    def rotate_0(self, allign = False):
         """
         rotate to first orientation
 
@@ -238,7 +244,8 @@ class D3plot(object):
         r = self.r0.inv()
         self.__rotate(r)
         self.__stab_rot(r)
-        self.rotatez(self.__angle)
+        if allign:
+            self.rotatez(self.__angle)  #  why ??
 
     def _c_allign(self, abc):
         """command allign to an axis
@@ -337,7 +344,7 @@ class LineAxes:
             self.mod = np.sqrt(self.axis @ self.axis.T)
             self.inv_mod = 1 / self.mod
             if rot is not None:
-                self.pos_i = rot.apply(self.pos_i)
+                self.pos_i = rot.apply(self.axis)
             else:
                 self.pos_i = self.axis
         else:

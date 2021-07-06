@@ -59,7 +59,7 @@ def check_sums(a, b):
 
     """
     vector = np.array([a, b, a + b, a - b]) 
-    mods = np.argsort([mt.mod(i) for i in vector])[:2]
+    mods = np.argsort(mt.mod(vector))[:2]
     return vector[mods]
 
 
@@ -84,7 +84,7 @@ def sort_LayerCalib(Peaks, vects, toll=0.1):
 
 
 
-def Find_2D_uc(Peaks, toll_angle=5, toll_index=0.10):
+def Find_2D_uc(Peaks, toll_angle=5, toll=0.10):
     """
     Finds the best fitting unit cell for an image
 
@@ -95,14 +95,14 @@ def Find_2D_uc(Peaks, toll_angle=5, toll_index=0.10):
     - out : array of unit vectors of length : number_of_images_in_sequence*2
     """
     unit_vectors = find_all_2vectors(Peaks, toll_angle)
-    vecti = sort_LayerCalib(Peaks, unit_vectors, toll_index)
+    vecti = sort_LayerCalib(Peaks, unit_vectors, toll)
     return check_sums(*vecti)
 
 
 ################################################################
 
 
-def sort_Calib(Peaks, vects, toll=0.1):
+def sort_Calib(Peaks, vects, toll=0.1, toll_angle=5):
 
     """
     Check if a set of vectors can reindex the peaks projected into its basis
@@ -115,8 +115,12 @@ def sort_Calib(Peaks, vects, toll=0.1):
     n_index = []
     bases = list(itertools.combinations(vects, 3))
     for i_vect in bases:
-        npos = mt.change_basis(Peaks, np.vstack(i_vect).T)
-        n_index.append(np.sum(mt.rest_int(npos, toll)))
+        b = mt.angle_between_vectors(np.cross(i_vect[0], i_vect[1]), i_vect[0])
+        if  (b - np.pi / 2) > toll_angle * mt.rpd:
+            npos = mt.change_basis(Peaks, np.vstack(i_vect).T)
+            n_index.append(np.sum(mt.rest_int(npos, toll)))
+        else:
+            n_index.append(-1)
     argsm = np.argmax(n_index)
     return np.vstack(bases[argsm])
 
@@ -128,7 +132,7 @@ def check_colinearity(vectors, toll_angle=5):
     toll = np.radians(toll_angle)
     vectors3D = []
     vectors = np.array(vectors)[mt.mod(vectors).argsort()][::-1]
-    for i in range(len(vectors) - 1):
+    for i in range(len(vectors)):
         for j in range(i + 1, len(vectors)):
             ang3D = mt.angle_between_vectors(vectors[i], vectors[j])
             if (ang3D > (np.pi - toll)) or (ang3D < toll):  # if colinear
@@ -138,7 +142,7 @@ def check_colinearity(vectors, toll_angle=5):
     return np.array(vectors3D)[::-1]
 
 
-def check_3D_coplanarity(redcell, tol=5):
+def check_3D_coplanarity(redcell, toll_angle=5):
     """
     check the linear combination of 3 vectors in 3D space i.e. if they are coplanar
 
@@ -151,14 +155,14 @@ def check_3D_coplanarity(redcell, tol=5):
     """
     b = np.cross(redcell[0], redcell[1])
     for third in redcell[2:]:
-        # if the 3 vectors are coplanar
-        if abs(mt.angle_between_vectors(b, third) - np.pi / 2) > tol * mt.rpd:
+        c = mt.angle_between_vectors(b, third)
+        if abs(c - np.pi / 2) > toll_angle * mt.rpd:
             return np.array([redcell[0], redcell[1], third])
     else:
         raise ValueError('less than 3 linearly independent vectors')
 
 
-def check_3Dlincomb(vect):
+def check_3Dlincomb(vectors):
     """
     Check whether a linear combinaison is shorter
 
@@ -169,17 +173,19 @@ def check_3Dlincomb(vect):
     - y : x*2 column vectors filtered from linear combinaison
 
     """
-
+    vect = list((vectors[:]))
     combinations = [(0,1), (0,2), (1,2)]
     while True:
         for i, j in combinations:  # for each vectors except the 1st 2
-            vec = check_sums(vect[i], vect[j])
+            vec = check_sums(vect[i], vect[j])        
             if any(vect[i] != vec[0]):
                 vect[i] = vec[0]
+                if any(vect[j] != vec[1]):
+                   vect[j] = vec[1]
                 break
             if any(vect[j] != vec[1]):
                 vect[j] = vec[1]
-                break
+                break                
         else:
             break
-    return vect
+    return np.array(vect)

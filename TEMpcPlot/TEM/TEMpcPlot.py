@@ -1121,7 +1121,8 @@ class EwaldPeaks(object):
             plt.ylabel('n. peaks')
             plt.draw()
 
-    def find_cell(self, sort=0, cond=None, layers=None):
+    def find_cell(self, sort=0, cond=None, layers=None,
+                  toll=0.1, toll_angle=5):
         if layers is None:
             layers = range(len(self.pos))
         if cond is None:
@@ -1130,18 +1131,17 @@ class EwaldPeaks(object):
 
         vectors = []
         for i in layers:
-            vectors.extend(ind.Find_2D_uc(pos[i], toll_angle=5,
-                                          toll_index=0.10))
-        vectors = ind.check_colinearity(vectors, toll_angle=5)
+            vectors.extend(ind.Find_2D_uc(pos[i], toll_angle,
+                                          toll))
+        vectors = ind.check_colinearity(vectors, toll_angle)
         if sort:
             allpos = np.vstack(pos)
-            vectors = ind.sort_Calib(allpos, vectors, toll=0.1) 
+            vectors = ind.sort_Calib(allpos, vectors, toll) 
         else:
-            vectors =  vectors[:3]   
+            vectors =  ind.check_3D_coplanarity(vectors, toll_angle)   
         vectors = ind.check_3Dlincomb(vectors)
         self.set_cell(vectors.T)
-        return 
-
+        return
 
     def plot_reduce(self, tollerance=0.1, condition=None):
         """plot collapsed reciprocal space
@@ -1605,6 +1605,12 @@ class EwaldPeaks(object):
         for i, j in self.cell.items():
             print(i, ' = ', j)
         self.__check_cent__(tollerance=tollerance)
+
+        if hasattr(self, 'graph'):
+            num = self.graph.fig.number
+            if plt.fignum_exists(num):
+                self.graph._set__axes(self.axes)
+                self.graph.plot_ax()
         return
 
     def __calibrate(self):
