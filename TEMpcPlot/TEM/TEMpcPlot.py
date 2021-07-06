@@ -659,6 +659,7 @@ class SeqIm(list):
         ssign = 0 if np.argmax(np.abs(g_ang), axis=0).mean() <= 0.5 else 1
         self.angles = np.arccos(
             np.cos(g_ang[:, 0]) * np.cos(g_ang[:, 1])) * np.sign(g_ang[:, ssign])
+         
 
     def help(self):
         """
@@ -717,6 +718,7 @@ class SeqIm(list):
       
 
         # absolute rotation
+        self.__rot__ = np.array([im.info.gon_angles for im in self])
         self.z0 = mt.find_z_rotation(self.__rot__, self.rot_vect)[0]
 
         axis = mt.creaxex(self.__rot__, self.z0)
@@ -833,7 +835,7 @@ class SeqIm(list):
         axsym = plt.axes([0.75, 0.72, 0.20, 0.03], facecolor=axcolor)
 
         inteb = Slider(ax=axinte, label='int', valmin=0.01, valmax=10.0, valinit=5)  # , valstep=delta_f
-        distb = Slider(ax=axdist, label='dis', valmin=1, valmax=512.0, valinit=500)
+        distb = Slider(ax=axdist, label='dis', valmin=0, valmax=1, valinit=0.9)
         spacb = Slider(ax=axspac, label='rad', valmin=0.1, valmax=10.0, valinit=1)  # , valstep=delta_f
         symb = Slider(ax=axsym, label='sym', valmin=0.0, valmax=20.0, valinit=0)
 
@@ -852,7 +854,8 @@ class SeqIm(list):
             plt.sca(ax)
             try:
                 self.ima.find_peaks(rad_c=spac, tr_c=inte,
-                                    dist=dist, symf=symB)
+                                    dist=dist * len(self.ima),
+                                    symf=symB)
             except ValueError:
                 pass
 
@@ -868,7 +871,8 @@ class SeqIm(list):
             symB = symb.val
             plt.sca(ax)
             self.find_peaks(rad_c=spac, tr_c=inte,
-                            dist=dist, symf=symB)
+                            dist=dist * len(self.ima),
+                            symf=symB)
         tbarplus.butpal.on_clicked(app_all)
 
         def refresh(val):
@@ -1123,6 +1127,18 @@ class EwaldPeaks(object):
 
     def find_cell(self, sort=0, cond=None, layers=None,
                   toll=0.1, toll_angle=5):
+        """automatic find cell
+        search the *cell in the present peaks 
+
+        Args:
+            sort (int): 0 or 1 small change in the algoritm should be indifferent
+            cond (lambda function): fil;tering condition created by cr_cond
+            layer (list): specifies the layer to be used if none all image are used 
+            toll  (float): [0.1] indexing tollerance 
+            toll_angle  (float): [5.0] angle in degree to determine coplanarity or colinearity 
+        """
+
+
         if layers is None:
             layers = range(len(self.pos))
         if cond is None:
