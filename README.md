@@ -75,25 +75,25 @@ If you are uysing ipython remenber that after a dot a tap press show all the ava
 The mode of use is relativelly simple :
 create a SeqIm object
 
-Ex1 = TEMpcPlot.SeqIm('cr2.sqi')
+> Ex1 = TEMpcPlot.SeqIm('cr2.sqi')
 construct a unindixed reciprocal lattice
 
-Ex1.plot()
+> Ex1.plot()
 
-Ex1.D3_peaks(tollerance=15)
+> Ex1.D3_peaks(tollerance=15)
 
 ### Index automatically 
-Ex1.EwP.find_cell()
+> Ex1.EwP.find_cell()
 
 ### Index manually the reciprocal space
-Ex1.EwP.plot()
+> Ex1.EwP.plot()
 reconstruct reciprocal space and plot in a graph attribute
 more information on the [wiki](https://github.com/Prestipino/TEMpcPlot/wiki/EwaldPeaks)
 
-Ex1.EwP.set_cell()
+> Ex1.EwP.set_cell()
 take in account the recipriocal cell
 
-Ex1.Ewp.create_layer(hkl)
+> Ex1.Ewp.create_layer(hkl)
 
 
 
