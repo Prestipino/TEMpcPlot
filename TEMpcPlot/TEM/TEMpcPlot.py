@@ -904,18 +904,7 @@ class SeqIm(list):
             out.zangles = self.zangles
             out.rot_vect = self.rot_vect
         if hasattr(self, 'EwP'):
-            out.EwP = {'positions': self.EwP.pos,
-                       'intensity': self.EwP.int}
-            if hasattr(self.EwP, 'axes'):
-                out.EwP['axes'] = self.EwP.axes
-            if hasattr(self.EwP, '_rot_vect'):
-                out.EwP['rot_vect'] = self.EwP._rot_vect
-            if hasattr(self.EwP, 'angles'):
-                out.EwP['angles'] = self.EwP.angles
-            if hasattr(self.EwP, '__rot__'):
-                out.EwP['r0'] = self.EwP.__rot__
-            if hasattr(self.EwP, '__rotz__'):
-                out.EwP['z0'] = self.EwP.__rotz__
+            out.EwP = self.EwP.__dict2__()
         with open(filesave, "wb") as file_save:
             pickle.dump(out, file_save)
         return
@@ -933,14 +922,20 @@ class SeqIm(list):
 
         """
         inn = pickle.load(open(filename, 'rb'))
-        out = SeqIm(inn.filename, inn.filesangle)
-        if hasattr(inn, 'zangles'):
-            out.zangles = inn.zangles
-            out.rot_vect = inn.rot_vect
-        for i, Peaksi in enumerate(inn.peaks):
-            out[i].Peaks = PeakL(Peaksi['pos'])
-            out[i].Peaks.int = Peaksi['inte']
-            out[i].Peaks.ps_in = Peaksi['ps_in']
+        try:
+            out = SeqIm(inn.filename, inn.filesangle)
+            if hasattr(inn, 'zangles'):
+                out.zangles = inn.zangles
+                out.rot_vect = inn.rot_vect
+            for i, Peaksi in enumerate(inn.peaks):
+                out[i].Peaks = PeakL(Peaksi['pos'])
+                out[i].Peaks.int = Peaksi['inte']
+                out[i].Peaks.ps_in = Peaksi['ps_in']
+        except AssertionError as x:
+            print(x)
+            if hasattr(inn, 'EwP'):
+                print('only EwaldPeaks as output')
+                return EwaldPeaks(**inn.EwP)
         if hasattr(inn, 'EwP'):
             out.EwP = EwaldPeaks(**inn.EwP)
         return out
@@ -989,7 +984,7 @@ class EwaldPeaks(object):
     """
 
 
-    def __init__(self, positions, intensity,
+    def __init__(self, position=None, intensity=None,
                  rot_vect=None, angles=None,
                  r0=None, z0=None, pos0=None,
                  scale=None,
@@ -1631,6 +1626,13 @@ class EwaldPeaks(object):
         for i in center:
             print(i, ' existing extincted peaks  ', self.__centering__[i]['w'])
         return
+
+    def __dict2__(self):
+        zz= {k.strip('_'):v for (k,v) in self.EwP.__dict__}
+        zz.update({'potitions':zz['pos'], 'intensity':zz['int']})
+        del zz['pos']
+        del zz['int']
+        return zz
 
     def save(self, filename, dictionary=False):
         """ save EwP
