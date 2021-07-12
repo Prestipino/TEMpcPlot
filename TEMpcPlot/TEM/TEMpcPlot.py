@@ -626,10 +626,10 @@ class SeqIm(list):
 
         if isinstance(filenames, str):
             if filenames[-3:].lower() == 'sqi':
-                self.filenames, gon_angles = red_sqi(filenames)
-            else:
-                self.filenames = glob.glob(filenames)
-                assert len(filenames) > 0, 'no image found'
+                if os.path.isfile(sqi_file):
+                    self.filenames, gon_angles = red_sqi(filenames)
+                else:
+                    raise TypeError(f'{sqi_file:s} file not present')
         elif isinstance(filenames, list):
             self.filenames = filenames
         else:
@@ -660,7 +660,6 @@ class SeqIm(list):
         self.angles = np.arccos(
             np.cos(g_ang[:, 0]) * np.cos(g_ang[:, 1])) * np.sign(g_ang[:, ssign])
          
-
     def help(self):
         """
         print class help
