@@ -75,15 +75,15 @@ If you are uysing ipython remenber that after a dot a tap press show all the ava
 The mode of use is relativelly simple :
 create a SeqIm object
 
-> Ex1 = TEMpcPlot.SeqIm('cr2.sqi')
-construct a unindixed reciprocal lattice
-
+> Ex1 = TEMpcPlot.SeqIm('cr2.sqi') \
+construct a seq
 > Ex1.plot()
 
 > Ex1.D3_peaks(tollerance=15)
 
 ### Index automatically 
-> Ex1.EwP.find_cell()
+> Ex1.EwP.find_cell()   
+find primitive cell with minimal translation\
 
 ### Index manually the reciprocal space
 > Ex1.EwP.plot()
