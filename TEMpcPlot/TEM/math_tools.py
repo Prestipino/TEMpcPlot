@@ -40,6 +40,28 @@ RSQ2PI = 1. / np.sqrt(2. * np.pi)
 SQ2 = np.sqrt(2.)
 
 
+def change_basis(coor, base):
+    '''change a set of coordinate vector in a new base
+     base should be as column vectors 
+     coor a ncoor X 2(3..) column
+     as row vectors
+     out a row vector of coordinate'''
+    P = np.linalg.inv(base)  # inv column matrix with the base
+    return np.dot(P, coor.T).T  # Peaks coordinates in unit cell basis
+
+def rest_int(coor, tollerance):
+    """return the coor that are integer inside a tollerance
+       coor is a row matrix 
+
+    """
+    filt = coor %1 # filter peaks that aren't multiple of the new basis
+    filt = np.where(filt < 0.5, filt , 1-filt) # remainder of euclidean division (<0.5)
+    if filt.ndim == 1 :
+        return filt < tollerance
+    else :
+        return (filt < tollerance).all(axis=1)  # keeps the peaks that can be reindexed into a n*2 boolean array
+
+
 def dist_p2vect(origin, vec, coor):
     """return the distances of a set of point from the line
        the position of the point if given by an iterable of shape 2xN
@@ -59,14 +81,19 @@ def perp_vect(vect):
 
 def mod(vect):
     """
-    modulus along axis 1
+    modulus along axis 1 i.e.|vect|
     """
+    vect = np.array(vect)
+    if vect.ndim == 0:
+        return abs(vect)
     if vect.ndim == 1:
         return np.sqrt(vect @ vect)
     return np.sqrt(np.sum(np.power(vect, 2), axis=1))
 
 
 def norm(vect):
+    """unitary vector
+    """
     return np.array(vect, dtype=float) / mod(vect)
 
 

@@ -513,7 +513,7 @@ class ToolbarPlusCal():
                                         cmap='binary', *self.args, **self.kwds)
             else:
                 self.pltim = plt.imshow(self.ima.ima, extent=estensione,
-                                        cmap='binary', *args, **kwds)
+                                        cmap='binary', *self.args, **self.kwds)
             plt.title(f'Image {self.ima.info.filename}')
             #ax.set_frame_on(False)
             ax.set_xlabel(r'$nm^{-1}$')
