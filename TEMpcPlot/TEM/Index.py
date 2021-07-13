@@ -189,32 +189,3 @@ def check_3Dlincomb(vectors):
     return np.array(vect)
 
 
-
-def search_twofold(base, toll_angle):
-    """
-    base are columns vectors for the base
-    """
-    toll = toll_angle * mt.rpd
-
-    rMT = np.linalg.inv(np.dot(base.T, base))
-
-    zz = np.mgrid[-2:3, -2:3, 0:3]
-    uvw = zz.reshape(3, -1).T
-
-    #remove not coprime indices
-    xx =np.gcd.reduce(uvw, axis=1)
-    uvw = uvw[xx== 1]
-
-    # remove collinear vectors
-    UVW = []
-    uvwlen = len(uvw)
-    for i in range(uvwlen):
-        for j in range(i+1, uvwlen):
-            if all(np.cross(uvw[i],uvw[j]) == 0):
-                break
-        else:
-            UVW.append(uvw[i])
-            
-    uvw = np.array(UVW)
-    zz = uvw @ uvw.T
-    couples =np.where((zz == 2)|(zz==1))

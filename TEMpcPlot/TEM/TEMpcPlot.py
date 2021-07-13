@@ -1574,6 +1574,11 @@ class EwaldPeaks(object):
         else:
             self.axes = axes
 
+        # check righhandenes
+        c = np.cross(self.axes[:,0], self.axes[:,1])
+        if np.dot(c, self.axes[:,2]) < 0:
+            self.axes[:,2] *= -1
+
         # reciprocal metric tensor
         self.rMT = self.axes.T @ self.axes
         # metric tensor
