@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.linalg as nl
+import math_tools as mt
 
 # trig functions in degrees
 def sind(x):
@@ -419,12 +420,12 @@ def search_twofold(cell, toll_angle):
 
 
     uvw, hkl, d_v, r_v, sigma = [],[],[],[],[]
+    caxes = []
 
     for i in all_twofold:
         dv = np.dot(d_base, i['uvw'])
         rv = np.dot(i['hkl'], r_base)
-        sig = np.arctan2(nl.norm(np.cross(dv, rv)),
-                         np.dot(dv, rv))
+        sig = mt.angle_between_vectors(dv, rv)
         if sig < toll:
             uvw.append(i['uvw'])
             hkl.append(i['hkl'])
@@ -434,4 +435,54 @@ def search_twofold(cell, toll_angle):
 
     return {'uvw': np.array(uvw), 'hkl': np.array(hkl),
             'dv': np.array(d_v), 'rv': np.array(r_v),
-            'sigma': np.degrees(np.array(sigma))}
+            'sigma': np.degrees(np.array(sigma)),
+            'dbase': d_base,
+            'r_base': r_base,
+            'toll': toll}
+
+
+def get_cell(twofold, cell):
+    tr = np.identity(3)
+    ep = np.pi - twofold['toll']
+    d_base = twofold['d_base']
+
+    ntwo = len(twofold['uvw'])
+    if ntwo == 1:              # !Monoclinic n-2foldaxes=1
+        v2 = twofold['dv'][0]
+        u = v2 / np.sqrt(v2 @ v2)
+        tr[1, :] = twofold['uvw'][0]
+
+        row = []
+        zz = np.mgrid[-2:3, -2:3, 0:3]
+        uvwl = zz.reshape(3, -1).T
+        for rw in uvwl:
+            if all(rw == 0):
+                continue
+            if np.reduce.gcd(rw) not in [0, 1]:
+                continue
+            vec = mt.norm(np.dot(d_base, rw))
+            if (mt.angle_between_vectors(u, vec) > ep):
+                if row:
+                    if any([all(np.cross(rw, i) for i in row)]):
+                        continue
+                row.append(rw)
+
+        row_mod = np.array([mt.mod(np.dot(d_base, i)) for i in row])
+        rms = np.argsort(row_mod)
+        tr[0, :] = row[rms[0]]
+        v1 = np.dot(d_base, tr[0, :])
+        tr[2, :] = row[rms[1]]
+        v3 = np.dot(d_base, tr[2, :])
+
+        #  Test rightness
+        if nl.det(tr) < 0:
+            tr[1, :] = -tr[1, :]
+            v2 = -v2
+
+
+        #Test if beta is lower than 90 in such a case invert c and b
+        if mt.angle_between_vectors(v1, v3) < (np.pi / 2):  # !angle beta < 90
+            tr[0, :] = -tr[0, :]
+            v1 = -v1
+            tr[2, :] = -tr[2, :]
+            v2 = -v2
