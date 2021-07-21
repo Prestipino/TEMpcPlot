@@ -277,23 +277,28 @@ def cell2AB(cell):
 
     :param tuple cell: a,b,c, alpha, beta, gamma (degrees)
     :returns: tuple of two 3x3 numpy arrays (A,B)
-       A for crystal(x) to Cartesian(X) transformations A*x = np.inner(A,x) = X 
-       B (= inverse of A) for Cartesian to crystal transformation B*X = np.inner(B,X) = x
+       A for crystal(x) to Cartesian(X) transformations A*x = np.inner(A,x) = X
+       B (= inverse of A) for Cartesian to crystal transformation
+          B*X = np.inner(B,X) = x
 
-       in reciprocal space 
-       X*  = B.T @ x*  or x @ B 
+       in reciprocal space
+          X*  = B.T @ x*  or x @ B
+
+       A = |ax  bx  cx|
+           |ay  by  cy|
+           |az  bz  cz|
     """
     G, g = cell2Gmat(cell)
     cellstar = Gmat2cell(G)
     A = np.zeros(shape=(3, 3))
     # from Giacovazzo (Fundamentals 2nd Ed.) p.75
-    A[0][0] = cell[0]                # a
-    A[0][1] = cell[1] * cosd(cell[5])  # b cos(gamma)
-    A[0][2] = cell[2] * cosd(cell[4])  # c cos(beta)
-    A[1][1] = cell[1] * sind(cell[5])  # b sin(gamma)
+    A[0, 0] = cell[0]                # a
+    A[0, 1] = cell[1] * cosd(cell[5])  # b cos(gamma)
+    A[0, 2] = cell[2] * cosd(cell[4])  # c cos(beta)
+    A[1, 1] = cell[1] * sind(cell[5])  # b sin(gamma)
     # - c cos(alpha*) sin(beta)
-    A[1][2] = -cell[2] * cosd(cellstar[3]) * sind(cell[4])
-    A[2][2] = 1. / cellstar[2]         # 1/c*
+    A[1, 2] = -cell[2] * cosd(cellstar[3]) * sind(cell[4])
+    A[2, 2] = 1. / cellstar[2]         # 1/c*
     B = nl.inv(A)
     return A, B
 
@@ -324,87 +329,87 @@ def Hx2Rh(Hx):
 
 
 all_twofold=[
- {'r':(-1,-1,-1,0,0,1,0,1,0), 'uvw':(-1,1,1), 'hkl':(0,1,1)},
- {'r':(-1,-1,0,0,1,0,0,-1,-1), 'uvw':(1,-2,1), 'hkl':(0,1,0)},
- {'r':(-1,-1,0,0,1,0,0,0,-1), 'uvw':(-1,2,0), 'hkl':(0,1,0)},
- {'r':(-1,-1,0,0,1,0,0,1,-1), 'uvw':(-1,2,1), 'hkl':(0,1,0)},
- {'r':(-1,-1,1,0,0,-1,0,-1,0), 'uvw':(1,-1,1), 'hkl':(0,-1,1)},
- {'r':(-1,0,-1,0,-1,-1,0,0,1), 'uvw':(-1,-1,2), 'hkl':(0,0,1)},
- {'r':(-1,0,-1,0,-1,0,0,0,1), 'uvw':(-1,0,2), 'hkl':(0,0,1)},
- {'r':(-1,0,-1,0,-1,1,0,0,1), 'uvw':(-1,1,2), 'hkl':(0,0,1)},
- {'r':(-1,0,0,-1,0,-1,1,-1,0), 'uvw':(0,-1,1), 'hkl':(1,-1,1)},
- {'r':(-1,0,0,-1,0,1,-1,1,0), 'uvw':(0,1,1), 'hkl':(-1,1,1)},
- {'r':(-1,0,0,-1,1,-1,0,0,-1), 'uvw':(0,1,0), 'hkl':(1,-2,1)},
- {'r':(-1,0,0,-1,1,0,0,0,-1), 'uvw':(0,1,0), 'hkl':(-1,2,0)},
- {'r':(-1,0,0,-1,1,1,0,0,-1), 'uvw':(0,1,0), 'hkl':(-1,2,1)},
- {'r':(-1,0,0,0,-1,-1,0,0,1), 'uvw':(0,-1,2), 'hkl':(0,0,1)},
- {'r':(-1,0,0,0,-1,0,-1,-1,1), 'uvw':(0,0,1), 'hkl':(-1,-1,2)},
- {'r':(-1,0,0,0,-1,0,-1,0,1), 'uvw':(0,0,1), 'hkl':(-1,0,2)},
- {'r':(-1,0,0,0,-1,0,-1,1,1), 'uvw':(0,0,1), 'hkl':(-1,1,2)},
- {'r':(-1,0,0,0,-1,0,0,-1,1), 'uvw':(0,0,1), 'hkl':(0,-1,2)},
- {'r':(-1,0,0,0,-1,0,0,0,1), 'uvw':(0,0,1), 'hkl':(0,0,1)},
- {'r':(-1,0,0,0,-1,0,0,1,1), 'uvw':(0,0,1), 'hkl':(0,1,2)},
- {'r':(-1,0,0,0,-1,0,1,-1,1), 'uvw':(0,0,1), 'hkl':(1,-1,2)},
- {'r':(-1,0,0,0,-1,0,1,0,1), 'uvw':(0,0,1), 'hkl':(1,0,2)},
- {'r':(-1,0,0,0,-1,0,1,1,1), 'uvw':(0,0,1), 'hkl':(1,1,2)},
- {'r':(-1,0,0,0,-1,1,0,0,1), 'uvw':(0,1,2), 'hkl':(0,0,1)},
- {'r':(-1,0,0,0,0,-1,0,-1,0), 'uvw':(0,-1,1), 'hkl':(0,-1,1)},
- {'r':(-1,0,0,0,0,1,0,1,0), 'uvw':(0,1,1), 'hkl':(0,1,1)},
- {'r':(-1,0,0,0,1,-1,0,0,-1), 'uvw':(0,1,0), 'hkl':(0,-2,1)},
- {'r':(-1,0,0,0,1,0,0,-1,-1), 'uvw':(0,-2,1), 'hkl':(0,1,0)},
- {'r':(-1,0,0,0,1,0,0,0,-1), 'uvw':(0,1,0), 'hkl':(0,1,0)},
- {'r':(-1,0,0,0,1,0,0,1,-1), 'uvw':(0,2,1), 'hkl':(0,1,0)},
- {'r':(-1,0,0,0,1,1,0,0,-1), 'uvw':(0,1,0), 'hkl':(0,2,1)},
- {'r':(-1,0,0,1,0,-1,-1,-1,0), 'uvw':(0,-1,1), 'hkl':(-1,-1,1)},
- {'r':(-1,0,0,1,0,1,1,1,0), 'uvw':(0,1,1), 'hkl':(1,1,1)},
- {'r':(-1,0,0,1,1,-1,0,0,-1), 'uvw':(0,1,0), 'hkl':(-1,-2,1)},
- {'r':(-1,0,0,1,1,0,0,0,-1), 'uvw':(0,1,0), 'hkl':(1,2,0)},
- {'r':(-1,0,0,1,1,1,0,0,-1), 'uvw':(0,1,0), 'hkl':(1,2,1)},
- {'r':(-1,0,1,0,-1,-1,0,0,1), 'uvw':(1,-1,2), 'hkl':(0,0,1)},
- {'r':(-1,0,1,0,-1,0,0,0,1), 'uvw':(1,0,2), 'hkl':(0,0,1)},
- {'r':(-1,0,1,0,-1,1,0,0,1), 'uvw':(1,1,2), 'hkl':(0,0,1)},
- {'r':(-1,1,-1,0,0,-1,0,-1,0), 'uvw':(-1,-1,1), 'hkl':(0,-1,1)},
- {'r':(-1,1,0,0,1,0,0,-1,-1), 'uvw':(-1,-2,1), 'hkl':(0,1,0)},
- {'r':(-1,1,0,0,1,0,0,0,-1), 'uvw':(1,2,0), 'hkl':(0,1,0)},
- {'r':(-1,1,0,0,1,0,0,1,-1), 'uvw':(1,2,1), 'hkl':(0,1,0)},
- {'r':(-1,1,1,0,0,1,0,1,0), 'uvw':(1,1,1), 'hkl':(0,1,1)},
- {'r':(0,-1,-1,-1,0,1,0,0,-1), 'uvw':(-1,1,0), 'hkl':(-1,1,1)},
- {'r':(0,-1,-1,0,-1,0,-1,1,0), 'uvw':(-1,0,1), 'hkl':(-1,1,1)},
- {'r':(0,-1,0,-1,0,0,-1,1,-1), 'uvw':(-1,1,1), 'hkl':(-1,1,0)},
- {'r':(0,-1,0,-1,0,0,0,0,-1), 'uvw':(-1,1,0), 'hkl':(-1,1,0)},
- {'r':(0,-1,0,-1,0,0,1,-1,-1), 'uvw':(1,-1,1), 'hkl':(-1,1,0)},
- {'r':(0,-1,1,-1,0,-1,0,0,-1), 'uvw':(-1,1,0), 'hkl':(1,-1,1)},
- {'r':(0,-1,1,0,-1,0,1,-1,0), 'uvw':(1,0,1), 'hkl':(1,-1,1)},
- {'r':(0,0,-1,-1,-1,1,-1,0,0), 'uvw':(-1,1,1), 'hkl':(-1,0,1)},
- {'r':(0,0,-1,0,-1,0,-1,0,0), 'uvw':(-1,0,1), 'hkl':(-1,0,1)},
- {'r':(0,0,-1,1,-1,-1,-1,0,0), 'uvw':(-1,-1,1), 'hkl':(-1,0,1)},
- {'r':(0,0,1,-1,-1,-1,1,0,0), 'uvw':(1,-1,1), 'hkl':(1,0,1)},
- {'r':(0,0,1,0,-1,0,1,0,0), 'uvw':(1,0,1), 'hkl':(1,0,1)},
- {'r':(0,0,1,1,-1,1,1,0,0), 'uvw':(1,1,1), 'hkl':(1,0,1)},
- {'r':(0,1,-1,0,-1,0,-1,-1,0), 'uvw':(-1,0,1), 'hkl':(-1,-1,1)},
- {'r':(0,1,-1,1,0,-1,0,0,-1), 'uvw':(1,1,0), 'hkl':(-1,-1,1)},
- {'r':(0,1,0,1,0,0,-1,-1,-1), 'uvw':(-1,-1,1), 'hkl':(1,1,0)},
- {'r':(0,1,0,1,0,0,0,0,-1), 'uvw':(1,1,0), 'hkl':(1,1,0)},
- {'r':(0,1,0,1,0,0,1,1,-1), 'uvw':(1,1,1), 'hkl':(1,1,0)},
- {'r':(0,1,1,0,-1,0,1,1,0), 'uvw':(1,0,1), 'hkl':(1,1,1)},
- {'r':(0,1,1,1,0,1,0,0,-1), 'uvw':(1,1,0), 'hkl':(1,1,1)},
- {'r':(1,-1,-1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(-2,1,1)},
- {'r':(1,-1,0,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(-2,1,0)},
- {'r':(1,-1,1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(2,-1,1)},
- {'r':(1,0,-1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(-2,0,1)},
- {'r':(1,0,0,-1,-1,0,-1,0,-1), 'uvw':(-2,1,1), 'hkl':(1,0,0)},
- {'r':(1,0,0,-1,-1,0,0,0,-1), 'uvw':(-2,1,0), 'hkl':(1,0,0)},
- {'r':(1,0,0,-1,-1,0,1,0,-1), 'uvw':(2,-1,1), 'hkl':(1,0,0)},
- {'r':(1,0,0,0,-1,0,-1,0,-1), 'uvw':(-2,0,1), 'hkl':(1,0,0)},
- {'r':(1,0,0,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(1,0,0)},
- {'r':(1,0,0,0,-1,0,1,0,-1), 'uvw':(2,0,1), 'hkl':(1,0,0)},
- {'r':(1,0,0,1,-1,0,-1,0,-1), 'uvw':(-2,-1,1), 'hkl':(1,0,0)},
- {'r':(1,0,0,1,-1,0,0,0,-1), 'uvw':(2,1,0), 'hkl':(1,0,0)},
- {'r':(1,0,0,1,-1,0,1,0,-1), 'uvw':(2,1,1), 'hkl':(1,0,0)},
- {'r':(1,0,1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(2,0,1)},
- {'r':(1,1,-1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(-2,-1,1)},
- {'r':(1,1,0,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(2,1,0)},
- {'r':(1,1,1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(2,1,1)}]
+     {'r':(-1,-1,-1,0,0,1,0,1,0), 'uvw':(-1,1,1), 'hkl':(0,1,1)},
+     {'r':(-1,-1,0,0,1,0,0,-1,-1), 'uvw':(1,-2,1), 'hkl':(0,1,0)},
+     {'r':(-1,-1,0,0,1,0,0,0,-1), 'uvw':(-1,2,0), 'hkl':(0,1,0)},
+     {'r':(-1,-1,0,0,1,0,0,1,-1), 'uvw':(-1,2,1), 'hkl':(0,1,0)},
+     {'r':(-1,-1,1,0,0,-1,0,-1,0), 'uvw':(1,-1,1), 'hkl':(0,-1,1)},
+     {'r':(-1,0,-1,0,-1,-1,0,0,1), 'uvw':(-1,-1,2), 'hkl':(0,0,1)},
+     {'r':(-1,0,-1,0,-1,0,0,0,1), 'uvw':(-1,0,2), 'hkl':(0,0,1)},
+     {'r':(-1,0,-1,0,-1,1,0,0,1), 'uvw':(-1,1,2), 'hkl':(0,0,1)},
+     {'r':(-1,0,0,-1,0,-1,1,-1,0), 'uvw':(0,-1,1), 'hkl':(1,-1,1)},
+     {'r':(-1,0,0,-1,0,1,-1,1,0), 'uvw':(0,1,1), 'hkl':(-1,1,1)},
+     {'r':(-1,0,0,-1,1,-1,0,0,-1), 'uvw':(0,1,0), 'hkl':(1,-2,1)},
+     {'r':(-1,0,0,-1,1,0,0,0,-1), 'uvw':(0,1,0), 'hkl':(-1,2,0)},
+     {'r':(-1,0,0,-1,1,1,0,0,-1), 'uvw':(0,1,0), 'hkl':(-1,2,1)},
+     {'r':(-1,0,0,0,-1,-1,0,0,1), 'uvw':(0,-1,2), 'hkl':(0,0,1)},
+     {'r':(-1,0,0,0,-1,0,-1,-1,1), 'uvw':(0,0,1), 'hkl':(-1,-1,2)},
+     {'r':(-1,0,0,0,-1,0,-1,0,1), 'uvw':(0,0,1), 'hkl':(-1,0,2)},
+     {'r':(-1,0,0,0,-1,0,-1,1,1), 'uvw':(0,0,1), 'hkl':(-1,1,2)},
+     {'r':(-1,0,0,0,-1,0,0,-1,1), 'uvw':(0,0,1), 'hkl':(0,-1,2)},
+     {'r':(-1,0,0,0,-1,0,0,0,1), 'uvw':(0,0,1), 'hkl':(0,0,1)},
+     {'r':(-1,0,0,0,-1,0,0,1,1), 'uvw':(0,0,1), 'hkl':(0,1,2)},
+     {'r':(-1,0,0,0,-1,0,1,-1,1), 'uvw':(0,0,1), 'hkl':(1,-1,2)},
+     {'r':(-1,0,0,0,-1,0,1,0,1), 'uvw':(0,0,1), 'hkl':(1,0,2)},
+     {'r':(-1,0,0,0,-1,0,1,1,1), 'uvw':(0,0,1), 'hkl':(1,1,2)},
+     {'r':(-1,0,0,0,-1,1,0,0,1), 'uvw':(0,1,2), 'hkl':(0,0,1)},
+     {'r':(-1,0,0,0,0,-1,0,-1,0), 'uvw':(0,-1,1), 'hkl':(0,-1,1)},
+     {'r':(-1,0,0,0,0,1,0,1,0), 'uvw':(0,1,1), 'hkl':(0,1,1)},
+     {'r':(-1,0,0,0,1,-1,0,0,-1), 'uvw':(0,1,0), 'hkl':(0,-2,1)},
+     {'r':(-1,0,0,0,1,0,0,-1,-1), 'uvw':(0,-2,1), 'hkl':(0,1,0)},
+     {'r':(-1,0,0,0,1,0,0,0,-1), 'uvw':(0,1,0), 'hkl':(0,1,0)},
+     {'r':(-1,0,0,0,1,0,0,1,-1), 'uvw':(0,2,1), 'hkl':(0,1,0)},
+     {'r':(-1,0,0,0,1,1,0,0,-1), 'uvw':(0,1,0), 'hkl':(0,2,1)},
+     {'r':(-1,0,0,1,0,-1,-1,-1,0), 'uvw':(0,-1,1), 'hkl':(-1,-1,1)},
+     {'r':(-1,0,0,1,0,1,1,1,0), 'uvw':(0,1,1), 'hkl':(1,1,1)},
+     {'r':(-1,0,0,1,1,-1,0,0,-1), 'uvw':(0,1,0), 'hkl':(-1,-2,1)},
+     {'r':(-1,0,0,1,1,0,0,0,-1), 'uvw':(0,1,0), 'hkl':(1,2,0)},
+     {'r':(-1,0,0,1,1,1,0,0,-1), 'uvw':(0,1,0), 'hkl':(1,2,1)},
+     {'r':(-1,0,1,0,-1,-1,0,0,1), 'uvw':(1,-1,2), 'hkl':(0,0,1)},
+     {'r':(-1,0,1,0,-1,0,0,0,1), 'uvw':(1,0,2), 'hkl':(0,0,1)},
+     {'r':(-1,0,1,0,-1,1,0,0,1), 'uvw':(1,1,2), 'hkl':(0,0,1)},
+     {'r':(-1,1,-1,0,0,-1,0,-1,0), 'uvw':(-1,-1,1), 'hkl':(0,-1,1)},
+     {'r':(-1,1,0,0,1,0,0,-1,-1), 'uvw':(-1,-2,1), 'hkl':(0,1,0)},
+     {'r':(-1,1,0,0,1,0,0,0,-1), 'uvw':(1,2,0), 'hkl':(0,1,0)},
+     {'r':(-1,1,0,0,1,0,0,1,-1), 'uvw':(1,2,1), 'hkl':(0,1,0)},
+     {'r':(-1,1,1,0,0,1,0,1,0), 'uvw':(1,1,1), 'hkl':(0,1,1)},
+     {'r':(0,-1,-1,-1,0,1,0,0,-1), 'uvw':(-1,1,0), 'hkl':(-1,1,1)},
+     {'r':(0,-1,-1,0,-1,0,-1,1,0), 'uvw':(-1,0,1), 'hkl':(-1,1,1)},
+     {'r':(0,-1,0,-1,0,0,-1,1,-1), 'uvw':(-1,1,1), 'hkl':(-1,1,0)},
+     {'r':(0,-1,0,-1,0,0,0,0,-1), 'uvw':(-1,1,0), 'hkl':(-1,1,0)},
+     {'r':(0,-1,0,-1,0,0,1,-1,-1), 'uvw':(1,-1,1), 'hkl':(-1,1,0)},
+     {'r':(0,-1,1,-1,0,-1,0,0,-1), 'uvw':(-1,1,0), 'hkl':(1,-1,1)},
+     {'r':(0,-1,1,0,-1,0,1,-1,0), 'uvw':(1,0,1), 'hkl':(1,-1,1)},
+     {'r':(0,0,-1,-1,-1,1,-1,0,0), 'uvw':(-1,1,1), 'hkl':(-1,0,1)},
+     {'r':(0,0,-1,0,-1,0,-1,0,0), 'uvw':(-1,0,1), 'hkl':(-1,0,1)},
+     {'r':(0,0,-1,1,-1,-1,-1,0,0), 'uvw':(-1,-1,1), 'hkl':(-1,0,1)},
+     {'r':(0,0,1,-1,-1,-1,1,0,0), 'uvw':(1,-1,1), 'hkl':(1,0,1)},
+     {'r':(0,0,1,0,-1,0,1,0,0), 'uvw':(1,0,1), 'hkl':(1,0,1)},
+     {'r':(0,0,1,1,-1,1,1,0,0), 'uvw':(1,1,1), 'hkl':(1,0,1)},
+     {'r':(0,1,-1,0,-1,0,-1,-1,0), 'uvw':(-1,0,1), 'hkl':(-1,-1,1)},
+     {'r':(0,1,-1,1,0,-1,0,0,-1), 'uvw':(1,1,0), 'hkl':(-1,-1,1)},
+     {'r':(0,1,0,1,0,0,-1,-1,-1), 'uvw':(-1,-1,1), 'hkl':(1,1,0)},
+     {'r':(0,1,0,1,0,0,0,0,-1), 'uvw':(1,1,0), 'hkl':(1,1,0)},
+     {'r':(0,1,0,1,0,0,1,1,-1), 'uvw':(1,1,1), 'hkl':(1,1,0)},
+     {'r':(0,1,1,0,-1,0,1,1,0), 'uvw':(1,0,1), 'hkl':(1,1,1)},
+     {'r':(0,1,1,1,0,1,0,0,-1), 'uvw':(1,1,0), 'hkl':(1,1,1)},
+     {'r':(1,-1,-1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(-2,1,1)},
+     {'r':(1,-1,0,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(-2,1,0)},
+     {'r':(1,-1,1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(2,-1,1)},
+     {'r':(1,0,-1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(-2,0,1)},
+     {'r':(1,0,0,-1,-1,0,-1,0,-1), 'uvw':(-2,1,1), 'hkl':(1,0,0)},
+     {'r':(1,0,0,-1,-1,0,0,0,-1), 'uvw':(-2,1,0), 'hkl':(1,0,0)},
+     {'r':(1,0,0,-1,-1,0,1,0,-1), 'uvw':(2,-1,1), 'hkl':(1,0,0)},
+     {'r':(1,0,0,0,-1,0,-1,0,-1), 'uvw':(-2,0,1), 'hkl':(1,0,0)},
+     {'r':(1,0,0,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(1,0,0)},
+     {'r':(1,0,0,0,-1,0,1,0,-1), 'uvw':(2,0,1), 'hkl':(1,0,0)},
+     {'r':(1,0,0,1,-1,0,-1,0,-1), 'uvw':(-2,-1,1), 'hkl':(1,0,0)},
+     {'r':(1,0,0,1,-1,0,0,0,-1), 'uvw':(2,1,0), 'hkl':(1,0,0)},
+     {'r':(1,0,0,1,-1,0,1,0,-1), 'uvw':(2,1,1), 'hkl':(1,0,0)},
+     {'r':(1,0,1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(2,0,1)},
+     {'r':(1,1,-1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(-2,-1,1)},
+     {'r':(1,1,0,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(2,1,0)},
+     {'r':(1,1,1,0,-1,0,0,0,-1), 'uvw':(1,0,0), 'hkl':(2,1,1)}]
 
 
 def search_twofold(cell, toll_angle):
@@ -442,8 +447,16 @@ def search_twofold(cell, toll_angle):
 
 
 def get_cell(twofold, cell):
+    """dtwofold = uvw
+       caxes = dv
+       maxes = lenght dv
+       rtwofold = hkl
+       cross = sigma
+    """
+    def check90(angle):
+        return abs(angle - np.pi) < twofold['toll']
+
     tr = np.identity(3)
-    ep = np.pi - twofold['toll']
     d_base = twofold['d_base']
 
     ntwo = len(twofold['uvw'])
@@ -461,7 +474,7 @@ def get_cell(twofold, cell):
             if np.reduce.gcd(rw) not in [0, 1]:
                 continue
             vec = mt.norm(np.dot(d_base, rw))
-            if (mt.angle_between_vectors(u, vec) > ep):
+            if abs(mt.angle_between_vectors(u, vec) - np.pi) < twofold['toll']:
                 if row:
                     if any([all(np.cross(rw, i) for i in row)]):
                         continue
@@ -479,10 +492,187 @@ def get_cell(twofold, cell):
             tr[1, :] = -tr[1, :]
             v2 = -v2
 
-
-        #Test if beta is lower than 90 in such a case invert c and b
+        # Test if beta is lower than 90 in such a case invert c and b
         if mt.angle_between_vectors(v1, v3) < (np.pi / 2):  # !angle beta < 90
             tr[0, :] = -tr[0, :]
             v1 = -v1
             tr[2, :] = -tr[2, :]
             v2 = -v2
+
+    if ntwo == 3:  # Case (3)    !Orthorhombic/Trigonal n-2foldaxes=3
+        u = mt.mod(caxes)
+        a_i = np.argmin(u)
+        c_i = np.argmax(u)
+        b_i = 5 - a_1 - c_i
+        tr[0, :] = twofold['uvw'][a_i]
+        tr[1, :] = twofold['uvw'][b_i]
+        tr[2, :] = twofold['uvw'][c_i]
+
+        v1 = twofold['dv'][a_i]
+        v2 = twofold['dv'][b_i]
+        v3 = twofold['dv'][c_i]
+        mv1 = mt.mod(a_i)
+        mv2 = mt.mod(b_i)
+        mv3 = mt.mod(c_i)
+
+        ang = np.array([mt.angle_between_vectors(v3, v2),
+                        mt.angle_between_vectors(v1, v3),
+                        mt.angle_between_vectors(v1, v3)])
+
+        #  Check the system by verifying that the two-fold axes
+        #  form 90 (orthorhombic)
+        if all(abs(ang - np.pi) < twofold['toll']):  # if  !orthorhombic
+            namina = nl.det(tr) < 0
+            if namina < 0:
+                tr[2, :] *= -1
+                v3 *= -1
+                namina *= -1
+            if namina == 1:
+                print("Orthorhombic, Primitive cell")
+            if namina == 2:
+                vecs = [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]
+                for rw_i, rw in enumerate(vecs):
+                    if np.gcd(np.dot(vec, tr)) not in [0, 1]:
+                        orthoType = rw_i
+                        break
+                message = ["Orthorhombic, A-centred cell",
+                           "Orthorhombic, I-centred cell",
+                           "Orthorhombic, C-centred cell",
+                           "Orthorhombic, B-centred cell"]
+                print(message[orthoType])
+            if namina == 3:
+                print("Orthorhombic, F-centred cell")
+
+        else:  # !Rhombohedral/Trigonal
+            #  In the Trigonal system the two-fold axes are in the plane
+            #  the three-fold axis, and valid a,b, vectors can be chosen
+            #  among any two two-fold axes forming an angle of 120 degrees
+            #  verify that 1 and 2 form 120
+            c_axis = None
+            if any(abs(ang - (np.pi / 3)) < twofold['toll']):  # search 120
+                c_axis = np.armin(abs(ang - (np.pi / 6)))
+                dot = 1.0
+                iu = 1
+            elif any(abs(ang - (np.pi / 6)) < twofold['toll']):  # search 60
+                c_axis = np.armin(abs(ang - (np.pi / 6)))
+                dot = -1.0
+                iu = -1
+            else:
+                print("Trigonal/Rhombohedral test failed! \
+                       Supply only one two-fold axis")
+                return
+            if c_axis == 0:
+                vi = v2
+                vj = dot * v3
+                h1 = tr[1, :]
+                h2 = iu * tr[2, :]
+                tr[2, :] = tr[0, :]
+                tr[0, :] = h1
+                tr[1, :] = h2
+
+            elif c_axis == 1:
+                vi = v1
+                vj = dot * v3
+                h2 = iu * tr[2, :]
+                tr[2, :] = tr[2, :]
+                tr[1, :] = h2
+
+            elif c_axis == 2:
+                vi = v1
+                vj = dot * v2
+                tr[1, :] = iu * tr[1, :]
+
+            vi = mt.norm(vi)
+            vj = mt.norm(vj)
+            ok = False
+
+        zz = np.mgrid[-2:3, -2:3, 0:3]
+        uvwl = zz.reshape(3, -1).T
+        for uvw in uvwl:
+            if np.reduce.gcd(rw) not in [0, 1]:
+                continue
+            vec = mt.norm(uvw)
+            ang1 = mt.angle_between_vectors(vec, vi)
+            ang2 = mt.angle_between_vectors(vec, vj)
+            if check90(ang1) and check90(ang1):
+                tr[2, :] = uvw
+                ok = True
+
+        if ok:
+            namina = nl.det(tr)
+            if namina < 0:
+                tr[2, :] *= -1
+                namina *= -1
+            v3 = np.dot(twofold['dbase'], tr[2])
+            if namina == 1:
+                print("Primitive hexagonal cell")
+
+            elif namina == 3:
+                rw = np.dot([2, 1, 1], tr)
+                if np.reduce.gcd(rw) not in [0, 1]:
+                    print("Rhombohedral, obverse setting cell")
+                else:
+                    print("Rhombohedral, reverse setting cell")
+        else:
+            print("Trigonal/Rhombohedral test failed! Supply only one two-fold axis")
+
+    if ntwo == 5:  # Case (5)   !Tetragonal n-2foldaxes=5
+        m = []
+        ab = {}
+        inp = {}
+        mv = mt.mod(twofold['dv'])
+        for i in range(ntwo - 1):
+            vi = mt.norm(twofold['uvw'][i])
+            for i in range(i, ntwo):
+                vj = twofold['uvw'][j]
+                m.append(mt.angle_between_vectors(vi, vj))
+                c45 = abs(m[-1] - (np.pi * 0.25)) < twofold['toll']
+                c135 = abs(m[-1] - (np.pi * 0.75)) < twofold['toll']
+                if c45 or c135:
+                    inp[i] = 1
+                    inp[j] = 1
+                    if mv[i] > mv[j]:
+                        ia = j
+                    else:
+                        ia = i
+                    if not(ab):
+                        ab[0] = ia
+                    else:
+                        ab[1] = ia
+
+        #  !Determination of the c-axis
+        #  (that making 90 degree with all the others)
+        naminc = np.argmin(inp)
+
+        #   !The two axes forming a,b are those of indices ab(1) and ab(2)
+        namina = ab[1]
+        naminb = ab[2]
+        if (namina == 0) or (naminb == 0):
+            ok = False
+            print("Basis vectors a-b not found!")
+        tr[0] = twofold['uvw'][namina]
+        tr[1] = twofold['uvw'][naminb]
+        tr[2] = twofold['uvw'][naminc]
+        v1 = twofold['dv'][namina]
+        v2 = twofold['dv'][naminb]
+        v3 = twofold['dv'][naminc]
+        mv1 = mt.mod(v1)
+        mv2 = mt.mod(v2)
+        mv3 = mt.mod(v3)
+
+        namina = nl.det(tr)
+        if (namina < 0):
+            tr[2] = -tr[2]
+            v3 = -v3
+            namina = -namina
+
+        if namina == 1:
+            print("Tetragonal, Primitive cell")
+        elif namina == 1:
+            print("Tetragonal, I-centred cell")
+        else:
+            print("Error in tetragonal cell")
+            ok = False
+
+
+
