@@ -6,6 +6,8 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 from scipy.optimize import least_squares
 from .ransac import ransac_lin
+from itertools import combinations, product 
+
 
 def sind(x):
     return np.sin(x * np.pi / 180.)
@@ -34,6 +36,17 @@ def cosd(x):
 def acosd(x):
     return 180. * np.arccos(x) / np.pi
 
+def coprime(x):
+    """return true if all numer in x are coprime
+    """ 
+    return np.gcd.reduce(x) in [0, 1]
+
+def nestLoop(*args):
+    z = [range(*i) for i in args]
+    return product(*z)
+
+
+
 
 rpd = np.pi / 180.
 RSQ2PI = 1. / np.sqrt(2. * np.pi)
@@ -60,7 +73,6 @@ def rest_int(coor, tollerance):
         return filt < tollerance
     else :
         return (filt < tollerance).all(axis=1)  # keeps the peaks that can be reindexed into a n*2 boolean array
-
 
 def dist_p2vect(origin, vec, coor):
     """return the distances of a set of point from the line
