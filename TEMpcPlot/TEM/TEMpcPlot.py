@@ -22,6 +22,7 @@ from .profileline import profile_line
 from . import d3plot
 from . import more_widget as mw
 from . import math_tools as mt
+from . import cell_tools as ct
 from . import Index as ind
 # import  scipy.optimize  as opt
 plt.ion()
@@ -36,28 +37,8 @@ RSQPI = 1. / np.sqrt(np.pi)
 R2pisq = 1. / (2. * np.pi**2)
 
 
-def sind(x):
-    return np.sin(x * rpd)
-
-
-def asind(x):
-    return np.arcsin(x) / rpd
-
-
-def tand(x):
-    return np.tan(x * rpd)
-
-
-def cosd(x):
-    return np.cos(x * rpd)
-
-
 def acosd(x):
     return np.arccos(x) / rpd
-
-
-def rdsq2d(x, p):
-    return round(1.0 / np.sqrt(x), p)
 
 
 class Object(object):
@@ -1127,22 +1108,24 @@ class EwaldPeaks(object):
     def find_cell(self, sort=0, cond=None, layers=None,
                   toll=0.1, toll_angle=5):
         """automatic find cell
-        search the *cell in the present peaks 
+        search the *cell in the present peaks
 
         Args:
-            sort (int): 0 or 1 small change in the algoritm should be indifferent
+            sort (int): 0 or 1 small change in the
+                        algoritm should be indifferent
             cond (lambda function): fil;tering condition created by cr_cond
-            layer (list): specifies the layer to be used if none all image are used 
-            toll  (float): [0.1] indexing tollerance 
-            toll_angle  (float): [5.0] angle in degree to determine coplanarity or colinearity 
+            layer (list): specifies the layer to be used if
+                          none all image are used
+            toll  (float): [0.1] indexing tollerance
+            toll_angle  (float): [5.0] angle in degree to determine coplanarity
+                                       or colinearity
         """
-
 
         if layers is None:
             layers = range(len(self.pos))
         if cond is None:
             cond = lambda pos, inte: pos
-        pos=[cond(self.pos[i], self.int[i]) for i in layers]
+        pos = [cond(self.pos[i], self.int[i]) for i in layers]
 
         vectors = []
         for i in layers:
@@ -1151,11 +1134,25 @@ class EwaldPeaks(object):
         vectors = ind.check_colinearity(vectors, toll_angle)
         if sort:
             allpos = np.vstack(pos)
-            vectors = ind.sort_Calib(allpos, vectors, toll) 
+            vectors = ind.sort_Calib(allpos, vectors, toll)
         else:
-            vectors =  ind.check_3D_coplanarity(vectors, toll_angle)   
+            vectors = ind.check_3D_coplanarity(vectors, toll_angle)
         vectors = ind.check_3Dlincomb(vectors)
+        print('#Primitive cell')
         self.set_cell(vectors.T)
+        twofold = ct.search_twofold(inv(vectors))
+        if len(twofold['uvw']) > 0:
+            print('twofold symmetri found:\n uvw     hkl      tollerance')
+            for i, s in enumerate(twofold['sigma']):
+                print(twofold['uvw'][i], twofold['hkl'][i], s)
+            print('possible high symmetry cells')
+            sol = []
+            for i, sigma in enumerate(ct.twofold_reduce(twofold)):
+                print(f'cell n.{i} angular deviations:', sigma['sigma'][0])
+                sol.append(ct.get_cell(sigma))
+            accep_sol = int(input('select cell number'))
+            A = np.dot(vectors.T, inv(sol[accep_sol][1]))
+            self.set_cell(A)
         return
 
     def plot_reduce(self, tollerance=0.1, condition=None):
@@ -1575,16 +1572,16 @@ class EwaldPeaks(object):
             self.axes = axes
 
         # check righhandenes
-        c = np.cross(self.axes[:,0], self.axes[:,1])
-        if np.dot(c, self.axes[:,2]) < 0:
-            self.axes[:,2] *= -1
+        c = np.cross(self.axes[:, 0], self.axes[:, 1])
+        if np.dot(c, self.axes[:, 2]) < 0:
+            self.axes[:, 2] *= -1
 
         # reciprocal metric tensor
         self.rMT = self.axes.T @ self.axes
         # metric tensor
         self.MT = inv(self.rMT)
 
-        # 
+        # #
         self.__calibrate()
 
         from uncertainties import unumpy

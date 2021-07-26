@@ -4,9 +4,7 @@
 import numpy as np
 # import numpy.linalg as nl
 from scipy.spatial.transform import Rotation as R
-from scipy.optimize import least_squares
 from .ransac import ransac_lin
-from itertools import combinations, product 
 
 
 def sind(x):
@@ -40,12 +38,6 @@ def coprime(x):
     """return true if all numer in x are coprime
     """ 
     return np.gcd.reduce(x) in [0, 1]
-
-def nestLoop(*args):
-    z = [range(*i) for i in args]
-    return product(*z)
-
-
 
 
 rpd = np.pi / 180.
@@ -106,7 +98,7 @@ def mod(vect):
 def norm(vect):
     """unitary vector
     """
-    return np.array(vect, dtype=float) / mod(vect)
+    return np.transpose(np.array(vect, dtype=float).T / mod(vect))
 
 
 def angled_between_tilts(x1, y1, x2, y2):

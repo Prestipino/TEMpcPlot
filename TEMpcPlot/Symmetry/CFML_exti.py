@@ -10,9 +10,9 @@ eps_ref = 0.0002
 ex_r = {"Ccen": lambda h, k, l: np.where((h + k) % 2, True, False),
         "Acen": lambda h, k, l: np.where((k + l) % 2, True, False),
         "Bcen": lambda h, k, l: np.where((h + l) % 2, True, False),
-        "Icen": lambda h, k, l: np.where((k + k + l) % 2  , True, False),
+        "Icen": lambda h, k, l: np.where((k + k + l) % 2, True, False),
         "Rceno": lambda h, k, l: np.where((-h + k + l) % 3, True, False),
-        'Rcenr': lambda h, k, l: np.where((h - k + l) % 3 , True, False),
+        'Rcenr': lambda h, k, l: np.where((h - k + l) % 3, True, False),
         7      : lambda h, k, l: np.where(h != 0, False, (k % 2).astype(bool)),               #7  (  0  k  l)     k=2n : (100) glide plane with b/2 translation (b)
         8      : lambda h, k, l: np.where(h != 0, False, (l % 2).astype(bool)),               #8  (  0  k  l)     l=2n : (100) glide plane with c/2 translation (c)
         9      : lambda h, k, l: np.where(h != 0, False, ((k + l) % 2).astype(bool)),         #9  (  0  k  l)   k+l=2n : (100) glide plane with b/2 + c/2 translations (n)
@@ -67,79 +67,77 @@ ex_r = {"Ccen": lambda h, k, l: np.where((h + k) % 2, True, False),
         58     : lambda h, k, l: np.where(np.logical_or(h, k), False, (h % 6).astype(bool)),  #58  (0 0 0 l)    l=6n : screw axis // [00l] axis with 5c/6 translation
         }
 
-
-
 Hkl_Ref_Conditions = """ None
-(h k l)    h+k=2n : xy0 centred face (C)
-(h k l)    k+l=2n : 0yz centred face (A)
-(h k l)    h+l=2n : x0z centred face (B)
-(h k l)  h+k+l=2n : body centred (I)
-(h k l)  h,k,l same parity: all-face centred (F)
-(h k l) -h+k+l=3n : rhombohedrally centred (R)
-(  0  k  l)     k=2n : (100) glide plane with b/2 translation (b)
-(  0  k  l)     l=2n : (100) glide plane with c/2 translation (c)
-(  0  k  l)   k+l=2n : (100) glide plane with b/2 + c/2 translations (n)
-(  0  k  l)   k+l=4n : (100) glide plane with b/4 +- c/4 translations (d)
-(  h  0  l)     h=2n : (010) glide plane with a/2 translation (a)
-(  h  0  l)     l=2n : (010) glide plane with c/2 translation (c)
-(  h  0  l)   l+h=2n : (010) glide plane with c/2 + a/2 translations (n)
-(  h  0  l)   l+h=4n : (010) glide plane with c/4 +- a/4 translations (d)
-(  h  k  0)     h=2n : (001) glide plane with a/2 translation (a)
-(  h  k  0)     k=2n : (001) glide plane with b/2 translation (b)
-(  h  k  0)   h+k=2n : (001) glide plane with a/2 + b/2 translations (n)
-(  h  k  0)   h+k=4n : (001) glide plane with a/4 +- b/4 translations (d)
-(  h  -h   0 l) l=2n : (11-20) glide plane with c/2 translation (c)
-(  0   k  -k l) l=2n : (-2110) glide plane with c/2 translation (c)
-( -h   0   h l) l=2n : (1-210) glide plane with c/2 translation (c)
-(  h   h -2h l) l=2n : (1-100) glide plane with c/2 translation (c)
-(-2h   h   h l) l=2n : (01-10) glide plane with c/2 translation (c)
-(  h -2h   h l) l=2n : (-1010) glide plane with c/2 translation (c)
-(  h  h  l)     l=2n : (1-10) glide plane with c/2 translation (c,n)
-(  h  k  k)     h=2n : (01-1) glide plane with a/2 translation (a,n)
-(  h  k  h)     k=2n : (-101) glide plane with b/2 translation (b,n)
-(  h  h  l)     l=2n : (1-10) glide plane with c/2 translation (c,n)
-(  h  h  l)  2h+l=4n : (1-10) glide plane with a/4 +- b/4 +- c/4 translation (d)
-(  h -h  l)     l=2n : (110)  glide plane with c/2 translation (c,n)
-(  h -h  l)  2h+l=4n : (110)  glide plane with a/4 +- b/4 +- c/4 translation (d)
-(  h  k  k)     h=2n : (01-1) glide plane with a/2 translation (a,n)
-(  h  k  k)  2k+h=4n : (01-1) glide plane with +-a/4 + b/4 +- c/4 translation(d)
-(  h  k -k)     h=2n : (011)  glide plane with a/2 translation (a,n)
-(  h  k -k)  2k+h=4n : (011)  glide plane with +-a/4 + b/4 +- c/4 translation(d)
-(  h  k  h)     k=2n : (-101) glide plane with b/2 translation (b,n)
-(  h  k  h)  2h+k=4n : (-101) glide plane with +-a/4 +- b/4 + c/4 translation(d)
-( -h  k  h)     k=2n : (101)  glide plane with b/2 translation (b,n)
-( -h  k  h)  2h+k=4n : (101)  glide plane with +-a/4 +- b/4 + c/4 translation(d)
-# ! monoclinic, ortho., tetra and cubic
-(h 0 0)      h=2n : screw axis // [100] with  a/2 translation (21)
-# ! cubic
-(h 0 0)      h=2n : screw axis // [100] with 2a/4 translation (42)
-# ! cubic
-(h 0 0)      h=4n : screw axis // [100] with  a/4 translation (41)
-# ! cubic
-(h 0 0)      h=4n : screw axis // [100] with 3a/4 translation (43)
-# ! monoclinic, ortho., tetra and cubic
-(0 k 0)      k=2n : screw axis // [010] with  b/2 translation (21)
-# ! cubic
-(0 k 0)      k=2n : screw axis // [010] with 2b/4 translation (42)
-# ! cubic
-(0 k 0)      k=4n : screw axis // [010] with  b/4 translation (41)
-# ! cubic
-(0 k 0)      k=4n : screw axis // [010] with 3b/4 translation (43)
-# ! monoclinic, ortho., tetra and cubic
-(0 0 l)      l=2n : screw axis // [00l] with  c/2 translation (21)
-# ! tetragonal and cubic
-(0 0 l)      l=2n : screw axis // [00l] with 2c/4 translation (42)
-# ! tetragonal and cubic
-(0 0 l)      l=4n : screw axis // [00l] with  c/4 translation (41)
-# ! tetragonal and cubic
-(0 0 l)      l=4n : screw axis // [00l] with 3c/4 translation (43)
-(0 0 0 l)    l=2n : screw axis // [00l] axis with 3c/6 translation (63)
-(0 0 0 l)    l=3n : screw axis // [00l] axis with  c/3 translation (31)
-(0 0 0 l)    l=3n : screw axis // [00l] axis with 2c/3 translation (32)
-(0 0 0 l)    l=3n : screw axis // [00l] axis with 2c/6 translation (62)
-(0 0 0 l)    l=3n : screw axis // [00l] axis with 4c/6 translation (64)
-(0 0 0 l)    l=6n : screw axis // [00l] axis with  c/6 translation (61)
-(0 0 0 l)    l=6n : screw axis // [00l] axis with 5c/6 translation (65)"""
+    (h k l)    h+k=2n : xy0 centred face (C)
+    (h k l)    k+l=2n : 0yz centred face (A)
+    (h k l)    h+l=2n : x0z centred face (B)
+    (h k l)  h+k+l=2n : body centred (I)
+    (h k l)  h,k,l same parity: all-face centred (F)
+    (h k l) -h+k+l=3n : rhombohedrally centred (R)
+    (  0  k  l)     k=2n : (100) glide plane with b/2 translation (b)
+    (  0  k  l)     l=2n : (100) glide plane with c/2 translation (c)
+    (  0  k  l)   k+l=2n : (100) glide plane with b/2 + c/2 translations (n)
+    (  0  k  l)   k+l=4n : (100) glide plane with b/4 +- c/4 translations (d)
+    (  h  0  l)     h=2n : (010) glide plane with a/2 translation (a)
+    (  h  0  l)     l=2n : (010) glide plane with c/2 translation (c)
+    (  h  0  l)   l+h=2n : (010) glide plane with c/2 + a/2 translations (n)
+    (  h  0  l)   l+h=4n : (010) glide plane with c/4 +- a/4 translations (d)
+    (  h  k  0)     h=2n : (001) glide plane with a/2 translation (a)
+    (  h  k  0)     k=2n : (001) glide plane with b/2 translation (b)
+    (  h  k  0)   h+k=2n : (001) glide plane with a/2 + b/2 translations (n)
+    (  h  k  0)   h+k=4n : (001) glide plane with a/4 +- b/4 translations (d)
+    (  h  -h   0 l) l=2n : (11-20) glide plane with c/2 translation (c)
+    (  0   k  -k l) l=2n : (-2110) glide plane with c/2 translation (c)
+    ( -h   0   h l) l=2n : (1-210) glide plane with c/2 translation (c)
+    (  h   h -2h l) l=2n : (1-100) glide plane with c/2 translation (c)
+    (-2h   h   h l) l=2n : (01-10) glide plane with c/2 translation (c)
+    (  h -2h   h l) l=2n : (-1010) glide plane with c/2 translation (c)
+    (  h  h  l)     l=2n : (1-10) glide plane with c/2 translation (c,n)
+    (  h  k  k)     h=2n : (01-1) glide plane with a/2 translation (a,n)
+    (  h  k  h)     k=2n : (-101) glide plane with b/2 translation (b,n)
+    (  h  h  l)     l=2n : (1-10) glide plane with c/2 translation (c,n)
+    (  h  h  l)  2h+l=4n : (1-10) glide plane with a/4 +- b/4 +- c/4 translation (d)
+    (  h -h  l)     l=2n : (110)  glide plane with c/2 translation (c,n)
+    (  h -h  l)  2h+l=4n : (110)  glide plane with a/4 +- b/4 +- c/4 translation (d)
+    (  h  k  k)     h=2n : (01-1) glide plane with a/2 translation (a,n)
+    (  h  k  k)  2k+h=4n : (01-1) glide plane with +-a/4 + b/4 +- c/4 translation(d)
+    (  h  k -k)     h=2n : (011)  glide plane with a/2 translation (a,n)
+    (  h  k -k)  2k+h=4n : (011)  glide plane with +-a/4 + b/4 +- c/4 translation(d)
+    (  h  k  h)     k=2n : (-101) glide plane with b/2 translation (b,n)
+    (  h  k  h)  2h+k=4n : (-101) glide plane with +-a/4 +- b/4 + c/4 translation(d)
+    ( -h  k  h)     k=2n : (101)  glide plane with b/2 translation (b,n)
+    ( -h  k  h)  2h+k=4n : (101)  glide plane with +-a/4 +- b/4 + c/4 translation(d)
+    # ! monoclinic, ortho., tetra and cubic
+    (h 0 0)      h=2n : screw axis // [100] with  a/2 translation (21)
+    # ! cubic
+    (h 0 0)      h=2n : screw axis // [100] with 2a/4 translation (42)
+    # ! cubic
+    (h 0 0)      h=4n : screw axis // [100] with  a/4 translation (41)
+    # ! cubic
+    (h 0 0)      h=4n : screw axis // [100] with 3a/4 translation (43)
+    # ! monoclinic, ortho., tetra and cubic
+    (0 k 0)      k=2n : screw axis // [010] with  b/2 translation (21)
+    # ! cubic
+    (0 k 0)      k=2n : screw axis // [010] with 2b/4 translation (42)
+    # ! cubic
+    (0 k 0)      k=4n : screw axis // [010] with  b/4 translation (41)
+    # ! cubic
+    (0 k 0)      k=4n : screw axis // [010] with 3b/4 translation (43)
+    # ! monoclinic, ortho., tetra and cubic
+    (0 0 l)      l=2n : screw axis // [00l] with  c/2 translation (21)
+    # ! tetragonal and cubic
+    (0 0 l)      l=2n : screw axis // [00l] with 2c/4 translation (42)
+    # ! tetragonal and cubic
+    (0 0 l)      l=4n : screw axis // [00l] with  c/4 translation (41)
+    # ! tetragonal and cubic
+    (0 0 l)      l=4n : screw axis // [00l] with 3c/4 translation (43)
+    (0 0 0 l)    l=2n : screw axis // [00l] axis with 3c/6 translation (63)
+    (0 0 0 l)    l=3n : screw axis // [00l] axis with  c/3 translation (31)
+    (0 0 0 l)    l=3n : screw axis // [00l] axis with 2c/3 translation (32)
+    (0 0 0 l)    l=3n : screw axis // [00l] axis with 2c/6 translation (62)
+    (0 0 0 l)    l=3n : screw axis // [00l] axis with 4c/6 translation (64)
+    (0 0 0 l)    l=6n : screw axis // [00l] axis with  c/6 translation (61)
+    (0 0 0 l)    l=6n : screw axis // [00l] axis with 5c/6 translation (65)"""
 
 Hkl_Ref_Conditions = Hkl_Ref_Conditions.split('\n')
 Hkl_Ref_Conditions = [i for i in Hkl_Ref_Conditions if i[0] != '#']
@@ -151,19 +149,19 @@ def Search_Extinctions(Spacegroup, Iunit):
     integer,                 intent(in)     :: Iunit
     """
 
-    IC = Integral_Conditions(Spacegroup, Iunit)
-    SPC = Glide_Planes_Conditions(Spacegroup, Iunit)
-    SAC = Screw_Axis_Conditions(Spacegroup, Iunit)
-
-    C = IC + SPC + SAC
-
-    def is_exti(self, h, k, l):
-        h, k, l = np.asarray(h), np.asarray(k), np.asarray(l)
-        cond = np.asarray([f(h,k,l) for f in C], dtype=bool)
+    def is_exti(self, h, k, l):                               # noqa E741
+        h, k, l = np.asarray(h), np.asarray(k), np.asarray(l) # noqa E741
+        cond = np.asarray([f(h, k, l) for f in C], dtype=bool)
         if len(cond):
             return cond.any(axis=0)
         else:
             return np.array([False for i in h])
+
+    IC = Integral_Conditions(Spacegroup, Iunit)
+    SPC = Glide_Planes_Conditions(Spacegroup, Iunit)
+    SAC = Screw_Axis_Conditions(Spacegroup, Iunit)
+    C = IC + SPC + SAC
+
     Spacegroup.search_exti = types.MethodType(is_exti, Spacegroup)
 
     return
@@ -183,35 +181,6 @@ def hkl_absent(HKL, Spacegroup):
             if abs(r1 - round(r1)) > eps_ref:
                 return True
     return False
-
-
-    # Function Hkl_AbsentI(H,Spacegroup) Result(Info)
-    #    !---- Arguments ----!
-    #    integer, dimension(3),   intent (in) :: h
-    #    Type (Space_Group_Type), intent (in) :: SpaceGroup
-    #    logical                              :: info
-
-    #    !---- Local Variables ----!
-    #    integer, dimension(3)              :: k
-    #    integer                            :: i
-    #    real(kind=cp)                      :: r1,r2
-
-    #    info=.false.
-
-    #    do i=1,SpaceGroup%multip
-    #       k = matmul(h,SpaceGroup%SymOp(i)%Rot)
-    #       if (hkl_equal(h,k)) then
-    #          r1=dot_product(SpaceGroup%SymOp(i)%Tr,real(h))
-    #          r2=nint(r1)
-    #          if (abs(r1-r2) > eps_ref) then
-    #             info=.true.
-    #             exit
-    #          end if
-    #       end if
-    #    end do
-
-    #    return
-    # End Function Hkl_AbsentI
 
 
 def Integral_Conditions(SpaceGroup, iunit):
@@ -325,6 +294,7 @@ def Integral_Conditions(SpaceGroup, iunit):
         if iunit:
             print("     =====>>> no general reflection condition")
     return IC
+
 
 def Screw_Axis_Conditions(SpaceGroup, Iunit):
     """
@@ -468,6 +438,7 @@ def Screw_Axis_Conditions(SpaceGroup, Iunit):
             print("     =====>>> no serial reflection condition")
 
     return SAC
+
 
 def Glide_Planes_Conditions(SpaceGroup, Iunit):
     """
