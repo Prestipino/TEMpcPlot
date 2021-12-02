@@ -1140,17 +1140,17 @@ class EwaldPeaks(object):
         vectors = ind.check_3Dlincomb(vectors)
         print('#Primitive cell')
         self.set_cell(vectors.T)
-        twofold = ct.search_twofold(inv(vectors))
+        twofold = ct.search_twofold(inv(vectors), toll_angle)
         if len(twofold['uvw']) > 0:
-            print('twofold symmetri found:\n uvw     hkl      tollerance')
+            print('\ntwofold symmetri found:\n uvw     hkl      tollerance')
             for i, s in enumerate(twofold['sigma']):
                 print(twofold['uvw'][i], twofold['hkl'][i], s)
-            print('possible high symmetry cells')
+            print('\npossible high symmetry cells:\n')
             sol = []
             for i, sigma in enumerate(ct.twofold_reduce(twofold)):
-                print(f'cell n.{i} angular deviations:', sigma['sigma'][0])
+                print(f'\ncell n.{i} angular deviations:', sigma['sigma'][0])
                 sol.append(ct.get_cell(sigma))
-            accep_sol = int(input('select cell number'))
+            accep_sol = int(input('\nselect cell number:\n'))
             A = np.dot(vectors.T, inv(sol[accep_sol][1]))
             self.set_cell(A)
         return
