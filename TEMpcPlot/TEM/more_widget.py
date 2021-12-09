@@ -324,7 +324,8 @@ class ToolbarPlus():
             index -= up * lun * (abs(index) // lun)
             selfi.ima = selfi[index]
             plt.sca(ax)
-            selfi.ima.plot(new=0, log=log, peaks=self.Peak_plot, *self.args, **self.kwds)
+            selfi.ima.plot(new=0, log=log, peaks=self.Peak_plot, 
+                           n=index, *self.args, **self.kwds)
             ax.set_axis_off()
             ax.set_frame_on(False)
             #self.canvas.draw_idle()

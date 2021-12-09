@@ -56,7 +56,11 @@ def change_basis(coor, base):
 
 def rest_int(coor, tollerance):
     """return the coor that are integer inside a tollerance
-       coor is a row matrix 
+        coor is a row matrix of n peaks and 3 dimension
+        ----------------------
+        output:
+            bool array of n dimension, with true if all n 
+            compoenent are integer
 
     """
     filt = coor %1 # filter peaks that aren't multiple of the new basis

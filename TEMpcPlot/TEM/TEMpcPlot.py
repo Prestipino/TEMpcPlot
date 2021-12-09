@@ -435,7 +435,7 @@ class Mimage():
             self.Peaks = peaks
         return
 
-    def plot(self, new=True, log=False, peaks=True, *args, **kwds):
+    def plot(self, new=True, log=False, peaks=True, n='', *args, **kwds):
         """
         plot the image
         """
@@ -452,7 +452,7 @@ class Mimage():
             self.pltim = plt.imshow(self.ima, *args, **kwds)
         pltcenter = plt.plot(*reversed(self.center), 'bx')
         ax = plt.gca()
-        plt.title(f'Image {self.info.filename}')
+        plt.title(f'Image {n} {self.info.filename}')
 
         def format_coord(x, y):
             d1 = np.round(np.sqrt((x - self.center[0])**2 +
@@ -607,7 +607,7 @@ class SeqIm(list):
 
         if isinstance(filenames, str):
             if filenames[-3:].lower() == 'sqi':
-                if os.path.isfile(sqi_file):
+                if os.path.isfile(filenames):
                     self.filenames, gon_angles = red_sqi(filenames)
                 else:
                     raise TypeError(f'{sqi_file:s} file not present')
@@ -801,7 +801,7 @@ class SeqIm(list):
             tool_b = fig.canvas.manager.toolbar
 
         self.ima = self[0]
-        self.ima.plot(new=0, log=log, *args, **kwds)
+        self.ima.plot(new=0, log=log, n=0,*args, **kwds)
         ax.set_axis_off()
         ax.set_frame_on(False)
 
@@ -834,7 +834,7 @@ class SeqIm(list):
             plt.sca(ax)
             try:
                 self.ima.find_peaks(rad_c=spac, tr_c=inte,
-                                    dist=dist * len(self.ima),
+                                    dist=dist * len(self.ima.ima),
                                     symf=symB)
             except ValueError:
                 pass
@@ -851,7 +851,7 @@ class SeqIm(list):
             symB = symb.val
             plt.sca(ax)
             self.find_peaks(rad_c=spac, tr_c=inte,
-                            dist=dist * len(self.ima),
+                            dist=dist * len(self.ima.ima),
                             symf=symB)
         tbarplus.butpal.on_clicked(app_all)
 
@@ -1122,15 +1122,14 @@ class EwaldPeaks(object):
         """
 
         if layers is None:
-            layers = range(len(self.pos))
+            layers = list(range(len(self.pos)))
         if cond is None:
             cond = lambda pos, inte: pos
         pos = [cond(self.pos[i], self.int[i]) for i in layers]
 
         vectors = []
-        for i in layers:
-            vectors.extend(ind.Find_2D_uc(pos[i], toll_angle,
-                                          toll))
+        for pos_i in pos:
+            vectors.extend(ind.Find_2D_uc(pos_i, toll_angle, toll))
         vectors = ind.check_colinearity(vectors, toll_angle)
         if sort:
             allpos = np.vstack(pos)
@@ -1138,9 +1137,13 @@ class EwaldPeaks(object):
         else:
             vectors = ind.check_3D_coplanarity(vectors, toll_angle)
         vectors = ind.check_3Dlincomb(vectors)
+
         print('#Primitive cell')
         self.set_cell(vectors.T)
-        twofold = ct.search_twofold(inv(vectors), toll_angle)
+        return 
+
+    def search_standard_setting(self):
+        twofold = ct.search_twofold(inv(self.axes.T), toll_angle)
         if len(twofold['uvw']) > 0:
             print('\ntwofold symmetri found:\n uvw     hkl      tollerance')
             for i, s in enumerate(twofold['sigma']):
@@ -1151,9 +1154,8 @@ class EwaldPeaks(object):
                 print(f'\ncell n.{i} angular deviations:', sigma['sigma'][0])
                 sol.append(ct.get_cell(sigma))
             accep_sol = int(input('\nselect cell number:\n'))
-            A = np.dot(vectors.T, inv(sol[accep_sol][1]))
+            A = np.dot(self.axes, inv(sol[accep_sol][1]))
             self.set_cell(A)
-        return
 
     def plot_reduce(self, tollerance=0.1, condition=None):
         """plot collapsed reciprocal space
@@ -1397,7 +1399,7 @@ class EwaldPeaks(object):
                 error.append(0.00)
 
         self._axes_std = np.array(error[:9]).reshape(3, 3)
-        self.set_cell(self.axes, self._axes_std)
+        self.set_cell(self.axes, self._axes_std, tollerance=tollerance)
         return res_1.x[9:]  # res_1.success, res_1.njev,
 
     def refine_axang(self, axes=None, tollerance=0.1, zero_tol=0.1):
@@ -1470,7 +1472,7 @@ class EwaldPeaks(object):
             r = R.from_rotvec(self._rot_vect[i_pla] * res_1.x[12 + i])
             self.pos[i_pla] = r.apply(self.pos[i_pla])
 
-        self.set_cell(self.axes, self._axes_std)
+        self.set_cell(self.axes, self._axes_std, tollerance=tollerance)
 
         return ref_planes, np.degrees(res_1.x), np.degrees(error)
 
@@ -1533,7 +1535,7 @@ class EwaldPeaks(object):
             r = R.from_rotvec(self._rot_vect[i_pla] * res_1.x[i])
             self.pos[i_pla] = r.apply(self.pos[i_pla])
 
-        self.set_cell(self.axes)
+        self.set_cell(self.axes, tollerance=tollerance)
         return ref_planes, np.degrees(res_1.x), np.degrees(error)
 
     def set_cell(self, axes=None, axes_std=None, tollerance=0.1, cond=None):

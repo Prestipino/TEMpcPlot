@@ -1,11 +1,11 @@
 import numpy as np
-
+from scipy.optimize import least_squares
 from . import math_tools as mt
 import itertools
 # import  scipy.optimize  as opt
 
 
-def Peak_find_vectors(Peaks, toll=0.087):
+def Peak_find_vectors(Peaks, atoll=0.087, toll=0.01):
     """ Finds the first or 2 first  smallest non colinear vectors
     for each peak in an image
     Input :
@@ -17,7 +17,16 @@ def Peak_find_vectors(Peaks, toll=0.087):
     """
     vectors = Peaks[1:] - Peaks[0]  # (2*N matrix) create vectors from 1 peak
     # compute the modulus of each (2*1) vector from the 2*N matrix into a 1*N array
+    vectors = vectors[mt.mod(vectors) > toll]
     minarg = np.argsort(mt.mod(vectors))
+    for vect_m in minarg:
+        # angle between 2 vectors in radian
+        vangle = mt.angle_between_vectors(vectors[minarg[0]], vectors[vect_m])
+        if (vangle < np.pi - toll) and (vangle > toll):  # colinearity check
+            return vectors[[minarg[0], vect_m]]
+    return np.array([vectors[minarg[0]]])
+
+
     for vect_m in minarg[1:]:
         # angle between 2 vectors in radian
         vangle = mt.angle_between_vectors(vectors[minarg[0]], vectors[vect_m])
@@ -35,7 +44,7 @@ def find_all_2vectors(Peaks, toll=5):
     - toll : precision (default number is 5%)
 
     Output :
-    - vectors : n*2 array of vectors sorted by modulus
+    - vectors : n*3 array of vectors sorted by modulus
     """
     atoll = toll * mt.rpd
     vectors = []  # first 2 smallest non colinear vectors
@@ -43,7 +52,22 @@ def find_all_2vectors(Peaks, toll=5):
         xx = Peak_find_vectors(Peaks[i:], atoll)
         # finds 2 smallest non colinear vectors for each peak
         vectors.extend(xx)
-    return check_colinearity(np.array(vectors), toll_angle=5)
+    return check_colinearity2(vectors, toll_angle=5)
+
+
+def check_sums_iter(a, b):
+    """
+    find the minimum lin com of 2 vectors
+    """
+    for i in range(50):
+        print('check_sums_iter',i)
+        ai, bi = check_sums(a, b)
+        if ((ai == a) & (bi == b)).all():
+            return  check_sums(a, b)
+        else:
+            a, b = ai, bi
+    print('check_sums_iter missed convercence')
+    return check_sums(a, b)
 
 
 def check_sums(a, b):
@@ -58,6 +82,8 @@ def check_sums(a, b):
     - vector : 2*1 array sorted by modulus
 
     """
+    a = np.array(a)
+    b = np.array(b) 
     vector = np.array([a, b, a + b, a - b]) 
     mods = np.argsort(mt.mod(vector))[:2]
     return vector[mods]
@@ -72,14 +98,25 @@ def sort_LayerCalib(Peaks, vects, toll=0.1):
     - Vects a row vector
     - toll : calibration tolerance
     """
+    print('vecs\n',repr(vects))
     n_index = []
-    z = mt.norm(np.cross(*vects[:2]))
-    bases = list(itertools.combinations(vects, 2))
-    for i_vect in bases:
+    try:
+        # z = unit vector perp. to the peaks plane
+        z = mt.norm(np.cross(*vects[:2]))
+    except:
+        print('vecs\n',vects)
+        z = mt.norm(np.cross(*vects[:2]))
+    bases = [check_sums(*i) for i in itertools.combinations(vects, 2)]
+
+
+    for j, i_vect in enumerate(bases):
+        i_vect = check_sums(*i_vect)
+
         npos = mt.change_basis(Peaks, np.vstack([z, *i_vect]).T)
         n_index.append(np.sum(mt.rest_int(npos, toll)))
+    print(n_index)
     argsm = np.argmax(n_index)
-    return np.vstack(bases[argsm])
+    return check_sums(*bases[argsm])
 
 
 def Find_2D_uc(Peaks, toll_angle=5, toll=0.10):
@@ -93,15 +130,14 @@ def Find_2D_uc(Peaks, toll_angle=5, toll=0.10):
     - out : array of unit vectors of length : number_of_images_in_sequence*2
     """
     unit_vectors = find_all_2vectors(Peaks, toll_angle)
-    vecti = sort_LayerCalib(Peaks, unit_vectors, toll)
-    return check_sums(*vecti)
+    #vecti = sort_LayerCalib(Peaks, unit_vectors, toll)
+    return check_sums(*unit_vectors)
 
 
 ################################################################
 
 
 def sort_Calib(Peaks, vects, toll=0.1, toll_angle=5):
-
     """
     Check if a set of vectors can reindex the peaks projected into its basis
 
@@ -138,6 +174,35 @@ def check_colinearity(vectors, toll_angle=5):
         else:
             vectors3D.append(vectors[i])
     return np.array(vectors3D)[::-1]
+
+def check_colinearity2(vectors, toll_angle=5):
+    """ remove all the colinear vectors with longher module 
+        the output is ordered by mod
+    """
+    toll = np.radians(toll_angle)
+    bin_range = mt.mod(vectors).max()
+    vectors3D = []
+
+    for i, vec_i in enumerate(vectors):
+        vectors3D.append([vec_i])
+        for j in range(len(vectors) - 1, i , -1):
+            ang3D = mt.angle_between_vectors(vectors[i], vectors[j])
+            if (ang3D > (np.pi - toll)) or (ang3D < toll):  # if colinear
+                vectors3D[i].append(vectors.pop(j))
+    vectors3D.sort(key=len, reverse=True)
+
+    def modeV(p, b):
+        x1= np.argmax(p)
+        return (b[x1] + b[x1+1]) / 2.0
+
+    v_out=[]        
+    for vec in vectors3D[:2]:
+        vec = np.array(vec) 
+        vec = vec.T * np.where(vec @ vec[0] > 0, 1, -1)
+        hists  = [np.histogram(x, bins='auto') for x in vec]
+        v_out.append([modeV(p, b) for p,b in hists] )
+    return np.array(v_out)    
+
 
 
 def check_3D_coplanarity(redcell, toll_angle=5):
