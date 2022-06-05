@@ -34,7 +34,7 @@ conda install -c cprestip tempcplot
 The code is still in rapid change and cold present several bug
 please update with the following command on an anaconda prompt  
 ```bash
-conda update --force-reinstall tempcplot
+conda update -c cprestip --force-reinstall tempcplot
 ```
 * * *
 ## In order to work
