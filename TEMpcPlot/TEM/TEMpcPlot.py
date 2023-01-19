@@ -1105,7 +1105,7 @@ class EwaldPeaks(object):
             plt.ylabel('n. peaks')
             plt.draw()
 
-    def find_cell(self, sort=0, cond=None, layers=None,
+    def find_cell(self, sort=0, maxes=20, cond=None, layers=None,
                   toll=0.1, toll_angle=5):
         """automatic find cell
         search the *cell in the present peaks
@@ -1129,7 +1129,7 @@ class EwaldPeaks(object):
 
         vectors = []
         for pos_i in pos:
-            vectors.extend(ind.Find_2D_uc(pos_i, toll_angle, toll))
+            vectors.extend(ind.Find_2D_uc(pos_i, toll_angle, toll, 1/maxes))
         vectors = ind.check_colinearity(vectors, toll_angle)
         if sort:
             allpos = np.vstack(pos)
