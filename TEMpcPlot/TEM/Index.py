@@ -5,7 +5,7 @@ import itertools
 # import  scipy.optimize  as opt
 
 
-def Peak_find_vectors(Peaks, atoll=0.087, toll=0.01):
+def Peak_find_vectors(Peaks, atoll=0.087):
     """ Finds the first or 2 first  smallest non colinear vectors
     for each peak in an image
     Input :
@@ -17,20 +17,11 @@ def Peak_find_vectors(Peaks, atoll=0.087, toll=0.01):
     """
     vectors = Peaks[1:] - Peaks[0]  # (2*N matrix) create vectors from 1 peak
     # compute the modulus of each (2*1) vector from the 2*N matrix into a 1*N array
-    vectors = vectors[mt.mod(vectors) > toll]
     minarg = np.argsort(mt.mod(vectors))
     for vect_m in minarg:
         # angle between 2 vectors in radian
         vangle = mt.angle_between_vectors(vectors[minarg[0]], vectors[vect_m])
-        if (vangle < np.pi - toll) and (vangle > toll):  # colinearity check
-            return vectors[[minarg[0], vect_m]]
-    return np.array([vectors[minarg[0]]])
-
-
-    for vect_m in minarg[1:]:
-        # angle between 2 vectors in radian
-        vangle = mt.angle_between_vectors(vectors[minarg[0]], vectors[vect_m])
-        if (vangle < np.pi - toll) and (vangle > toll):  # colinearity check
+        if (vangle < np.pi - atoll) and (vangle > atoll):  # colinearity check
             return vectors[[minarg[0], vect_m]]
     return np.array([vectors[minarg[0]]])
 
@@ -98,28 +89,26 @@ def sort_LayerCalib(Peaks, vects, toll=0.1):
     - Vects a row vector
     - toll : calibration tolerance
     """
-    print('vecs\n',repr(vects))
+    # print('vecs\n', repr(vects))
     n_index = []
     try:
         # z = unit vector perp. to the peaks plane
         z = mt.norm(np.cross(*vects[:2]))
     except:
-        print('vecs\n',vects)
+        print('vecs\n', vects)
         z = mt.norm(np.cross(*vects[:2]))
-    bases = [check_sums(*i) for i in itertools.combinations(vects, 2)]
-
+    ### bases = [check_sums(*i) for i in itertools.combinations(vects, 2)]
 
     for j, i_vect in enumerate(bases):
-        i_vect = check_sums(*i_vect)
-
+        ### i_vect = check_sums(*i_vect)
         npos = mt.change_basis(Peaks, np.vstack([z, *i_vect]).T)
         n_index.append(np.sum(mt.rest_int(npos, toll)))
-    print(n_index)
+    #print(n_index)
     argsm = np.argmax(n_index)
     return check_sums(*bases[argsm])
 
 
-def Find_2D_uc(Peaks, toll_angle=5, toll=0.10):
+def Find_2D_uc(Peaks, toll_angle=5, toll=0.10, maxes=0.5):
     """
     Finds the best fitting unit cell for an image
 
@@ -130,7 +119,8 @@ def Find_2D_uc(Peaks, toll_angle=5, toll=0.10):
     - out : array of unit vectors of length : number_of_images_in_sequence*2
     """
     unit_vectors = find_all_2vectors(Peaks, toll_angle)
-    #vecti = sort_LayerCalib(Peaks, unit_vectors, toll)
+    unit_vectors = unit_vectors[mt.mod(unit_vectors) > maxes]
+    vecti = sort_LayerCalib(Peaks, unit_vectors, toll)
     return check_sums(*unit_vectors)
 
 
