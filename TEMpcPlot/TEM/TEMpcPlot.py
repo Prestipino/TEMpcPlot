@@ -1140,9 +1140,9 @@ class EwaldPeaks(object):
 
         print('#Primitive cell')
         self.set_cell(vectors.T)
-        return 
+        return
 
-    def search_standard_setting(self):
+    def search_standard_setting(self, toll_angle):
         twofold = ct.search_twofold(inv(self.axes.T), toll_angle)
         if len(twofold['uvw']) > 0:
             print('\ntwofold symmetri found:\n uvw     hkl      tollerance')

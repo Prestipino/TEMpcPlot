@@ -7,7 +7,7 @@ package:
 
 source:
   git_url: https://github.com/Prestipino/TEMpcPlot.git
-  git_rev: v1.3
+  git_rev: v1.2.3
   git_depth: 1 # (Defaults to -1/not shallow)
 
 build:
@@ -29,7 +29,7 @@ requirements:
     - python >=3.7
     - scipy
     - numpy
-    - matplotlib
+    - matplotlib 3.4.2
     - scipy
     - pillow
     - uncertainties    
