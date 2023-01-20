@@ -12,6 +12,7 @@ SQ2 = np.sqrt(2.)
 RSQPI = 1. / np.sqrt(np.pi)
 R2pisq = 1. / (2. * np.pi**2)
 nxs = np.newaxis
+tola=0.1
 
 
 def sec2HMS(sec):
@@ -524,7 +525,6 @@ def search_twofold(cell, toll_angle):
             'rbase': r_base,
             'toll': toll}
 
-
 def get_cell(twofold):
     """dtwofold = uvw
        caxes = dv
@@ -542,6 +542,8 @@ def get_cell(twofold):
     new base = |a1x b1x c1x|
                |a1y b1y c1y| =  A @ tr.T
                |a1z b1z c1z|
+
+    from Get_Conventional_Cell(Twofold,Cell,Tr,Message,Ok,lattice,told) in crysfml
     """
     def check90(angle):
         return abs(angle - (np.pi / 2)) < twofold['toll']
@@ -604,6 +606,7 @@ def get_cell(twofold):
     if ntwo == 7:  # Case (7)   !Hexagonal n-2foldaxes=7
         hexap = False
         hexac = False
+        mv = mt.mod(twofold['dv'])
 
         # Search tha a-b plane
         for i, j in combinations(range(ntwo), 2):
@@ -635,7 +638,7 @@ def get_cell(twofold):
             tr = np.array([v1, v2, v3])
             namina = nl.det(tr)
             if (namina < 0):
-                tr[3] *= -1
+                tr[2] *= -1
                 v3 *= -1
                 namina *= -1
             if namina == 1:
@@ -651,7 +654,7 @@ def get_cell(twofold):
     if ntwo == 5:  # Case (5)   !Tetragonal n-2foldaxes=5
         ab = []
         inp = np.zeros(5)
-        mv = mt.mod(twofold['dv'])
+        mv = mt.mod(twofold['dv'])  # modulus twofold vector
 
         for i, j in combinations(range(ntwo), 2):
             vi = twofold['dv'][i]
@@ -668,6 +671,7 @@ def get_cell(twofold):
         if len(ab) < 2:
             ok = False
             print("Basis vectors a-b not found!")
+            return
         #  !Determination of the c-axis
         #  (that making 90 degree with all the others)
         naminc = np.argmin(inp)
@@ -749,7 +753,7 @@ def get_cell(twofold):
                 dot = 1.0
                 iu = 1
             elif any(abs(ang - (np.pi / 6)) < twofold['toll']):  # search 60
-                c_axis = np.armin(abs(ang - (np.pi / 6)))
+                c_axis = np.argmin(abs(ang - (np.pi / 6)))
                 dot = -1.0
                 iu = -1
             else:

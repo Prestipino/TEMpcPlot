@@ -1153,6 +1153,7 @@ class EwaldPeaks(object):
             for i, sigma in enumerate(ct.twofold_reduce(twofold)):
                 print(f'\ncell n.{i} angular deviations:', sigma['sigma'][0])
                 sol.append(ct.get_cell(sigma))
+            return
             accep_sol = int(input('\nselect cell number:\n'))
             A = np.dot(self.axes, inv(sol[accep_sol][1]))
             self.set_cell(A)

@@ -97,7 +97,7 @@ def sort_LayerCalib(Peaks, vects, toll=0.1):
     except:
         print('vecs\n', vects)
         z = mt.norm(np.cross(*vects[:2]))
-    ### bases = [check_sums(*i) for i in itertools.combinations(vects, 2)]
+    bases = [check_sums(*i) for i in itertools.combinations(vects, 2)]
 
     for j, i_vect in enumerate(bases):
         ### i_vect = check_sums(*i_vect)
