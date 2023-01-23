@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-
+import matplotlib
 from matplotlib.widgets import Slider, Button, CheckButtons
 # from matplotlib.backend_tools import ToolBase
 # plt.rcParams['toolbar'] = 'toolmanager'
@@ -17,6 +17,7 @@ import os
 
 from .. import dm3_lib as dm3
 from .. import Symmetry
+from .. import Gui
 from . import plt_p
 from .profileline import profile_line
 from . import d3plot
@@ -323,8 +324,11 @@ class PeakL(list):
     def r(self):
         return list(reversed(self))
 
-    def plot(self):
-        self.lp, = plt.plot(*self.r, 'r.', picker=5)
+    def plot(self, ax=None):
+        if ax:
+            self.lp, = ax.plot(*self.r, 'r.', picker=5)
+        else:
+            self.lp, = plt.plot(*self.r, 'r.', picker=5)
 
     def deplot(self):
         self.lp.remove()
@@ -440,19 +444,24 @@ class Mimage():
         plot the image
         """
         if new:
-            fig = plt.figure()
+            if isinstance(new, Gui.SIP.SeqImaPlot):
+                # fig = new.widget.figure
+                ax = new.widget.ax
+            else:
+                plt.figure()
+                print('bad')
         else:
-            fig = plt.gcf()
+            # fig = plt.gcf()
             ax = plt.gca()
             ax.cla()
 
         if log:
-            self.pltim = plt.imshow(np.log(np.abs(self.ima)), *args, **kwds)
+            self.pltim = ax.imshow(np.log(np.abs(self.ima)), *args, **kwds)
         else:
-            self.pltim = plt.imshow(self.ima, *args, **kwds)
-        pltcenter = plt.plot(*reversed(self.center), 'bx')
-        ax = plt.gca()
-        plt.title(f'Image {n} {self.info.filename}')
+            self.pltim = ax.imshow(self.ima, *args, **kwds)
+        pltcenter = ax.plot(*reversed(self.center), 'bx')
+        #ax = plt.gca()
+        ax.set_title(f'Image {n} {self.info.filename}')
 
         def format_coord(x, y):
             d1 = np.round(np.sqrt((x - self.center[0])**2 +
@@ -465,7 +474,7 @@ class Mimage():
 
         if peaks:
             if hasattr(self, 'Peaks'):
-                self.Peaks.plot()
+                self.Peaks.plot(ax=ax)
 
     def despike(self, satur=0.90):
         '''
@@ -794,37 +803,51 @@ class SeqIm(list):
             >>> Exp1.plot(vmin = 10, )
         '''
         if fig is None:
-            fig = plt.figure()
+            from PyQt5 import QtCore, QtGui, QtWidgets
+            MainWindow = QtWidgets.QMainWindow()
+            ui = Gui.SIP.SeqImaPlot()
+            ui.setupUi(MainWindow)
+            MainWindow.show()
+            fig = ui.widget.figure
+            ax = ui.widget.ax
         if ax is None:
             ax = plt.axes([0.0, 0.10, 0.80, 0.80])
-        if tool_b is None:
-            tool_b = fig.canvas.manager.toolbar
 
         self.ima = self[0]
-        self.ima.plot(new=0, log=log, n=0,*args, **kwds)
+        self.ima.plot(new=ui, log=log, n=0,*args, **kwds)
         ax.set_axis_off()
         ax.set_frame_on(False)
 
-        tbarplus = mw.ToolbarPlus(self, log=log, fig=fig,
-                                  ax=ax, tool_b=tool_b, *args, **kwds)
+        #tbarplus = mw.ToolbarPlus(self, log=log, fig=fig,
+        #                          ax=ax, tool_b=tool_b, *args, **kwds)
 
-        axcolor = 'lightgoldenrodyellow'
-        axinte = plt.axes([0.75, 0.87, 0.20, 0.03], facecolor=axcolor)
-        axdist = plt.axes([0.75, 0.82, 0.20, 0.03], facecolor=axcolor)
-        axspac = plt.axes([0.75, 0.77, 0.20, 0.03], facecolor=axcolor)
-        axsym = plt.axes([0.75, 0.72, 0.20, 0.03], facecolor=axcolor)
+        #axcolor = 'lightgoldenrodyellow'
+        #axinte = plt.axes([0.75, 0.87, 0.20, 0.03], facecolor=axcolor)
+        #axdist = plt.axes([0.75, 0.82, 0.20, 0.03], facecolor=axcolor)
+        #axspac = plt.axes([0.75, 0.77, 0.20, 0.03], facecolor=axcolor)
+        #axsym = plt.axes([0.75, 0.72, 0.20, 0.03], facecolor=axcolor)
 
-        inteb = Slider(ax=axinte, label='int', valmin=0.01, valmax=10.0, valinit=5)  # , valstep=delta_f
-        distb = Slider(ax=axdist, label='dis', valmin=0, valmax=1, valinit=0.9)
-        spacb = Slider(ax=axspac, label='rad', valmin=0.1, valmax=10.0, valinit=1)  # , valstep=delta_f
-        symb = Slider(ax=axsym, label='sym', valmin=0.0, valmax=20.0, valinit=0)
+
+        #spacb = Slider(ax=axspac, label='rad', valmin=0.1, valmax=10.0, valinit=1)  # , valstep=delta_f
+        #symb = Slider(ax=axsym, label='sym', valmin=0.0, valmax=20.0, valinit=0)
+
+        inteb = ui.Int_sl
+        inteb.set_Range(0.01, 10.0)
+        inteb.set_value(5)
+        distb = ui.dist_sl
+        distb.set_Range(0.0, 1.0)
+        distb.set_value(0.9)
+        spacb = ui.rad_sl
+        spacb.set_Range(0.01, 10.0)
+        spacb.set_value(1)
+        symb = ui.sym_sl
+        symb.set_Range(0.0, 20.0)
+        symb.set_value(0)
 
         # Create a `matplotlib.widgets.Button` to apply to all
-        axapal = plt.axes([0.75, 0.67, 0.15, 0.04])
-        tbarplus.butpal = Button(axapal, 'apply to all', color=axcolor, hovercolor='0.975')
+        butpal = ui.applyalButton
 
-        axvmax = plt.axes([0.75, 0.17, 0.15, 0.04])
-        vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100)
+        #vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100)
 
         def update(val):
             inte = inteb.val**2 / 101
@@ -839,10 +862,10 @@ class SeqIm(list):
             except ValueError:
                 pass
 
-        inteb.on_changed(update)
-        distb.on_changed(update)
-        spacb.on_changed(update)
-        symb.on_changed(update)
+        #inteb.on_changed(update)
+        #distb.on_changed(update)
+        #spacb.on_changed(update)
+        #symb.on_changed(update)
 
         def app_all(event):
             inte = inteb.val**2 / 101
@@ -853,7 +876,7 @@ class SeqIm(list):
             self.find_peaks(rad_c=spac, tr_c=inte,
                             dist=dist * len(self.ima.ima),
                             symf=symB)
-        tbarplus.butpal.on_clicked(app_all)
+        #tbarplus.butpal.on_clicked(app_all)
 
         def refresh(val):
             mini = np.where(self.ima.ima > 0, self.ima.ima, np.inf).min()

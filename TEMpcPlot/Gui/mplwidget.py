@@ -11,7 +11,9 @@ import random
 
 
 class C3_slider():
-    def __init__(self, parent, layout, label):
+    def __init__(self, parent, layout, label, minimum=None, maximum=None, value=None):
+        self.min = minimum if minimum else 0
+        self.max = maximum if maximum else 100
         self.frame = QtWidgets.QFrame(parent)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
@@ -27,19 +29,45 @@ class C3_slider():
         self.label = QtWidgets.QLabel(self.frame)
         self.label.setObjectName("label_25")
         self.horizontalLayout_9.addWidget(self.label)
-        self.horizontalSlider = QtWidgets.QSlider(self.frame)
-        self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
-        self.horizontalSlider.setObjectName("horizontalSlider")
-        self.horizontalLayout_9.addWidget(self.horizontalSlider)
-        self.lcdNumber = QtWidgets.QLCDNumber(self.frame)
-        self.lcdNumber.setObjectName("lcdNumber_2")
-        self.horizontalLayout_9.addWidget(self.lcdNumber)
+
+        self.Slider = QtWidgets.QSlider(self.frame)
+        self.Slider.setRange(0, 1000)
+        self.Slider.setOrientation(QtCore.Qt.Horizontal)
+        self.Slider.setObjectName("Slider")
+        self.Slider.valueChanged.connect(self.update)
+        self.horizontalLayout_9.addWidget(self.Slider)
+
+        # creating a label
+        self.labelx = QtWidgets.QLabel("GeeksforGeeks", self.frame)
+        # setting geometry to the label
+        self.labelx.setGeometry(200, 100, 300, 80)
+        # getting current position of the slider
+        value = self.Slider.sliderPosition()
+        self.horizontalLayout_9.addWidget(self.labelx)
+
+        #self.lcdNumber = QtWidgets.QLCDNumber(self.frame)
+        #self.lcdNumber.setObjectName("lcdNumber_2")
+        #self.horizontalLayout_9.addWidget(self.lcdNumber)
         layout.addWidget(self.frame)
         self.label.setText(label)
-        self.horizontalSlider.valueChanged['int'].connect(self.lcdNumber.display)
+        #self.Slider.valueChanged['int'].connect(self.lcdNumber.display)
 
+    def update(self, value):
+        step = (self.max - self.min) / 1000
+        self.labelx.setText(f'{self.min + value * step:.2f}')
 
+    def set_Range(self, minimum, maximum):
+        self.min = minimum
+        self.max = maximum
 
+    def get_value(self):
+        step = (self.max - self.min) / 1000
+        value = self.Slider.sliderPosition()
+        return self.min + value * step
+
+    def set_value(self, value):
+        step = (self.max - self.min) / 1000
+        self.Slider.setValue((value - self.min) / step)
 
 
 class Stepslider(QtWidgets.QSlider):
