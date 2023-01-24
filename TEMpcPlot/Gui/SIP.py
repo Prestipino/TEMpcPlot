@@ -173,7 +173,7 @@ class   SeqImaPlot(object):
         self.frame_contrast.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_contrast.setObjectName("frame_contrast")
 
-        self.sym_sl = C3_slider(self.frame_contrast, self.verticalLayout, 'Contrast') 
+        self.vmax_sl = C3_slider(self.frame_contrast, self.verticalLayout, 'Contrast') 
 
         self.frame_3D = QtWidgets.QFrame(self.frame_3)
         self.frame_3D.setFrameShape(QtWidgets.QFrame.StyledPanel)

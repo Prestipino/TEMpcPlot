@@ -38,7 +38,7 @@ class C3_slider():
         self.horizontalLayout_9.addWidget(self.Slider)
 
         # creating a label
-        self.labelx = QtWidgets.QLabel("GeeksforGeeks", self.frame)
+        self.labelx = QtWidgets.QLabel("", self.frame)
         # setting geometry to the label
         self.labelx.setGeometry(200, 100, 300, 80)
         # getting current position of the slider

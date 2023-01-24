@@ -28,6 +28,19 @@ from . import Index as ind
 # import  scipy.optimize  as opt
 plt.ion()
 
+
+
+import sys
+from PyQt5 import QtCore, QtGui, QtWidgets
+app = QtWidgets.QApplication(sys.argv)
+MainWindow = QtWidgets.QMainWindow()
+
+
+
+
+
+
+
 # from skimage.measure import LineModelND, ransa
 
 
@@ -834,18 +847,24 @@ class SeqIm(list):
         inteb = ui.Int_sl
         inteb.set_Range(0.01, 10.0)
         inteb.set_value(5)
+
         distb = ui.dist_sl
         distb.set_Range(0.0, 1.0)
         distb.set_value(0.9)
+
         spacb = ui.rad_sl
         spacb.set_Range(0.01, 10.0)
         spacb.set_value(1)
+
         symb = ui.sym_sl
         symb.set_Range(0.0, 20.0)
-        symb.set_value(0)
+        symb.set_value(0.0)
 
+        vmaxb = ui.vmax_sl
+        vmaxb.set_Range(0.01, 100.0)
+        vmaxb.set_value(50)        
         # Create a `matplotlib.widgets.Button` to apply to all
-        butpal = ui.applyalButton
+        #butpal = ui.applyalButton
 
         #vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100)
 
@@ -862,10 +881,10 @@ class SeqIm(list):
             except ValueError:
                 pass
 
-        #inteb.on_changed(update)
-        #distb.on_changed(update)
-        #spacb.on_changed(update)
-        #symb.on_changed(update)
+        inteb.Slider.valueChanged.connect(update)
+        distb.Slider.valueChanged.connect(update)
+        spacb.Slider.valueChanged.connect(update)
+        symb.Slider.valueChanged.connect(update)
 
         def app_all(event):
             inte = inteb.val**2 / 101
@@ -893,8 +912,12 @@ class SeqIm(list):
             self.ima.pltim.set_clim(vmax=vmax)
             tbarplus.kwds = kwds
 
-        vmaxb.on_changed(refresh)
+        vmaxb.Slider.valueChanged.connect(refresh)
         # self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
+
+        ui.setupUi(MainWindow)
+        MainWindow.show()
+        sys.exit(app.exec_())
 
     def save(self, filesave):
         """
