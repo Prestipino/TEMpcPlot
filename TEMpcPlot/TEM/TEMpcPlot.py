@@ -1,6 +1,4 @@
 import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib.widgets import Slider, Button, CheckButtons
 # from matplotlib.backend_tools import ToolBase
 # plt.rcParams['toolbar'] = 'toolmanager'
 # from mpl_toolkits.mplot3d import Axes3D
@@ -30,13 +28,8 @@ plt.ion()
 
 
 
-import sys
-from PyQt5 import QtCore, QtGui, QtWidgets
-app = QtWidgets.QApplication(sys.argv)
-MainWindow = QtWidgets.QMainWindow()
-
-
-
+#app = QtWidgets.QApplication(sys.argv)
+#MainWindow = QtWidgets.QMainWindow()
 
 
 
@@ -816,13 +809,9 @@ class SeqIm(list):
             >>> Exp1.plot(vmin = 10, )
         '''
         if fig is None:
-            from PyQt5 import QtCore, QtGui, QtWidgets
-            MainWindow = QtWidgets.QMainWindow()
-            ui = Gui.SIP.SeqImaPlot()
-            ui.setupUi(MainWindow)
-            MainWindow.show()
-            fig = ui.widget.figure
-            ax = ui.widget.ax
+            fig = Gui.SIP.SeqImaPlot()
+            fig.setupUi()
+            ax = fig.ax
         if ax is None:
             ax = plt.axes([0.0, 0.10, 0.80, 0.80])
 
@@ -844,23 +833,23 @@ class SeqIm(list):
         #spacb = Slider(ax=axspac, label='rad', valmin=0.1, valmax=10.0, valinit=1)  # , valstep=delta_f
         #symb = Slider(ax=axsym, label='sym', valmin=0.0, valmax=20.0, valinit=0)
 
-        inteb = ui.Int_sl
+        inteb = fig.Int_sl
         inteb.set_Range(0.01, 10.0)
         inteb.set_value(5)
 
-        distb = ui.dist_sl
+        distb = fig.dist_sl
         distb.set_Range(0.0, 1.0)
         distb.set_value(0.9)
 
-        spacb = ui.rad_sl
+        spacb = fig.rad_sl
         spacb.set_Range(0.01, 10.0)
         spacb.set_value(1)
 
-        symb = ui.sym_sl
+        symb = fig.sym_sl
         symb.set_Range(0.0, 20.0)
         symb.set_value(0.0)
 
-        vmaxb = ui.vmax_sl
+        vmaxb = fig.vmax_sl
         vmaxb.set_Range(0.01, 100.0)
         vmaxb.set_value(50)        
         # Create a `matplotlib.widgets.Button` to apply to all
@@ -914,10 +903,9 @@ class SeqIm(list):
 
         vmaxb.Slider.valueChanged.connect(refresh)
         # self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
-
-        ui.setupUi(MainWindow)
         MainWindow.show()
-        sys.exit(app.exec_())
+
+
 
     def save(self, filesave):
         """

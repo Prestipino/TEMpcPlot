@@ -10,6 +10,8 @@ import random
 class Window(QDialog):
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
+        main = Window()
+        main.show()
 
         # a figure instance to plot on
         self.figure = plt.figure()
@@ -56,7 +58,5 @@ class Window(QDialog):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    main = Window()
-    main.show()
 
     sys.exit(app.exec_())

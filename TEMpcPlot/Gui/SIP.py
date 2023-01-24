@@ -1,41 +1,80 @@
-# -*- coding: utf-8 -*-
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+plt.ion()
 
-# Form implementation generated from reading ui file 'plottype1.ui'
-#
-# Created by: PyQt5 UI code generator 5.12.3
-#
-# WARNING! All changes made in this file will be lost!
+from matplotlib.backends.qt_compat import QtCore, QtWidgets, is_pyqt5, QtGui
+if is_pyqt5():
+    from matplotlib.backends.backend_qt5agg import FigureCanvas
+else:
+    from matplotlib.backends.backend_qt4agg import FigureCanvas
+from matplotlib.backends.qt_compat import QtCore, QtWidgets, is_pyqt5, QtGui
 
 
-from PyQt5 import QtCore, QtGui, QtWidgets
 
+class C3_slider():
+    def __init__(self, parent, layout, label, minimum=None, maximum=None, value=None):
+        self.min = minimum if minimum else 0
+        self.max = maximum if maximum else 100
+        self.frame = QtWidgets.QFrame(parent)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.frame.sizePolicy().hasHeightForWidth())
+        self.frame.setSizePolicy(sizePolicy)
+        self.frame.setMinimumSize(QtCore.QSize(400, 45))
+        self.frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.frame.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.frame.setObjectName("frame")
+        self.horizontalLayout_9 = QtWidgets.QHBoxLayout(self.frame)
+        self.horizontalLayout_9.setObjectName("horizontalLayout_9")
+        self.label = QtWidgets.QLabel(self.frame)
+        self.label.setObjectName("label_25")
+        self.horizontalLayout_9.addWidget(self.label)
 
+        self.Slider = QtWidgets.QSlider(self.frame)
+        self.Slider.setRange(0, 1000)
+        self.Slider.setOrientation(QtCore.Qt.Horizontal)
+        self.Slider.setObjectName("Slider")
+        self.Slider.valueChanged.connect(self.update)
+        self.horizontalLayout_9.addWidget(self.Slider)
+
+        # creating a label
+        self.labelx = QtWidgets.QLabel("", self.frame)
+        # setting geometry to the label
+        self.labelx.setGeometry(200, 100, 300, 80)
+        # getting current position of the slider
+        value = self.Slider.sliderPosition()
+        self.horizontalLayout_9.addWidget(self.labelx)
+
+        #self.lcdNumber = QtWidgets.QLCDNumber(self.frame)
+        #self.lcdNumber.setObjectName("lcdNumber_2")
+        #self.horizontalLayout_9.addWidget(self.lcdNumber)
+        layout.addWidget(self.frame)
+        self.label.setText(label)
+        #self.Slider.valueChanged['int'].connect(self.lcdNumber.display)
+
+    def update(self, value):
+        step = (self.max - self.min) / 1000
+        self.labelx.setText(f'{self.min + value * step:.2f}')
+
+    def set_Range(self, minimum, maximum):
+        self.min = minimum
+        self.max = maximum
+
+    def get_value(self):
+        step = (self.max - self.min) / 1000
+        value = self.Slider.sliderPosition()
+        return self.min + value * step
+
+    def set_value(self, value):
+        step = (self.max - self.min) / 1000
+        self.Slider.setValue((value - self.min) / step)
 
 
 class   SeqImaPlot(object):
-    def setupUi(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(800, 654)
-        self.centralwidget = QtWidgets.QWidget(MainWindow)
-        self.centralwidget.setObjectName("centralwidget")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.frame_2 = QtWidgets.QFrame(self.centralwidget)
-        self.frame_2.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.frame_2.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.frame_2.setObjectName("frame_2")
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.frame_2)
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.widget = mplwidget(self.frame_2)
-        self.widget.canvas.setMinimumSize(QtCore.QSize(600, 600))
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.widget.sizePolicy().hasHeightForWidth())
-        self.widget.setSizePolicy(sizePolicy)
-        self.widget.setObjectName("widget")
-        self.horizontalLayout_2.addWidget(self.widget)
-        self.frame_3 = QtWidgets.QFrame(self.frame_2)
+    def setupUi(self):
+        self.frame_3 = QtWidgets.QFrame()
         self.frame_3.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame_3.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_3.setObjectName("frame_3")
@@ -200,31 +239,22 @@ class   SeqImaPlot(object):
         self.checkBox.setObjectName("checkBox")
         self.horizontalLayout_8.addWidget(self.checkBox)
         self.verticalLayout.addWidget(self.frame_3D)
-        self.horizontalLayout_2.addWidget(self.frame_3)
-        self.horizontalLayout.addWidget(self.frame_2)
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
-        self.menubar.setObjectName("menubar")
-        MainWindow.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(MainWindow)
-        self.statusbar.setObjectName("statusbar")
-        MainWindow.setStatusBar(self.statusbar)
 
-        self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-    def retranslateUi(self, MainWindow):
-        _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.frame_Int.setToolTip(_translate("MainWindow", "<html><head/><body><p>Intensity</p></body></html>"))
-        self.applyalButton.setText(_translate("MainWindow", "Apply to all"))
-        self.pushButton.setText(_translate("MainWindow", "create 3D"))
-        self.label.setText(_translate("MainWindow", "px"))
-        self.label_2.setText(_translate("MainWindow", "ref"))
-        self.checkBox.setText(_translate("MainWindow", "Optimize \n"
-" scale"))
-from .mplwidget import mplwidget, C3_slider
+
+        hbox = QtWidgets.QHBoxLayout()
+        hspace = QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
+                                             QtWidgets.QSizePolicy.Expanding)
+        hbox.addItem(hspace)
+        hbox.addSpacing(20)
+        hbox.addWidget(self.frame_3)
+        self.fig = plt.figure(figsize=(6, 6), dpi=100)
+        self.ax = self.fig.add_subplot(111)
+        self.fig.canvas.setLayout(hbox)
+
+
+
+
 
 
 if __name__ == "__main__":

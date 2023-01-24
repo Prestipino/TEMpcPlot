@@ -1,10 +1,15 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QDialog, QApplication, QPushButton, QVBoxLayout, QWidget
-
-from matplotlib.backends.backend_qt5agg import (
-        FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
+plt.ion()
+
+from matplotlib.backends.qt_compat import QtCore, QtWidgets, is_pyqt5, QtGui
+from QtWidgets import QDialog, QApplication, QPushButton, QVBoxLayout, QWidget
+if is_pyqt5():
+    from matplotlib.backends.backend_qt5agg import FigureCanvas
+else:
+    from matplotlib.backends.backend_qt4agg import FigureCanvas
+
 
 import random
 
@@ -91,8 +96,6 @@ class Stepslider(QtWidgets.QSlider):
         self.setValue(int(round(index)))
 
 
-
-
 class StepDial(QtWidgets.QDial):
     floatValueChanged = QtCore.pyqtSignal(float)
     def __init__(self, minimum, maximum, step, parent=None):
@@ -148,6 +151,13 @@ class FloatDial(QtWidgets.QDial):
 
 
 
+class mplfig():
+    def __init__(self):   
+        self.fig = plt.figure(figsize=(8, 6), dpi=100)
+        self.ax = fig.add_subplot(111, projection='polar')
+        self.theta = np.arange(0., 2., 1. / 180.) * np.pi
+        self.ax.plot(theta, 5 * np.cos(4 * theta))
+
 
 
 class mplwidget(QtWidgets.QWidget):
@@ -156,7 +166,7 @@ class mplwidget(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self, parent)
 
         # a figure instance to plot on
-        self.figure = Figure(figsize=(5, 3))
+        self.figure = Figure(figsize=(5, 5), dpi=100)
 
         self.ax = self.figure.add_subplot(111)
 
