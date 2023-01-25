@@ -5,11 +5,12 @@ plt.ion()
 
 from matplotlib.backends.qt_compat import QtCore, QtWidgets, is_pyqt5, QtGui
 if is_pyqt5():
-    from matplotlib.backends.backend_qt5agg import FigureCanvas
+    from matplotlib.backends.backend_qt5agg import (
+    FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 else:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
 from matplotlib.backends.qt_compat import QtCore, QtWidgets, is_pyqt5, QtGui
-
+from matplotlib.figure import Figure
 
 
 class C3_slider():
@@ -72,8 +73,25 @@ class C3_slider():
         self.Slider.setValue((value - self.min) / step)
 
 
-class   SeqImaPlot(object):
-    def setupUi(self):
+class   SeqImaPlot(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self._main = QtWidgets.QWidget()
+        self.setCentralWidget(self._main)
+        layoutH1 = QtWidgets.QHBoxLayout(self._main)
+
+        layout_fig = QtWidgets.QVBoxLayout(self._main)
+        self.canvas = FigureCanvas(Figure(figsize=(4, 4)))
+        # Ideally one would use self.addToolBar here, but it is slightly
+        # incompatible between PyQt6 and other bindings, so we just add the
+        # toolbar as a plain widget instead.
+        layout_fig.addWidget(NavigationToolbar(self.canvas, self))
+        layout_fig.addWidget(self.canvas)
+
+
+        layout_commands = QtWidgets.QVBoxLayout()
+        
+        self.frame_3 = QtWidgets.QFrame()
         self.frame_3 = QtWidgets.QFrame()
         self.frame_3.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame_3.setFrameShadow(QtWidgets.QFrame.Raised)
@@ -240,28 +258,23 @@ class   SeqImaPlot(object):
         self.horizontalLayout_8.addWidget(self.checkBox)
         self.verticalLayout.addWidget(self.frame_3D)
 
-
-
-        hbox = QtWidgets.QHBoxLayout()
-        hspace = QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                             QtWidgets.QSizePolicy.Expanding)
-        hbox.addItem(hspace)
-        hbox.addSpacing(20)
-        hbox.addWidget(self.frame_3)
-        self.fig = plt.figure(figsize=(6, 6), dpi=100)
-        self.ax = self.fig.add_subplot(111)
-        self.fig.canvas.setLayout(hbox)
-
-
-
-
+        layoutH1.addLayout(layout_fig)
+        layoutH1.addLayout(layout_commands)
 
 
 if __name__ == "__main__":
     import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = SeqImaPlot()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())
+    # Check whether there is already a running QApplication (e.g., if running
+    # from an IDE).
+    qapp = QtWidgets.QApplication.instance()
+    if not qapp:
+        qapp = QtWidgets.QApplication(sys.argv)
+
+    app = SeqImaPlot()
+    app.show()
+    app.activateWindow()
+    app.raise_()
+    #sys.exit(app.exec_())
+    qapp.exec()
+
+
