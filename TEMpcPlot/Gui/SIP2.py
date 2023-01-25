@@ -127,10 +127,10 @@ class SeqImaPlot(QtWidgets.QMainWindow):
         layout_GBut.addWidget(self.angleBut)        
 
         # Sliders
-        self.Int_sl = C3_slider(None, layout_Commands, 'Inte  ')
-        self.dist_sl = C3_slider(None, layout_Commands,'Dist  ') 
-        self.rad_sl = C3_slider(None, layout_Commands, 'Radi  ') 
-        self.sym_sl = C3_slider(None, layout_Commands, 'Symm ') 
+        self.Int_sl = C3_slider(None, layout_Commands, 'Inte  ', 0.01, 10.0,5)
+        self.dist_sl = C3_slider(None, layout_Commands,'Dist  ', 0.0, 1.0, 0.9) 
+        self.rad_sl = C3_slider(None, layout_Commands, 'Radi  ', 0.01, 10.0, 1) 
+        self.sym_sl = C3_slider(None, layout_Commands, 'Symm ', 0, 20.0, 0) 
 
         self.applyalButton = QtWidgets.QPushButton("apply to all")
         #self.applyalButton.setSizePolicy(QtWidgets.QSizePolicy.Minimum,QtWidgets.QSizePolicy.Minimum,)
@@ -140,13 +140,10 @@ class SeqImaPlot(QtWidgets.QMainWindow):
         vspace = QtWidgets.QSpacerItem(5, 5, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         layout_Commands.addItem(vspace)
 
-        self.Int_sl = C3_slider(None, layout_Commands, 'Contrast  ')
+        self.vmax_sl = C3_slider(None, layout_Commands, 'Contrast  ', 0.01, 100, 50)
         layout_Commands.addSpacing(15)
 
 
-        layout_Contrast = QtWidgets.QHBoxLayout()
-        layout_Contrast.setSpacing(0)
-        layout_Commands.addLayout(layout_Contrast)       
         self.RecBut = QtWidgets.QPushButton('Build Reciprocal space')
         layout_Commands.addWidget(self.RecBut)
 
