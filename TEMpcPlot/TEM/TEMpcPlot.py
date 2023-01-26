@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 # from matplotlib.backend_tools import ToolBase
 # plt.rcParams['toolbar'] = 'toolmanager'
 # from mpl_toolkits.mplot3d import Axes3D
+
 import numpy as np
 from numpy.linalg import inv
 import scipy.ndimage as ndimage
@@ -24,17 +25,27 @@ from . import math_tools as mt
 from . import cell_tools as ct
 from . import Index as ind
 # import  scipy.optimize  as opt
-plt.ion()
+
+import sys
+from matplotlib.backends.qt_compat import QtWidgets
 
 
-
-#app = QtWidgets.QApplication(sys.argv)
-#MainWindow = QtWidgets.QMainWindow()
-
-
+from IPython.terminal.embed import InteractiveShellEmbed
+shell = InteractiveShellEmbed()
+shell.enable_matplotlib()
 
 
-# from skimage.measure import LineModelND, ransa
+global qapp
+qapp = QtWidgets.QApplication.instance()
+if not qapp:
+    qapp = QtWidgets.QApplication(sys.argv)
+
+
+def app_raise(MainApp):
+    MainApp.show()
+    MainApp.activateWindow()
+    MainApp.raise_()
+    #qapp.exec()
 
 
 rpd = np.pi / 180.0
@@ -173,8 +184,38 @@ class LineBuilder:
                                     linewidth=lw,
                                     order=order)
         if plot:
-            plt.figure()
-            plt.plot(self.profile)
+            from PyQt5 import QtGui
+            from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, 
+                                         QToolTip, QMessageBox, QLabel, QHBoxLayout)
+            from matplotlib.figure import Figure
+
+            class Window2(QMainWindow):                           # <===
+                def __init__(self):
+                    super().__init__()
+                    self.setWindowTitle("Window22222")
+                    #plt.plot(self.profile)
+                    #fig_line = Gui.SIP.mplfig()
+                    #fig_line.ax.plot(self.profile)
+                    #fig_line.show()
+                    main = QtWidgets.QWidget()
+                    layoutH1 = QtWidgets.QVBoxLayout(main)
+                    figure = Figure(figsize=(6, 6), dpi=100)
+                    ax = figure.add_subplot(111)
+                    # it takes the `figure` instance as a parameter to __init__
+                    canvas = FigureCanvas(figure)
+                    canvas.setSizePolicy(
+                        QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+                    canvas.updateGeometry()
+
+                    # this is the Navigation widget
+                    # it takes the Canvas widget and a parent
+
+                    # set the layout
+                    layout_Figure.addWidget(self.canvas)                    
+            
+            self.w = Window2()
+            self.w.show()
+
 
 
 class PeakL(list):
@@ -451,8 +492,9 @@ class Mimage():
         """
         if new:
             if isinstance(new, Gui.SIP.SeqImaPlot):
-                # fig = new.widget.figure
-                ax = new.widget.ax
+                fig = new.figure
+                ax = new.ax
+                ax.cla()
             else:
                 plt.figure()
                 print('bad')
@@ -530,24 +572,25 @@ class Mimage():
         '''
         if hasattr(self, 'Peaks') and hasattr(self.Peaks, 'lp'):
             plot = True
+            cur_axes = self.Peaks.lp.axes
         else:
             plot = False
-
         self.Peaks = PeakL(self, min_dis=round(self.rad * rad_c),
                            threshold=tr_c * self.ima.max(), dist=dist,
                            symf=symf)
 
         if plot:
-            self.Peaks.plot()
+            self.Peaks.plot(ax=cur_axes)
 
-    def profile_Line(self, data=None, lw=1, order=1, plot=True):
+    def profile_Line(self, fig=None, data=None, lw=1, order=1, plot=True):
         """create a line object store in the attribute self.line
            and calculae its profile stored in self.line.profile
         """
-        fig = plt.gcf()
+        if fig is None:
+            fig = plt.gcf()
         self.line = LineBuilder()
         if data is None:
-            self.line.defFplot(fig.axes[0], plot=True, ima=self.ima)
+            self.line.defFplot(fig.axes[0], plot=plot, ima=self.ima)
         else:
             self.line.calc(data)
 
@@ -655,7 +698,7 @@ class SeqIm(list):
         ssign = 0 if np.argmax(np.abs(g_ang), axis=0).mean() <= 0.5 else 1
         self.angles = np.arccos(
             np.cos(g_ang[:, 0]) * np.cos(g_ang[:, 1])) * np.sign(g_ang[:, ssign])
-         
+
     def help(self):
         """
         print class help
@@ -680,7 +723,7 @@ class SeqIm(list):
                 del i.Peaks
             i.find_peaks(rad_c, tr_c, dist, symf)
         if hasattr(self, 'ima'):
-            self.ima.Peaks.plot()
+            self.ima.Peaks.plot(ax=self.ax)
 
     def D3_peaks(self, tollerance=15, tol_ang=5, tol_in=0.10):
         """sum and correct the peaks of all images
@@ -809,102 +852,150 @@ class SeqIm(list):
             >>> Exp1.plot(vmin = 10, )
         '''
         if fig is None:
-            fig = Gui.SIP.SeqImaPlot()
-            fig.setupUi()
-            ax = fig.ax
-        if ax is None:
-            ax = plt.axes([0.0, 0.10, 0.80, 0.80])
+            gui = Gui.SIP.SeqImaPlot()
+            fig = gui.figure
+            self.ax = gui.ax
+            app_raise(gui)
 
         self.ima = self[0]
-        self.ima.plot(new=ui, log=log, n=0,*args, **kwds)
-        ax.set_axis_off()
-        ax.set_frame_on(False)
+        self.ima.plot(new=gui, log=log, n=0, *args, **kwds)
+        self.ax.set_axis_off()
+        self.ax.set_frame_on(False)
 
         #tbarplus = mw.ToolbarPlus(self, log=log, fig=fig,
         #                          ax=ax, tool_b=tool_b, *args, **kwds)
 
-        #axcolor = 'lightgoldenrodyellow'
-        #axinte = plt.axes([0.75, 0.87, 0.20, 0.03], facecolor=axcolor)
-        #axdist = plt.axes([0.75, 0.82, 0.20, 0.03], facecolor=axcolor)
-        #axspac = plt.axes([0.75, 0.77, 0.20, 0.03], facecolor=axcolor)
-        #axsym = plt.axes([0.75, 0.72, 0.20, 0.03], facecolor=axcolor)
 
 
-        #spacb = Slider(ax=axspac, label='rad', valmin=0.1, valmax=10.0, valinit=1)  # , valstep=delta_f
-        #symb = Slider(ax=axsym, label='sym', valmin=0.0, valmax=20.0, valinit=0)
-
-        inteb = fig.Int_sl
-        inteb.set_Range(0.01, 10.0)
-        inteb.set_value(5)
-
-        distb = fig.dist_sl
-        distb.set_Range(0.0, 1.0)
-        distb.set_value(0.9)
-
-        spacb = fig.rad_sl
-        spacb.set_Range(0.01, 10.0)
-        spacb.set_value(1)
-
-        symb = fig.sym_sl
-        symb.set_Range(0.0, 20.0)
-        symb.set_value(0.0)
-
-        vmaxb = fig.vmax_sl
-        vmaxb.set_Range(0.01, 100.0)
-        vmaxb.set_value(50)        
-        # Create a `matplotlib.widgets.Button` to apply to all
-        #butpal = ui.applyalButton
-
-        #vmaxb = Slider(ax=axvmax, label='max', valmin=0.01, valmax=100.0, valinit=100)
-
-        def update(val):
-            inte = inteb.val**2 / 101
-            dist = distb.val
-            spac = spacb.val
-            symB = symb.val
-            plt.sca(ax)
+        def update(val, all=False):
+            inte = gui.Int_sl.get_value()**2 / 101
+            dist = gui.dist_sl.get_value()
+            spac = gui.rad_sl.get_value()
+            symB = gui.sym_sl.get_value()
             try:
-                self.ima.find_peaks(rad_c=spac, tr_c=inte,
+                if all:
+                    self.find_peaks(rad_c=spac, tr_c=inte,
                                     dist=dist * len(self.ima.ima),
                                     symf=symB)
+                else:
+                    self.ima.find_peaks(rad_c=spac, tr_c=inte,
+                                        dist=dist * len(self.ima.ima),
+                                        symf=symB)
             except ValueError:
                 pass
+            gui.canvas.draw_idle()
 
-        inteb.Slider.valueChanged.connect(update)
-        distb.Slider.valueChanged.connect(update)
-        spacb.Slider.valueChanged.connect(update)
-        symb.Slider.valueChanged.connect(update)
+        gui.Int_sl.Slider.valueChanged.connect(update)
+        gui.dist_sl.Slider.valueChanged.connect(update)
+        gui.rad_sl.Slider.valueChanged.connect(update)
+        gui.sym_sl.Slider.valueChanged.connect(update)
+        gui.applyalButton.clicked.connect(lambda event: update(event, True))
 
-        def app_all(event):
-            inte = inteb.val**2 / 101
-            dist = distb.val
-            spac = spacb.val
-            symB = symb.val
-            plt.sca(ax)
-            self.find_peaks(rad_c=spac, tr_c=inte,
-                            dist=dist * len(self.ima.ima),
-                            symf=symB)
-        #tbarplus.butpal.on_clicked(app_all)
 
         def refresh(val):
+            vmaxb = gui.vmax_sl.get_value()
             mini = np.where(self.ima.ima > 0, self.ima.ima, np.inf).min()
             maxi = self.ima.ima.max()
-            vmax = mini + vmaxb.val**3 * ((maxi - mini) / 1000000)
+            vmax = mini + vmaxb**3 * ((maxi - mini) / 1000000)
             if log:
                 vmax = np.log(vmax)
-            plt.sca(ax)
             nonlocal kwds
             if kwds:
                 kwds.update({'vmax': vmax})
             else:
                 kwds = {'vmax': vmax}
             self.ima.pltim.set_clim(vmax=vmax)
-            tbarplus.kwds = kwds
+            gui.canvas.draw_idle()
+            #tbarplus.kwds = kwds
 
-        vmaxb.Slider.valueChanged.connect(refresh)
+        gui.vmax_sl.Slider.valueChanged.connect(refresh)
         # self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
-        MainWindow.show()
 
+        def UP_DO(up):
+            n = (self.index(self.ima) + up) % len(self)
+            if n < 0:
+                n += len(self)
+            self.ima = self[n]
+            self.ima.plot(new=gui, log=log, n=n, *args, **kwds)
+            gui.canvas.draw()
+
+        def Plot_p():
+            if len(gui.ax.get_lines()) > 1:
+                self.ima.Peaks.deplot()
+            else:
+                self.ima.Peaks.plot(ax=self.ax)
+            fig.canvas.draw_idle()
+
+        def Del_p():
+            if not hasattr(self.ima.Peaks, 'lp'):
+                return
+            # if other tool are active:
+            if fig.canvas.widgetlock.locked():
+                return
+
+            def onpick(event):
+                if event.artist != self.ima.Peaks.lp:
+                    return
+                self.ima.Peaks.del_peak(event.ind[0])
+                return
+
+            def endpick(event):
+                if event is False:
+                    pass
+                elif event.button != 3:
+                    return
+                fig.canvas.mpl_disconnect(cid)
+                fig.canvas.mpl_disconnect(mid)
+                gui.RemBut.clicked.disconnect()
+                gui.RemBut.clicked.connect(Del_p)
+                gui.RemBut.setStyleSheet("")
+                return
+
+            cid = fig.canvas.mpl_connect('pick_event', onpick)
+            mid = fig.canvas.mpl_connect('button_press_event', endpick)
+            gui.RemBut.setStyleSheet("background-color : lightcyan")
+            gui.RemBut.clicked.disconnect()
+            gui.RemBut.clicked.connect(endpick)
+
+        def DelR_p():
+            if not hasattr(self.ima.Peaks, 'lp'):
+                return
+            if fig.canvas.widgetlock.locked():
+                return
+            self.ima.Peaks.del_PlotRange()
+
+        def lenght():
+            if hasattr(self.ima, 'line'):
+                del self.ima.line
+            self.ima.profile_Line(fig=fig, plot=True)
+            return
+            while not(hasattr(self.ima.line, 'fline')):
+                plt.pause(0.3)
+            at = '\nlengh of the vector'
+            le = selfi.ima.line.mod * selfi.ima.scale
+            print(f'{at} {10*le: 4.2f} 1/Ang.')
+            print(f'and {0.1/le: 4.2f} Ang. in direct space')
+            at = 'component of the vector'
+            le = self.ima.line.vect * self.ima.scale
+            print(f'{at} {le[0]: 4.2f} {le[1]: 4.2f} 1/nm')
+            print('\n\n')
+
+        def angle():
+            if hasattr(selfi.ima, 'line'):
+                del selfi.ima.line
+            angle = selfi.ima.angle()
+            at = 'angle between the vectors'
+            print(f'{at} {angle: 4.2f} degrees')
+            print('\n\n')
+
+        gui.upBut.clicked.connect(lambda: UP_DO(1))
+        gui.downBut.clicked.connect(lambda: UP_DO(-1))
+        gui.PeaksBut.clicked.connect(Plot_p)
+        gui.RemBut.clicked.connect(Del_p)
+        gui.RanBut.clicked.connect(DelR_p)
+        gui.lenghBut.clicked.connect(lenght)
+
+        gui.canvas.draw()
 
 
     def save(self, filesave):
