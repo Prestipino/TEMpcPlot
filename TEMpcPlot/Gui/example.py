@@ -1,98 +1,60 @@
 import sys
-from PyQt5 import QtCore, QtWidgets
+import time
+
+import numpy as np
+
+from matplotlib.backends.qt_compat import QtWidgets
+from matplotlib.backends.backend_qt5agg import (
+    FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
+from matplotlib.figure import Figure
 
 
-class MainWindow(QtWidgets.QWidget):
-
-    switch_window = QtCore.pyqtSignal(str)
-
+class ApplicationWindow(QtWidgets.QMainWindow):
     def __init__(self):
-        QtWidgets.QWidget.__init__(self)
-        self.setWindowTitle('Main Window')
+        super().__init__()
+        self._main = QtWidgets.QWidget()
+        self.setCentralWidget(self._main)
+        layout = QtWidgets.QVBoxLayout(self._main)
 
-        layout = QtWidgets.QGridLayout()
+        static_canvas = FigureCanvas(Figure(figsize=(5, 3)))
+        # Ideally one would use self.addToolBar here, but it is slightly
+        # incompatible between PyQt6 and other bindings, so we just add the
+        # toolbar as a plain widget instead.
+        layout.addWidget(NavigationToolbar(static_canvas, self))
+        layout.addWidget(static_canvas)
 
-        self.line_edit = QtWidgets.QLineEdit()
-        layout.addWidget(self.line_edit)
+        dynamic_canvas = FigureCanvas(Figure(figsize=(5, 3)))
+        layout.addWidget(dynamic_canvas)
+        layout.addWidget(NavigationToolbar(dynamic_canvas, self))
 
-        self.button = QtWidgets.QPushButton('Switch Window')
-        self.button.clicked.connect(self.switch)
-        layout.addWidget(self.button)
+        self._static_ax = static_canvas.figure.subplots()
+        t = np.linspace(0, 10, 501)
+        self._static_ax.plot(t, np.tan(t), ".")
 
-        self.setLayout(layout)
+        self._dynamic_ax = dynamic_canvas.figure.subplots()
+        t = np.linspace(0, 10, 101)
+        # Set up a Line2D.
+        self._line, = self._dynamic_ax.plot(t, np.sin(t + time.time()))
+        self._timer = dynamic_canvas.new_timer(50)
+        self._timer.add_callback(self._update_canvas)
+        self._timer.start()
 
-    def switch(self):
-        self.switch_window.emit(self.line_edit.text())
-
-
-class WindowTwo(QtWidgets.QWidget):
-
-    def __init__(self, text):
-        QtWidgets.QWidget.__init__(self)
-        self.setWindowTitle('Window Two')
-
-        layout = QtWidgets.QGridLayout()
-
-        self.label = QtWidgets.QLabel(text)
-        layout.addWidget(self.label)
-
-        self.button = QtWidgets.QPushButton('Close')
-        self.button.clicked.connect(self.close)
-
-        layout.addWidget(self.button)
-
-        self.setLayout(layout)
+    def _update_canvas(self):
+        t = np.linspace(0, 10, 101)
+        # Shift the sinusoid as a function of time.
+        self._line.set_data(t, np.sin(t + time.time()))
+        self._line.figure.canvas.draw()
 
 
-class Login(QtWidgets.QWidget):
+if __name__ == "__main__":
+    # Check whether there is already a running QApplication (e.g., if running
+    # from an IDE).
+    qapp = QtWidgets.QApplication.instance()
+    if not qapp:
+        qapp = QtWidgets.QApplication(sys.argv)
 
-    switch_window = QtCore.pyqtSignal()
-
-    def __init__(self):
-        QtWidgets.QWidget.__init__(self)
-        self.setWindowTitle('Login')
-
-        layout = QtWidgets.QGridLayout()
-
-        self.button = QtWidgets.QPushButton('Login')
-        self.button.clicked.connect(self.login)
-
-        layout.addWidget(self.button)
-
-        self.setLayout(layout)
-
-    def login(self):
-        self.switch_window.emit()
-
-
-class Controller:
-
-    def __init__(self):
-        pass
-
-    def show_login(self):
-        self.login = Login()
-        self.login.switch_window.connect(self.show_main)
-        self.login.show()
-
-    def show_main(self):
-        self.window = MainWindow()
-        self.window.switch_window.connect(self.show_window_two)
-        self.login.close()
-        self.window.show()
-
-    def show_window_two(self, text):
-        self.window_two = WindowTwo(text)
-        self.window.close()
-        self.window_two.show()
-
-
-def main():
-    app = QtWidgets.QApplication(sys.argv)
-    controller = Controller()
-    controller.show_login()
-    sys.exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()
+    app = ApplicationWindow()
+    app.show()
+    app.activateWindow()
+    app.raise_()
+    #qapp.exec()
