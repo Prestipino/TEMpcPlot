@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.backends.qt_compat import QtCore
+from matplotlib.widgets import Slider, Button, CheckButtons
 # from matplotlib.backend_tools import ToolBase
 # plt.rcParams['toolbar'] = 'toolmanager'
 # from mpl_toolkits.mplot3d import Axes3D
@@ -32,9 +33,9 @@ import sys
 from matplotlib.backends.qt_compat import QtWidgets
 
 
-#from IPython.terminal.embed import InteractiveShellEmbed
-#shell = InteractiveShellEmbed()
-#shell.enable_matplotlib()
+from IPython.terminal.embed import InteractiveShellEmbed
+shell = InteractiveShellEmbed()
+shell.enable_matplotlib()
 
 
 global qapp
@@ -757,8 +758,8 @@ class SeqIm(list):
         right button remoce an anotation
         left button + move drag ana annotation
         '''
-        import plt
-        fig = plt.figure()
+        import matplotlib.pyplot as plt
+        fig = plt.figure(figsize=(8, 8))
         ax = plt.axes([0.05, 0.10, 0.75, 0.80])
         if axes is None:
             try:
@@ -867,6 +868,7 @@ class SeqIm(list):
                 n += len(self)
             self.ima = self[n]
             self.ima.plot(new=gui, log=log, n=n, *args, **kwds)
+            self.ax.set_axis_off()
             gui.canvas.draw()
 
         def Plot_p():
@@ -985,6 +987,8 @@ class SeqIm(list):
         gui.RanBut.clicked.connect(DelR_p)
         gui.lenghBut.clicked.connect(lenght)
         gui.angleBut.clicked.connect(angle)
+        gui.RecBut.clicked.connect(lambda event: self.D3_peaks())
+
         gui.canvas.draw()
 
     def save(self, filesave):
@@ -1180,8 +1184,90 @@ class EwaldPeaks(object):
             Attributes:
                 graph  (D3plot.D3plot): graph Ewald peaks 3D set of peaks used to index
         """
-        self.EwaldPlot = PEW.EwaldPlot()
-        self.graph = d3plot.D3plot(self)
+        self.EwPlot = Gui.PEW.EwaldPlot()
+        self.graph = d3plot.D3plot(self, fig=self.EwPlot.figure)
+        self.EwPlot.show()
+        self.EwPlot.raise_()
+
+        self.EwPlot.checkLeg.toggled.connect(
+            lambda: self.graph.legend(self.EwPlot.checkLeg.isChecked()))
+
+        def refine(event):
+            val = self.EwPlot.comboBox_ref.currentText()
+            if val == "axes":
+                self.refine_axes()
+            if val == "angles":
+                self.refine_angles()
+            if val == "axes & angle":
+                self.refine_axang()
+        self.EwPlot.RefButton.clicked.connect(refine)
+
+        def allign(event):
+            val = self.EwPlot.comboBox_abc.currentText()
+            if val == "a*":
+                self.graph.allign_a()
+            if val == "b*":
+                self.graph.allign_b()
+            if val == "c*":
+                self.graph.allign_c()
+        self.EwPlot.AllignButton.clicked.connect(allign)
+
+        def def_ax(event):
+            val = self.EwPlot.comboBox_abc.currentText()
+            n = self.EwPlot.spin_n.value()
+            self.graph.define_axis(val[0], n)
+
+        self.EwPlot.DefineButton.clicked.connect(def_ax)
+
+        def rotate(val=False):
+            rc = self.EwPlot.comboBox_xyz.currentText()
+            if not(val):
+                val = self.EwPlot.spin_r.value()
+            if rc == "x":
+                self.graph.rotatex(val)
+            if rc == "y":
+                self.graph.rotatey(val)
+            if rc == "z":
+                self.graph.rotatez(val)
+
+        self.EwPlot.Rotp90Button.clicked.connect(lambda: rotate(val=90))
+        self.EwPlot.Rotm90Button.clicked.connect(lambda: rotate(val=-90))
+        self.EwPlot.RotButton.clicked.connect(lambda: rotate())
+        self.EwPlot.RinitButton.clicked.connect(lambda: self.graph.rotate_0())
+
+        def filtering(val=True):
+            vmin = self.EwPlot.Intp_sl.get_value()
+            vmax = self.EwPlot.Intm_sl.get_value()
+            lay = None
+            if self.EwPlot.checkFilt.isChecked():
+                lay = self.EwPlot.FiltEdit.text().strip()
+                if lay != '':
+                    lay = [int(i) for i in lay.split(',')]
+            self.graph.filter_int(operator='in', lim=[vmin, vmax], layer=lay)
+
+        inte = np.concatenate(self.int).flat
+        Imax = np.max(inte) * 1.01
+        Imin = np.min(inte) * 0.99
+        self.EwPlot.Intp_sl.set_Range(Imin, Imax)
+        self.EwPlot.Intp_sl.Slider.sliderReleased.connect(lambda: filtering())
+        self.EwPlot.Intm_sl.set_Range(Imin, Imax)
+        self.EwPlot.Intm_sl.Slider.sliderReleased.connect(lambda: filtering())
+
+        self.EwPlot.checkFilt.toggled.connect(lambda: filtering())
+
+        def find_c(event):
+            vmin = self.EwPlot.Intp_sl.get_value()
+            vmax = self.EwPlot.Intm_sl.get_value()
+            lay = None
+            if self.EwPlot.checkFilt.isChecked():
+                lay = self.EwPlot.FiltEdit.text().strip()
+                if lay != '':
+                    lay = [int(i) for i in lay.split(',')]
+            val = self.EwPlot.MCSpin.value()
+            cond = self.cr_cond('in', [vmin, vmax])
+            self.find_cell(maxes=val, cond=cond, layers=lay)
+        self.EwPlot.FCellButton.clicked.connect(find_c)
+
 
     def plot_int(self):
         """Plot instogramm of intensity of the peaks
@@ -1220,7 +1306,7 @@ class EwaldPeaks(object):
             plt.ylabel('n. peaks')
             plt.draw()
 
-    def find_cell(self, sort=0, maxes=20, cond=None, layers=None,
+    def find_cell(self, sort=0, maxes=2, cond=None, layers=None,
                   toll=0.1, toll_angle=5):
         """automatic find cell
         search the *cell in the present peaks
@@ -1228,7 +1314,7 @@ class EwaldPeaks(object):
         Args:
             sort (int): 0 or 1 small change in the
                         algoritm should be indifferent
-            cond (lambda function): fil;tering condition created by cr_cond
+            cond (lambda function): filtering condition created by cr_cond
             layer (list): specifies the layer to be used if
                           none all image are used
             toll  (float): [0.1] indexing tollerance
@@ -1238,9 +1324,13 @@ class EwaldPeaks(object):
 
         if layers is None:
             layers = list(range(len(self.pos)))
+        elif layers == '':
+            layers = list(range(len(self.pos)))
+
         if cond is None:
             cond = lambda pos, inte: pos
-        pos = [cond(self.pos[i], self.int[i]) for i in layers]
+
+        pos = [self.pos[i][cond(self.pos[i], self.int[i])] for i in layers]
 
         vectors = []
         for pos_i in pos:
@@ -1455,6 +1545,12 @@ class EwaldPeaks(object):
         elif operator == '<':
             def lcond(pos, inte):
                 return inte < lim
+
+        elif operator == 'in':
+            def lcond(pos, inte):
+                minor = inte < lim[0]
+                major = inte > lim[1]
+                return [i & j for i, j in zip(minor, major)]
 
         elif operator == 'tollerance':
             # to use with calibrated position
@@ -1742,10 +1838,9 @@ class EwaldPeaks(object):
         self.__check_cent__(tollerance=tollerance)
 
         if hasattr(self, 'graph'):
-            num = self.graph.fig.number
-            if plt.fignum_exists(num):
-                self.graph._set__axes(self.axes)
-                self.graph.plot_ax()
+            self.graph._set__axes(self.axes)
+            self.graph.plot_ax()
+            self.graph.fig.canvas.draw()
         return
 
     def __calibrate(self):

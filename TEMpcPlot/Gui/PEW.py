@@ -65,6 +65,8 @@ class C3_slider():
     def set_Range(self, minimum, maximum):
         self.min = minimum
         self.max = maximum
+        self.update(self.get_value())
+
 
     def get_value(self):
         step = (self.max - self.min) / 1000
@@ -76,18 +78,17 @@ class C3_slider():
         val = (value - self.min) / step
         self.Slider.setValue(int(val))
 
-
 class EwaldPlot(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        main = QtWidgets.QWidget()
-        self.setCentralWidget(main)
-        layoutH1 = QtWidgets.QHBoxLayout(main)
+        self._main = QtWidgets.QWidget()
+        self.setCentralWidget(self._main)
+        layoutH1 = QtWidgets.QHBoxLayout(self._main)
         ###################################################
         layout_Figure = QtWidgets.QVBoxLayout()
         layoutH1.addLayout(layout_Figure)
         # a figure instance to plot on
-        self.figure = Figure(figsize=(6, 6), dpi=100)
+        self.figure = Figure(figsize=(7, 7), dpi=100)
         # it takes the `figure` instance as a parameter to __init__
         self.canvas = FigureCanvas(self.figure)
         self.canvas.setSizePolicy(
@@ -109,14 +110,25 @@ class EwaldPlot(QtWidgets.QMainWindow):
         layout_Commands.addLayout(layout_FC)
         self.FCellButton = QtWidgets.QPushButton("Find Cell")
         layout_FC.addWidget(self.FCellButton)
-        label_max = QtWidgets.QLabel("max axis ")
+        label_max = QtWidgets.QLabel("max axis   nm")
         layout_FC.addWidget(label_max)
         layout_FC.setSpacing(0)
         self.MCSpin = QtWidgets.QDoubleSpinBox()
-        self.MCSpin.setProperty("value", 20.0)
+        self.MCSpin.setProperty("value", 2.0)
         self.MCSpin.setObjectName("doubleSpinBox")
         layout_FC.addWidget(self.MCSpin)
 
+        layout_FC = QtWidgets.QHBoxLayout()
+        layout_FC.setSpacing(1)
+        layout_Commands.addLayout(layout_FC)
+        self.RefButton = QtWidgets.QPushButton("Refine")
+        layout_FC.addWidget(self.RefButton)
+        layout_FC.setSpacing(0)
+        self.comboBox_ref = QtWidgets.QComboBox()
+        self.comboBox_ref.addItem("axes")
+        self.comboBox_ref.addItem("angles")
+        self.comboBox_ref.addItem("axes & angle")
+        layout_FC.addWidget(self.comboBox_ref)
 
         ###################################################
         CellgroupBox = QtWidgets.QGroupBox()
@@ -129,7 +141,8 @@ class EwaldPlot(QtWidgets.QMainWindow):
         self.comboBox_abc.addItem("b*")
         self.comboBox_abc.addItem("c*")
         layout_ManInd.addWidget(self.comboBox_abc)
-
+        self.AllignButton = QtWidgets.QPushButton('allign along axis')
+        layout_ManInd .addWidget(self.AllignButton)
         Def_Layout = QtWidgets.QHBoxLayout()
         layout_ManInd.addLayout(Def_Layout)
         self.DefineButton = QtWidgets.QPushButton('Define axis')
@@ -137,7 +150,8 @@ class EwaldPlot(QtWidgets.QMainWindow):
         label_n = QtWidgets.QLabel("n. ")
         Def_Layout.addWidget(label_n)
         self.spin_n = QtWidgets.QSpinBox()
-        Def_Layout.addWidget(self.spin_n)        
+        self.spin_n.setProperty("value", 1)
+        Def_Layout.addWidget(self.spin_n)
         ###################################################
 
         RotgroupBox = QtWidgets.QGroupBox()
@@ -146,18 +160,10 @@ class EwaldPlot(QtWidgets.QMainWindow):
         layout_Commands.addWidget(RotgroupBox)
         layout_Rot = QtWidgets.QVBoxLayout(RotgroupBox)
         self.comboBox_xyz = QtWidgets.QComboBox()
-        self.comboBox_xyz.setObjectName("comboBox")
         self.comboBox_xyz.addItem("x")
         self.comboBox_xyz.addItem("y")
         self.comboBox_xyz.addItem("z")
         layout_Rot.addWidget(self.comboBox_xyz)
-
-        nRot_Layout = QtWidgets.QHBoxLayout()
-        layout_Rot.addLayout(nRot_Layout)
-        self.RotButton = QtWidgets.QPushButton("Rotate")
-        nRot_Layout.addWidget(self.RotButton)
-        self.spin_r = QtWidgets.QSpinBox()
-        nRot_Layout.addWidget(self.spin_r)
 
         nRot_Layout90 = QtWidgets.QHBoxLayout()
         layout_Rot.addLayout(nRot_Layout90)
@@ -165,6 +171,13 @@ class EwaldPlot(QtWidgets.QMainWindow):
         nRot_Layout90.addWidget(self.Rotp90Button)
         self.Rotm90Button = QtWidgets.QPushButton("Rotate -90")
         nRot_Layout90.addWidget(self.Rotm90Button)
+
+        nRot_Layout = QtWidgets.QHBoxLayout()
+        layout_Rot.addLayout(nRot_Layout)
+        self.RotButton = QtWidgets.QPushButton("Rotate")
+        nRot_Layout.addWidget(self.RotButton)
+        self.spin_r = QtWidgets.QSpinBox()
+        nRot_Layout.addWidget(self.spin_r)
 
         self.RinitButton = QtWidgets.QPushButton("Reinitialize")
         layout_Rot.addWidget(self.RinitButton)
@@ -175,31 +188,26 @@ class EwaldPlot(QtWidgets.QMainWindow):
         FiltgroupBox.setMaximumSize(QtCore.QSize(300, 400))
         layout_Commands.addWidget(FiltgroupBox)
         layout_Filt = QtWidgets.QVBoxLayout(FiltgroupBox)
-        self.Int_sl = C3_slider(None, layout_Filt, 'Int. < ', 0.0, 100.0, 100)
-        self.Int_sl = C3_slider(None, layout_Filt, 'Int. > ', 0.0, 100.0, 0.0)
+        self.Intp_sl = C3_slider(None, layout_Filt, 'Int. < ', 0.0, 100.0, 100)
+        self.Intm_sl = C3_slider(None, layout_Filt, 'Int. > ', 0.0, 100.0, 0.0)
 
         nFilt_Layout = QtWidgets.QHBoxLayout()
         layout_Filt.addLayout(nFilt_Layout)
-        self.FiltButton = QtWidgets.QPushButton("only layers")
-        nFilt_Layout.addWidget(self.FiltButton)
+        self.checkFilt = QtWidgets.QCheckBox()
+        self.checkFilt.setText("show only layers")
+        nFilt_Layout.addWidget(self.checkFilt)
         self.FiltEdit = QtWidgets.QLineEdit()
         self.FiltEdit.setAlignment(QtCore.Qt.AlignRight)
         nFilt_Layout.addWidget(self.FiltEdit)
-
-
-
-
-
-
-
-
+        vspace = QtWidgets.QSpacerItem(5, 5, QtWidgets.QSizePolicy.Minimum,
+                                       QtWidgets.QSizePolicy.Expanding)
+        layout_Commands.addItem(vspace)
 
 if __name__ == "__main__":
     import sys
     qapp = QtWidgets.QApplication.instance()
     if not qapp:
         qapp = QtWidgets.QApplication(sys.argv)
-
     app = EwaldPlot()
     app.show()
     app.activateWindow()

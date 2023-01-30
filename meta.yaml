@@ -32,7 +32,8 @@ requirements:
     - matplotlib
     - scipy
     - pillow
-    - uncertainties    
+    - uncertainties 
+    - keyboard   
 
 test:
   import:

@@ -12,6 +12,7 @@ from matplotlib.backends.qt_compat import QtGui
 import matplotlib.pyplot as plt
 
 import mplcursors
+from os.path import dirname, join, realpath
 
 from packaging import version
 if version.parse(matplotlib.__version__) > version.parse("3.3.1"):
@@ -425,38 +426,34 @@ class ToolbarPlus():
             if event.key == 'f4':
                 DelR_p()
 
-        def _icon(name):
-            direct = os.path.dirname(__file__)
-            name = os.path.join(direct, name)
-            pm = QtGui.QPixmap(name)
-            if hasattr(pm, 'setDevicePixelRatio'):
-                pm.setDevicePixelRatio(fig.canvas._dpi_ratio)
-            return QtGui.QIcon(pm)
 
-
+        lDir = os.path.dirname(__file__)
+        icons = ['down.png', 'up.png', 'PlotP.png', 'RemP.png', 'RanP.png',
+                 'lenght.png', 'angle.png']
+        icons = [QtGui.QIcon(join(lDir, i)) for i in icons]
 
         fig.canvas.toolbar.addSeparator()
-        a = tool_b.addAction(_icon('down.png'), 'back', lambda: UP_DO(-1))
+        a = tool_b.addAction(icons[0], 'back', lambda: UP_DO(-1))
         a.setToolTip('Previous image')
-        a = tool_b.addAction(_icon('up.png'), 'foward', lambda: UP_DO(1))
+        a = tool_b.addAction(icons[1], 'foward', lambda: UP_DO(1))
         a.setToolTip('Next image')
 
         tool_b.addSeparator()
-        a = tool_b.addAction(_icon('PlotP.png'), 'Peaks', Plot_p)
+        a = tool_b.addAction(icons[2], 'Peaks', Plot_p)
         a.setToolTip('Peaks On/Off')
 
-        a = tool_b.addAction(_icon('RemP.png'), 'Del_P', Del_p)
+        a = tool_b.addAction(icons[3], 'Del_P', Del_p)
         a.setCheckable(True)
         a.setToolTip('Delete Peaks')
         tool_b._actions['del_p'] = a
 
-        a = tool_b.addAction(_icon('RanP.png'), 'DelR P', DelR_p)
+        a = tool_b.addAction(icons[4], 'DelR P', DelR_p)
         a.setToolTip('Delete Peaks in range (F4)')
 
         tool_b.addSeparator()
-        a = tool_b.addAction(_icon('lenght.png'), 'len', lenght)
+        a = tool_b.addAction(icons[5], 'len', lenght)
         a.setToolTip('calculate lenght of a line and plot profile')
-        a = tool_b.addAction(_icon('angle.png'), 'angle', angle)
+        a = tool_b.addAction(icons[6], 'angle', angle)
         a.setToolTip('calculate angle between two lines')
 
 
@@ -543,25 +540,17 @@ class ToolbarPlusCal():
                 sel.annotation.arrow_patch.set(arrowstyle="simple", fc="white", alpha=.5)
 
 
-
-        def _icon(name):
-            direct = os.path.dirname(__file__)
-            name = os.path.join(direct, name)
-            pm = QtGui.QPixmap(name)
-            if hasattr(pm, 'setDevicePixelRatio'):
-                pm.setDevicePixelRatio(fig.canvas._dpi_ratio)
-            return QtGui.QIcon(pm)
-
-
-        fig.canvas.toolbar.addSeparator()
-        a = tool_b.addAction(_icon(' '), 'int', lambda: HKL_integer(True))
+        direct = os.path.dirname(__file__)
+        icons = ['down.png', 'up.png']
+        icons = [QtGui.QIcon(join(direct, i)) for i in icons]
+        a = tool_b.addAction('int', lambda: HKL_integer(True))
         a.setToolTip('Integer HKL')
-        a = tool_b.addAction(_icon(' '), 'float', lambda: HKL_integer(False))
+        a = tool_b.addAction('float', lambda: HKL_integer(False))
         a.setToolTip('Float HKL')
 
-        a = tool_b.addAction(_icon('down.png'), 'back', lambda: UP_DO(-1))
+        a = tool_b.addAction(icons[0], 'back', lambda: UP_DO(-1))
         a.setToolTip('Previous image')
-        a = tool_b.addAction(_icon('up.png'), 'foward', lambda: UP_DO(1))
+        a = tool_b.addAction(icons[1], 'foward', lambda: UP_DO(1))
         a.setToolTip('Next image')
 
 

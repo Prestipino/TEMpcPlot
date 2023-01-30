@@ -101,7 +101,6 @@ class SeqImaPlot(QtWidgets.QMainWindow):
         layoutH1 = QtWidgets.QHBoxLayout(self._main)
 
         lDir = dirname(realpath(__file__))
-
         ###################################################
         layout_Figure = QtWidgets.QVBoxLayout()
         layoutH1.addLayout(layout_Figure)
@@ -121,7 +120,7 @@ class SeqImaPlot(QtWidgets.QMainWindow):
         # set the layout
         layout_Figure.addWidget(self.toolbar)
         layout_Figure.addWidget(self.canvas)
-
+        ###################################################
         layout_Commands = QtWidgets.QVBoxLayout()
         layoutH1.addLayout(layout_Commands)
 
@@ -156,6 +155,7 @@ class SeqImaPlot(QtWidgets.QMainWindow):
         layout_GBut.addWidget(self.angleBut)
 
         # Sliders
+        ###################################################
         self.Int_sl = C3_slider(None, layout_Commands, 'Inte  ', 0.01, 10.0, 5)
         self.dist_sl = C3_slider(None, layout_Commands, 'Dist  ', 0, 1.0, 0.9)
         self.rad_sl = C3_slider(None, layout_Commands, 'Radi  ', 0.01, 10.0, 1)
@@ -169,7 +169,7 @@ class SeqImaPlot(QtWidgets.QMainWindow):
         vspace = QtWidgets.QSpacerItem(5, 5, QtWidgets.QSizePolicy.Minimum,
                                        QtWidgets.QSizePolicy.Expanding)
         layout_Commands.addItem(vspace)
-
+        ###################################################
         self.vmax_sl = C3_slider(
             None, layout_Commands, 'Contrast  ', 0.01, 100, 50)
         layout_Commands.addSpacing(15)

@@ -5,7 +5,9 @@ from scipy.spatial.transform import Rotation as R
 from numpy.linalg import inv
 from . import more_widget as mw
 from . import math_tools as mt
-plt.ion()
+#plt.ion()
+import keyboard  # using module keyboard
+
 
 """
    pos_0   initial position
@@ -19,7 +21,7 @@ class D3plot(object):
 
     """
 
-    def __init__(self, EwPePos, size='o', Fig=None):
+    def __init__(self, EwPePos, size='o', fig=None):
         self.__size = size
         self._EwPePos = EwPePos
         # list in whic pos are sotred for each image
@@ -30,14 +32,12 @@ class D3plot(object):
                                             [0, 1, 0]))
             self.__angle *= 180 / np.pi      # angle to start good
 
-        # -----------define axis if already present
-        self.axes = {}
-        if hasattr(EwPePos, 'axes'):
-            for i, abc in enumerate('abc'):
-                self.axes[abc] = LineAxes(abc, 1, axis=EwPePos.axes.T[i])
-        # -----------------------------------------------
 
-        self.fig = plt.figure()
+        # -----------------------------------------------
+        if fig is None:
+            self.fig = plt.figure()
+        else:
+            self.fig = fig
 
         gs = self.fig.add_gridspec(5, 5)
         self.ax_x = self.fig.add_subplot(gs[4, 0:4])
@@ -45,15 +45,21 @@ class D3plot(object):
         self.ax_y.tick_params(axis='y', left=False, right=True,
                               labelleft=False, labelright=True)
         self.ax = self.fig.add_subplot(gs[0:4, 0:4])
-        plt.figtext(0.8, 0.22, '- a', color='green',
+        self.fig.text(0.8, 0.22, '- a', color='green',
                     size='x-large', weight='bold')
-        plt.figtext(0.8, 0.17, '- b', color='blue',
+        self.fig.text(0.8, 0.17, '- b', color='blue',
                     size='x-large', weight='bold')
-        plt.figtext(0.8, 0.12, '- c', color='black',
+        self.fig.text(0.8, 0.12, '- c', color='black',
                     size='x-large', weight='bold')
 
-        self.plot_ax()
+        # -----------define axis if already present
+        self.axes = {}
+        if hasattr(EwPePos, 'axes'):
+            for i, abc in enumerate('abc'):
+                self.axes[abc] = LineAxes(abc, 1, axis=EwPePos.axes.T[i],
+                                          fig_ax=self.ax, figure=self.fig)
         # ---------------------------------------------
+        self.plot_ax()
         # ----------------------------------------------
 
         self.__cid = self.fig.canvas.mpl_connect('button_press_event',
@@ -65,7 +71,7 @@ class D3plot(object):
         self.__res = self.fig.canvas.mpl_connect('resize_event',
                                                  lambda event: rezize_g())
 
-    def filter_int(self, operator=None, lim=None):
+    def filter_int(self, operator=None, lim=None, layer=None):
         """conserve only peaks respecting an intensity condition
         conserve only peaks respecting an intensity condition, to 
         determine the most usefull values use Exp1.EwP.plot_int()
@@ -79,9 +85,25 @@ class D3plot(object):
         elif operator == '<':
             def lcond(x):
                 return x < lim
+        elif operator == 'in':
+            def lcond(x):
+                minor = x < lim[0]
+                major = x > lim[1]
+                return [i & j for i, j in zip(minor, major)]
+        else:
+            def lcond(x):
+                return x > 0
         pos_i = []
         for i_pos, i_inte in zip(self._EwPePos.pos, self._EwPePos.int):
             pos_i.append(self.r0.apply(i_pos[lcond(i_inte)]))
+        if layer:
+            pos_ii = []
+            for j, i_pos in enumerate(pos_i):
+                if j in layer:
+                    pos_ii.append(self.r0.apply(i_pos))
+                else:
+                    pos_ii.append(self.r0.apply(np.zeros((1, 3))))
+                pos_i = pos_ii
         self.pos_i = pos_i
         self.plot_ax()
         self.plot_hist()
@@ -96,6 +118,8 @@ class D3plot(object):
         for j, i_pos in enumerate(self._EwPePos.pos):
             if j in listn:
                 pos_i.append(self.r0.apply(i_pos))
+            else:
+                pos_i.append(self.r0.apply(np.zeros((1, 3))))
         self.pos_i = pos_i
         self.plot_ax()
         self.plot_hist()
@@ -117,7 +141,7 @@ class D3plot(object):
         self.ax.set_frame_on(False)      # ###############
 
         # legend
-        plt.rcParams['toolbar'] = 'toolbar2'
+        #plt.rcParams['toolbar'] = 'toolbar2'
 
         x = abs(np.array(self.ax.get_xlim())).max()
         y = abs(np.array(self.ax.get_ylim())).max()
@@ -138,7 +162,7 @@ class D3plot(object):
         self.ax_y.invert_xaxis()
         self.ax_x.set_xlim(*self.ax.get_xlim())
         self.ax_y.set_ylim(*self.ax.get_ylim())
-        plt.draw()
+        self.fig.canvas.draw()
 
     def zoom(self, event):
         if event is not None:
@@ -158,13 +182,13 @@ class D3plot(object):
         #    for i in self.axes_i.keys():
         #        self.ax.draw_artist(self.l_axes[i])
         # self.fig.canvas.blit(self.ax.bbox)
-        plt.draw()
+        self.fig.canvas.draw()
 
     def __find_rot(self, event):
         rot_vec = np.array([self.__c_y0 - event.ydata,
                             event.xdata - self.__c_x0, 0])
         rot_vec = np.pi * rot_vec / abs(self.ax.get_xlim()[0] * 4)
-        if event.key == 'control':
+        if keyboard.is_pressed('ctrl'):
             z = np.sqrt(rot_vec @ rot_vec.T) * np.array([0, 0, -1])
             rot_vec = z if rot_vec[0] > rot_vec[1] else -z
         return R.from_rotvec(rot_vec)
@@ -211,7 +235,9 @@ class D3plot(object):
         for i, abc in enumerate('abc'):
             self.axes[abc] = LineAxes(abc, 1,
                                       axis=axes.T[i],
-                                      rot=self.r0)
+                                      rot=self.r0,
+                                      fig_ax=self.ax,
+                                      figure=self.fig)
 
     def rotatex(self, deg=90):
         """
@@ -310,6 +336,7 @@ class D3plot(object):
         self.__rid = canv.mpl_connect('button_release_event', endpick)
         self.__rid2 = canv.mpl_connect('axes_leave_event', endpick)
 
+
     def define_axis(self, abc, m):
         """define axis
         define axis graphically tracing a line
@@ -322,22 +349,34 @@ class D3plot(object):
         """
         assert abc in 'abc', 'only three axis a, b, c '
         self.fig.canvas.mpl_disconnect(self.__cid)
-        self.axes[abc] = LineAxes(abc, m)
+        self.axes[abc] = LineAxes(abc, m, fig_ax=self.ax, figure=self.fig)
         self.axes[abc]._graph_init_()
-        plt.waitforbuttonpress(65)
+        self.fig.waitforbuttonpress(65)
         self.axes[abc].calc_axis(self.r0)
         self.__cid = self.fig.canvas.mpl_connect('button_press_event',
                                                  self.main_click)
 
-    def legend(self):
-        self.ax.legend()
+    def legend(self, plot=True):
+        if plot:
+            self.ax.legend()
+            self.fig.canvas.draw()
+            return
+        leg = self.ax.get_legend()
+        if leg:
+            leg.remove()
+        self.fig.canvas.draw()
 
 
 class LineAxes:
-    def __init__(self, abc, m, axis=None, rot=None):
+    def __init__(self, abc, m, axis=None, rot=None, fig_ax=None, figure=None):
+        """
+        axis are the axes of the cell
+        """
         self.m = m
         self.abc = abc
         fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k'}
+        self.fig_ax = fig_ax
+        self.figure = figure
         if axis is not None:
             self.axis = axis
             self.mod = np.sqrt(self.axis @ self.axis.T)
@@ -347,11 +386,14 @@ class LineAxes:
             else:
                 self.pos_i = self.axis
         else:
-            self.line, = plt.plot([0], [0], fmt[abc])
+            if self.fig_ax is None:
+                self.line, = plt.plot([0], [0], fmt[abc])
+            else:
+                self.line, = fig_ax.plot([0], [0], fmt[abc])
 
     def plot(self):
         fmt = {'a': '+-g', 'b': '+-b', 'c': '+-k'}
-        self.line, = plt.plot([0], [0], fmt[self.abc])
+        self.line, = self.fig_ax.plot([0], [0], fmt[self.abc])
         datax = np.linspace(0, self.pos_i[0] * self.m, self.m + 1)
         datay = np.linspace(0, self.pos_i[1] * self.m, self.m + 1)
         self.line.set_data(datax, datay)
@@ -371,7 +413,7 @@ class LineAxes:
 
     def _graph_init_(self):
         m = self.m
-        text = plt.text(0, 0, '')
+        text = self.figure.text(0, 0, '')
         canv = self.line.figure.canvas
         p_line = [Line2D([0], [0], linestyle='--',
                          color='grey', lw=1) for i in range(self.m + 1)]
@@ -413,8 +455,8 @@ class LineAxes:
             text.set_position((event.xdata, event.ydata))
             text.set_text(f'{inv_mod:3.2f} ')
             self.line.axes.draw_artist(text)
-            # canv.blit(self.line.axes.bbox)
-            plt.draw()
+            #canv.blit(self.line.axes.bbox)
+            self.figure.canvas.draw()
             return
 
         # self.bkg_cache = canv.copy_from_bbox(self.line.axes.bbox.padded(0))
@@ -429,7 +471,6 @@ class LineAxes:
             self.line.figure.canvas.mpl_disconnect(self.rid)
         if hasattr(self, 'line'):
             self.line.remove()
-        # plt.legend()
         return
 
 # collapsed 3D view r is for reduced)
@@ -513,7 +554,7 @@ class D3plotr(D3plot):
         origin = np.where(np.array(origin) == 1, -self.origin, self.origin)
         self.axes[abc] = LineAxesr(abc, m, origin=origin, rot=self.r0)
         self.axes[abc]._graph_init_()
-        plt.waitforbuttonpress(65)
+        self.fig.waitforbuttonpress(65)
         self.axes[abc].calc_axis(self.r0)
         self.axes[abc].vect = inv(
             self._D3plot__EwPePos.axes) @ self.axes[abc].axis
