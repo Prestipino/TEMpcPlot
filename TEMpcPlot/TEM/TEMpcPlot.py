@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.backends.qt_compat import QtCore
 # from matplotlib.backend_tools import ToolBase
 # plt.rcParams['toolbar'] = 'toolmanager'
 # from mpl_toolkits.mplot3d import Axes3D
@@ -24,15 +25,16 @@ from . import more_widget as mw
 from . import math_tools as mt
 from . import cell_tools as ct
 from . import Index as ind
+
 # import  scipy.optimize  as opt
 
 import sys
 from matplotlib.backends.qt_compat import QtWidgets
 
 
-from IPython.terminal.embed import InteractiveShellEmbed
-shell = InteractiveShellEmbed()
-shell.enable_matplotlib()
+#from IPython.terminal.embed import InteractiveShellEmbed
+#shell = InteractiveShellEmbed()
+#shell.enable_matplotlib()
 
 
 global qapp
@@ -103,7 +105,7 @@ class LineBuilder:
         self.__xtl = []
         return
 
-    def defFplot(self, ax, plot, ima):
+    def defFplot(self, ax, ima):
         """graphical definition of line
         define the line parameter by clicking
         Args:
@@ -112,15 +114,13 @@ class LineBuilder:
            args : argument for the plot 
            a graphical approach
         """
-        if plot:
-            def callb(event):
-                self.calc(event)
-                self.plot_profile(ima)
-            callback = callb
-        else:
-            callback = self.calc
-
-        self.line = mw.LineBuilder(ax, callback=callback, useblit=True,
+        def callb(event):
+            self.calc(event)
+            self.profile = profile_line(ima, self.origin,
+                                        self.origin + self.vect,
+                                        linewidth=1,
+                                        order=1)
+        self.line = mw.LineBuilder(ax, callback=callb, useblit=True,
                                    stay=True)
 
     def __del__(self):
@@ -184,38 +184,9 @@ class LineBuilder:
                                     linewidth=lw,
                                     order=order)
         if plot:
-            from PyQt5 import QtGui
-            from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, 
-                                         QToolTip, QMessageBox, QLabel, QHBoxLayout)
-            from matplotlib.figure import Figure
-
-            class Window2(QMainWindow):                           # <===
-                def __init__(self):
-                    super().__init__()
-                    self.setWindowTitle("Window22222")
-                    #plt.plot(self.profile)
-                    #fig_line = Gui.SIP.mplfig()
-                    #fig_line.ax.plot(self.profile)
-                    #fig_line.show()
-                    main = QtWidgets.QWidget()
-                    layoutH1 = QtWidgets.QVBoxLayout(main)
-                    figure = Figure(figsize=(6, 6), dpi=100)
-                    ax = figure.add_subplot(111)
-                    # it takes the `figure` instance as a parameter to __init__
-                    canvas = FigureCanvas(figure)
-                    canvas.setSizePolicy(
-                        QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-                    canvas.updateGeometry()
-
-                    # this is the Navigation widget
-                    # it takes the Canvas widget and a parent
-
-                    # set the layout
-                    layout_Figure.addWidget(self.canvas)                    
-            
-            self.w = Window2()
-            self.w.show()
-
+            plt.plot(self.profile)
+            fig = matplotlib.figure.Figure()
+            ax = fig.subplots(111)
 
 
 class PeakL(list):
@@ -272,6 +243,7 @@ class PeakL(list):
         else:
             pass
 
+
     def del_peak(self, n):
         self[0] = np.delete(self[0], n)
         self[1] = np.delete(self[1], n)
@@ -280,7 +252,7 @@ class PeakL(list):
         if hasattr(self, 'lp'):
             self.lp.set_data(self[1], self[0])
             self.lp.figure.canvas.draw()
-
+    
     @classmethod
     def findpeaks(cls, ima, min_dis=15, threshold=300, dist=None, symf=None,
                   circle=True, comass=True, center=None):
@@ -582,30 +554,15 @@ class Mimage():
         if plot:
             self.Peaks.plot(ax=cur_axes)
 
-    def profile_Line(self, fig=None, data=None, lw=1, order=1, plot=True):
+    def profile_Line(self, ax=None, data=None, lw=1, order=1):
         """create a line object store in the attribute self.line
            and calculae its profile stored in self.line.profile
         """
-        if fig is None:
-            fig = plt.gcf()
         self.line = LineBuilder()
         if data is None:
-            self.line.defFplot(fig.axes[0], plot=plot, ima=self.ima)
+            self.line.defFplot(ax, ima=self.ima)
         else:
             self.line.calc(data)
-
-    def angle(self):
-        fig = plt.gcf()
-        self.line = [LineBuilder(), LineBuilder()]
-        self.line[0].defFplot(fig.axes[0], plot=False, ima=self.ima)
-        while not(hasattr(self.line[0], 'fline')):
-            plt.pause(0.3)
-        self.line[1].defFplot(fig.axes[0], plot=False, ima=self.ima)
-        while not(hasattr(self.line[1], 'fline')):
-            plt.pause(0.3)
-        angle = acosd((self.line[0].vect @ self.line[1].vect) /
-                      (self.line[0].mod * self.line[1].mod))
-        return angle
 
     def help(self):
         print(self.__doc__)
@@ -800,7 +757,7 @@ class SeqIm(list):
         right button remoce an anotation
         left button + move drag ana annotation
         '''
-        reload(plt)
+        import plt
         fig = plt.figure()
         ax = plt.axes([0.05, 0.10, 0.75, 0.80])
         if axes is None:
@@ -862,11 +819,6 @@ class SeqIm(list):
         self.ax.set_axis_off()
         self.ax.set_frame_on(False)
 
-        #tbarplus = mw.ToolbarPlus(self, log=log, fig=fig,
-        #                          ax=ax, tool_b=tool_b, *args, **kwds)
-
-
-
         def update(val, all=False):
             inte = gui.Int_sl.get_value()**2 / 101
             dist = gui.dist_sl.get_value()
@@ -891,7 +843,6 @@ class SeqIm(list):
         gui.sym_sl.Slider.valueChanged.connect(update)
         gui.applyalButton.clicked.connect(lambda event: update(event, True))
 
-
         def refresh(val):
             vmaxb = gui.vmax_sl.get_value()
             mini = np.where(self.ima.ima > 0, self.ima.ima, np.inf).min()
@@ -909,7 +860,6 @@ class SeqIm(list):
             #tbarplus.kwds = kwds
 
         gui.vmax_sl.Slider.valueChanged.connect(refresh)
-        # self._Rdal_peak = fig.canvas.mpl_connect('key_press_event', press)
 
         def UP_DO(up):
             n = (self.index(self.ima) + up) % len(self)
@@ -965,27 +915,67 @@ class SeqIm(list):
             self.ima.Peaks.del_PlotRange()
 
         def lenght():
-            if hasattr(self.ima, 'line'):
+            if fig.canvas.widgetlock.locked():
+                return
+
+            def endpick():
+                nonlocal axp
+                del self.ax.lines[-1]
+                gui.lenghBut.clicked.disconnect()
+                gui.lenghBut.clicked.connect(lenght)
+                gui.lenghBut.setStyleSheet("")
+                axp.remove()
+                del axp
                 del self.ima.line
-            self.ima.profile_Line(fig=fig, plot=True)
-            return
-            while not(hasattr(self.ima.line, 'fline')):
-                plt.pause(0.3)
+                gui.canvas.draw()
+                return
+
+            self.ima.profile_Line(ax=self.ax)
+            while not(hasattr(self.ima.line, 'profile')):
+                gui.canvas.start_event_loop(0.3)
+
+            axp = fig.add_axes([0.10, .05, .80, .20])
             at = '\nlengh of the vector'
-            le = selfi.ima.line.mod * selfi.ima.scale
+            le = self.ima.line.mod * self.ima.scale
             print(f'{at} {10*le: 4.2f} 1/Ang.')
             print(f'and {0.1/le: 4.2f} Ang. in direct space')
+            x=np.linspace(0, le, len(self.ima.line.profile))
+            pl,= axp.plot(x, self.ima.line.profile)
+            axp.set_xlabel('1/nm')
+            gui.canvas.draw()
             at = 'component of the vector'
             le = self.ima.line.vect * self.ima.scale
-            print(f'{at} {le[0]: 4.2f} {le[1]: 4.2f} 1/nm')
-            print('\n\n')
+            print(f'{at} {le[0]: 4.2f} {le[1]: 4.2f} 1/nm\n\n')
+            gui.lenghBut.setStyleSheet("background-color : lightcyan")
+            gui.lenghBut.clicked.disconnect()
+            gui.lenghBut.clicked.connect(endpick)
 
         def angle():
-            if hasattr(selfi.ima, 'line'):
-                del selfi.ima.line
-            angle = selfi.ima.angle()
+            def endpick():
+                del self.ax.lines[-1]
+                del self.ax.lines[-1]
+                gui.angleBut.clicked.disconnect()
+                gui.angleBut.clicked.connect(angle)
+                gui.angleBut.setStyleSheet("")
+                gui.canvas.draw()
+            def linew():
+                self.ima.profile_Line(ax=self.ax)
+                while not(hasattr(self.ima.line, 'profile')):
+                    gui.canvas.start_event_loop(0.3)
+                vec = self.ima.line.vect
+                mod = self.ima.line.mod
+                return vec, mod
+
+            if fig.canvas.widgetlock.locked():
+                return
+            gui.angleBut.setStyleSheet("background-color : lightcyan")
+            gui.angleBut.clicked.disconnect()
+            gui.angleBut.clicked.connect(endpick)
+            vec1, mod1 = linew()
+            vec2, mod2 = linew()
+            anglev = acosd((vec1 @ vec2) / (mod1 * mod2))
             at = 'angle between the vectors'
-            print(f'{at} {angle: 4.2f} degrees')
+            print(f'{at} {anglev: 4.2f} degrees')
             print('\n\n')
 
         gui.upBut.clicked.connect(lambda: UP_DO(1))
@@ -994,9 +984,8 @@ class SeqIm(list):
         gui.RemBut.clicked.connect(Del_p)
         gui.RanBut.clicked.connect(DelR_p)
         gui.lenghBut.clicked.connect(lenght)
-
+        gui.angleBut.clicked.connect(angle)
         gui.canvas.draw()
-
 
     def save(self, filesave):
         """
@@ -1191,6 +1180,7 @@ class EwaldPeaks(object):
             Attributes:
                 graph  (D3plot.D3plot): graph Ewald peaks 3D set of peaks used to index
         """
+        self.EwaldPlot = PEW.EwaldPlot()
         self.graph = d3plot.D3plot(self)
 
     def plot_int(self):

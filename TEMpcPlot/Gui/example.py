@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 from matplotlib.backends.qt_compat import QtWidgets
-from matplotlib.backends.backend_qt5agg import (
+from matplotlib.backends.backend_qtagg import (
     FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
 
@@ -57,4 +57,4 @@ if __name__ == "__main__":
     app.show()
     app.activateWindow()
     app.raise_()
-    #qapp.exec()
+    qapp.exec()

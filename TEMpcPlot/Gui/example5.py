@@ -25,6 +25,7 @@ n_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
 n_slider.setRange(3, 10)
 n_slider.setSingleStep(1)
 n_slider.setValue(4)
+n_slider.setMinimumSize(QtCore.QSize(100, 15))
 n_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
 n_slider.setTickInterval(1)
 n_slider.setFont(QtGui.QFont("Arial", 30))
@@ -40,19 +41,18 @@ button.setGeometry(QtCore.QRect(250, 0, 75, 25))
 
 main = fig.canvas.parent()
 
-hbox = QtWidgets.QHBoxLayout()
+hbox = QtWidgets.QVBoxLayout()
 hbox.addWidget(n_slider)
 hbox.addWidget(button)
 
 vbox = QtWidgets.QHBoxLayout()
-vspace = QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+vspace = QtWidgets.QSpacerItem(1, 0, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 vbox.addItem(vspace)
-vbox.addSpacing(20)
+vbox.addSpacing(0)
 vbox.addLayout(hbox)
 
-ax = fig.add_subplot(111, projection='polar')
+ax = fig.add_subplot(111)
 theta = np.arange(0., 2., 1. / 180.) * np.pi
 ax.plot(theta, 5 * np.cos(4 * theta))
-
-
-main.setLayout(vbox)
+fig.canvas.setLayout(vbox)
+fig.canvas.setSpacing(53)

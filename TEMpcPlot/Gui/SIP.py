@@ -40,7 +40,7 @@ class C3_slider():
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(
-            self.frame.sizePolicy().hasHeightForWidth())
+        self.frame.sizePolicy().hasHeightForWidth())
         self.frame.setSizePolicy(sizePolicy)
         self.frame.setMinimumSize(QtCore.QSize(400, 35))
         self.frame.setFrameShape(QtWidgets.QFrame.StyledPanel)

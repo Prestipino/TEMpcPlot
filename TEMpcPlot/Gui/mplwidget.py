@@ -1,17 +1,15 @@
 import matplotlib
 matplotlib.use('Qt5Agg')
-import matplotlib.pyplot as plt
-plt.ion()
+from matplotlib.figure import Figure
 
 from matplotlib.backends.qt_compat import QtCore, QtWidgets, is_pyqt5, QtGui
-from QtWidgets import QDialog, QApplication, QPushButton, QVBoxLayout, QWidget
 if is_pyqt5():
-    from matplotlib.backends.backend_qt5agg import FigureCanvas
+    from matplotlib.backends.backend_qt5agg import (
+    FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 else:
     from matplotlib.backends.backend_qt4agg import FigureCanvas
 
 
-import random
 
 
 
@@ -150,57 +148,23 @@ class FloatDial(QtWidgets.QDial):
         self.setValue(int(round(index)))
 
 
+import numpy as np
+class mplwidget(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.main = QtWidgets.QWidget()
+        self.setCentralWidget(self.main)
+        layout = QtWidgets.QVBoxLayout(self.main)
 
-class mplfig():
-    def __init__(self):   
-        self.fig = plt.figure(figsize=(8, 6), dpi=100)
-        self.ax = fig.add_subplot(111, projection='polar')
-        self.theta = np.arange(0., 2., 1. / 180.) * np.pi
-        self.ax.plot(theta, 5 * np.cos(4 * theta))
-
-
-
-class mplwidget(QtWidgets.QWidget):
-
-    def __init__(self, parent=None):
-        QtWidgets.QWidget.__init__(self, parent)
-
-        # a figure instance to plot on
-        self.figure = Figure(figsize=(5, 5), dpi=100)
-
-        self.ax = self.figure.add_subplot(111)
-
-        # this is the Canvas Widget that displays the `figure`
-        # it takes the `figure` instance as a parameter to __init__
-        self.canvas = FigureCanvas(self.figure)
-        self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.canvas.updateGeometry()
-
-        # this is the Navigation widget
-        # it takes the Canvas widget and a parent
-        self.toolbar = NavigationToolbar(self.canvas, self)
-
-        # set the layout
-        layout = QVBoxLayout()
-        layout.addWidget(self.toolbar)
-        layout.addWidget(self.canvas)
-        self.setLayout(layout)
+        static_canvas = FigureCanvas(Figure(figsize=(5, 3)))
+        # Ideally one would use self.addToolBar here, but it is slightly
+        # incompatible between PyQt6 and other bindings, so we just add the
+        # toolbar as a plain widget instead.
 
 
-
-    def plot(self):
-        ''' plot some random stuff '''
-        # random data
-        data = [random.random() for i in range(10)]
-
-        # instead of ax.hold(False)
-        self.figure.clear()
-
-        # discards the old graph
-        # ax.hold(False) # deprecated, see above
-
-        # plot data
-        ax.plot(data, '*-')
-
-        # refresh canvas
-        self.canvas.draw()
+        self._static_ax = static_canvas.figure.subplots()
+        t = np.linspace(0, 10, 501)
+        self._static_ax.plot(t, np.tan(t), ".")
+        static_canvas.draw()
+        #layout.addWidget(NavigationToolbar(static_canvas, self))
+        layout.addWidget(static_canvas)

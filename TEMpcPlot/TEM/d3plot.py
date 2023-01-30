@@ -19,7 +19,7 @@ class D3plot(object):
 
     """
 
-    def __init__(self, EwPePos, size='o'):
+    def __init__(self, EwPePos, size='o', Fig=None):
         self.__size = size
         self._EwPePos = EwPePos
         # list in whic pos are sotred for each image
@@ -37,7 +37,6 @@ class D3plot(object):
                 self.axes[abc] = LineAxes(abc, 1, axis=EwPePos.axes.T[i])
         # -----------------------------------------------
 
-        plt.rcParams['toolbar'] = 'None'
         self.fig = plt.figure()
 
         gs = self.fig.add_gridspec(5, 5)
