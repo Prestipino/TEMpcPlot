@@ -1268,7 +1268,6 @@ class EwaldPeaks(object):
             self.find_cell(maxes=val, cond=cond, layers=lay)
         self.EwPlot.FCellButton.clicked.connect(find_c)
 
-
     def plot_int(self):
         """Plot instogramm of intensity of the peaks
         """
@@ -1358,10 +1357,11 @@ class EwaldPeaks(object):
             for i, sigma in enumerate(ct.twofold_reduce(twofold)):
                 print(f'\ncell n.{i} angular deviations:', sigma['sigma'][0])
                 sol.append(ct.get_cell(sigma))
-            return
-            accep_sol = int(input('\nselect cell number:\n'))
-            A = np.dot(self.axes, inv(sol[accep_sol][1]))
-            self.set_cell(A)
+            self.standard_setting = [np.dot(self.axes, inv(sol[i])) for i in sol]
+        print('\nto define a new cell type seklf.set_cell(n)')
+        print('n = cell number')
+        return
+
 
     def plot_reduce(self, tollerance=0.1, condition=None):
         """plot collapsed reciprocal space
