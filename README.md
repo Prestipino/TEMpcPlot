@@ -21,7 +21,7 @@ The library is divided in two main class
 ```bash
 conda config --add channels conda-forge
 ```
-- type: *facultative, but significant better if ipython is installed*
+- type: 
 ```bash
 conda install ipython
 ```
@@ -31,11 +31,14 @@ conda install -c cprestip tempcplot
 ```
 
 ## UPDATE
-The code is still in rapid change and cold present several bug
+The code is still in rapid change and could present several bug
 please update with the following command on an anaconda prompt  
 ```bash
 conda update -c cprestip --force-reinstall tempcplot
 ```
+ alternativelly for small update without complete compile version online, it is possible to dowload the package, and execute
+ ```python setup.py ```
+
 * * *
 ## In order to work
 - create a text file  \*.sqi containing the name of files with the tilts angles in the working directory
