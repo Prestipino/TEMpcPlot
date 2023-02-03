@@ -1206,17 +1206,18 @@ class EwaldPeaks(object):
             val = self.EwPlot.comboBox_abc.currentText()
             if val == "a*":
                 self.graph.allign_a()
-            if val == "b*":
+            elif val == "b*":
                 self.graph.allign_b()
-            if val == "c*":
+            elif val == "c*":
                 self.graph.allign_c()
+            if len(self.graph.axes) == 3:
+                self.set_cell()
         self.EwPlot.AllignButton.clicked.connect(allign)
 
         def def_ax(event):
             val = self.EwPlot.comboBox_abc.currentText()
             n = self.EwPlot.spin_n.value()
             self.graph.define_axis(val[0], n)
-
         self.EwPlot.DefineButton.clicked.connect(def_ax)
 
         def rotate(val=False):
