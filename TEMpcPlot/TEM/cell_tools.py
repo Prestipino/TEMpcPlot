@@ -287,9 +287,11 @@ def Hx2Rh(Hx):
 
 
 def twofold_reduce(twofold):
-    def reduce(twofold, n_t):
+    def reduce(twofold, i):
+        n_t = len(twofold['sigma'])
+
         list_red = []
-        for l_n in combinations(range(len(twofold['sigma'])), n_t):
+        for l_n in combinations(range(i, n_t), n_t-1-i):
             list_red.append({'sigma': np.array([twofold['sigma'][i] for i in l_n]),
                              'uvw': np.array([twofold['uvw'][i] for i in l_n]),
                              'hkl': np.array([twofold['hkl'][i] for i in l_n]),
@@ -301,7 +303,7 @@ def twofold_reduce(twofold):
         return list_red
     out = [twofold]
     n_twofold = len(twofold['sigma'])
-    for i in range(n_twofold-2, 0, -2):
+    for i in range(1, n_twofold-1, 2):
         out.extend(reduce(twofold, i))
     return out
 
@@ -490,6 +492,7 @@ all_twofold = [
     {'r': (1, 1, 0, 0, -1, 0, 0, 0, -1), 'uvw': (1, 0, 0), 'hkl': (2, 1, 0)},
     {'r': (1, 1, 1, 0, -1, 0, 0, 0, -1), 'uvw': (1, 0, 0), 'hkl': (2, 1, 1)}]
 
+
 def search_twofold(cell, toll_angle):
     """
     base are columns vectors for the base
@@ -566,6 +569,7 @@ def get_cell(twofold, verbose=False):
     def colinear(v1, v2):
         return all(np.cross(v1, v2) == 0)
 
+
     tr = np.identity(3, dtype=int)
     d_base = twofold['dbase']
     ntwo = len(twofold['uvw'])
@@ -618,6 +622,14 @@ def get_cell(twofold, verbose=False):
     if ntwo == 7:  # Case (7)   !Hexagonal n-2foldaxes=7
         hexap = False
         hexac = False
+
+        mv = mt.mod(twofold['dv'])
+        order = np.argsort(mv)
+        twofold['sigma'] = twofold['sigma'][order]
+        twofold['uvw'] = twofold['uvw'][order]
+        twofold['hkl'] = twofold['hkl'][order]
+        twofold['dv'] = twofold['dv'][order]
+        twofold['rv'] = twofold['rv'][order]
         mv = mt.mod(twofold['dv'])
 
         # Search tha a-b plane
@@ -625,13 +637,14 @@ def get_cell(twofold, verbose=False):
             vi = twofold['dv'][i]
             vj = twofold['dv'][j]
             aij = mt.angle_between_vectors(vi, vj)
-            if abs(aij - (2*np.pi / 3.0)) < twofold['toll']:
-                if (abs(mv[i] - mv[j]) < tola) and not(hexap):
+            if abs(aij - (2 * np.pi / 3.0)) < twofold['toll']:
+                if (abs(mv[i] - mv[j]) < tola):
                     v1 = vi
                     v2 = vj
                     v1_i, v2_i = i, j
                     hexap = True
                     break
+
 
         # then ! Search the c-axis, it should be also
         # a two-fold axis! because Op(6).Op(6).Op(6)=Op(2)
@@ -649,11 +662,11 @@ def get_cell(twofold, verbose=False):
                 ok = False
                 if verbose:
                     print('no axes 90 to hexagonal')
-
         if hexac:
             tr = np.array([twofold['uvw'][v1_i],
                            twofold['uvw'][v2_i],
                            twofold['uvw'][v3_i]])
+
             namina = int(nl.det(tr))
             if (namina < 0):
                 tr[2] *= -1
@@ -661,9 +674,10 @@ def get_cell(twofold, verbose=False):
                 namina *= -1
             if namina == 1:
                 print("Hexagonal, Primitive cell")
-            if namina == 2:
+            elif namina > 1:
                 print("Hexagonal, centred cell? possible mistake")
-
+            else:
+                print('azzo', namina)
         else:
             ok = False
             print("The c-axis of a hexagonal cell was not found!")
@@ -831,10 +845,11 @@ def get_cell(twofold, verbose=False):
                 continue
             vec = np.dot(d_base, rw)
             if check90(mt.angle_between_vectors(v2, vec)):
-                if any([colinear(vec, i) for i in row]):
+                if any([colinear(rw, i) for i in row]):
                     continue
                 else:
                     row.append(np.array(rw))
+
 
         row_mod = np.array([mt.mod(np.dot(d_base, i)) for i in row])
         rms = np.argsort(row_mod)

@@ -5,6 +5,7 @@ import numpy as np
 # import numpy.linalg as nl
 from scipy.spatial.transform import Rotation as R
 from .ransac import ransac_lin
+from scipy.optimize import least_squares
 
 
 def sind(x):
@@ -38,7 +39,6 @@ def coprime(x):
     """return true if all numer in x are coprime
     """ 
     return np.gcd.reduce(x) in [0, 1]
-
 
 rpd = np.pi / 180.
 RSQ2PI = 1. / np.sqrt(2. * np.pi)
@@ -212,6 +212,14 @@ def find_z_rotation(rot, rot_vect):
         print('zrot', np.round(np.degrees(z_ang), 1))
         raise ValueError
     return z_ang
+
+
+def refine_scaleshift_2d(ref_p, peaks):
+    # x = x,y,scale
+    def resid(x):
+        return np.abs((peaks + x[0:2]) * x[2] - ref_p).flat
+    res_1 = least_squares(resid, np.array([0, 0, 1]))
+    return res_1.x
 
 
 def zrotm(theta):

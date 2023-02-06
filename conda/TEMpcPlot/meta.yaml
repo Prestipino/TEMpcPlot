@@ -1,5 +1,5 @@
 {% set name = "TEMpcPlot" %}
-{% set version = "1.0.3" %}
+{% set version = "1.0" %}
 
 package:
   name: "{{ name|lower }}"
@@ -7,7 +7,7 @@ package:
 
 source:
   git_url: https://github.com/Prestipino/TEMpcPlot.git
-  git_rev: v1.2.3
+  git_rev: v1.4
   git_depth: 1 # (Defaults to -1/not shallow)
 
 build:
@@ -29,11 +29,11 @@ requirements:
     - python >=3.7
     - scipy
     - numpy
-    - matplotlib 3.4.2
+    - matplotlib >=3.5
     - scipy
     - pillow
-    - uncertainties    
-    - packaging
+    - uncertainties 
+    - keyboard   
     - conda-forge::mplcursors
 
 test:
@@ -44,4 +44,3 @@ about:
   license: MIT
   license_family: BSD
   summary: testiasmo il packaging
-
