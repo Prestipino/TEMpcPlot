@@ -1358,11 +1358,10 @@ class EwaldPeaks(object):
             for i, sigma in enumerate(ct.twofold_reduce(twofold)):
                 print(f'\ncell n.{i} angular deviations:', sigma['sigma'][0])
                 sol.append(ct.get_cell(sigma))
-            self.standard_setting = [np.dot(self.axes, inv(sol[i])) for i in sol]
+            self.standard_setting = [np.dot(self.axes, inv(i[1])) for i in sol]
         print('\nto define a new cell type seklf.set_cell(n)')
         print('n = cell number')
         return
-
 
     def plot_reduce(self, tollerance=0.1, condition=None):
         """plot collapsed reciprocal space

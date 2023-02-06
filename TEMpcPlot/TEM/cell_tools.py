@@ -287,20 +287,22 @@ def Hx2Rh(Hx):
 
 
 def twofold_reduce(twofold):
-    def reduce(twofold):
-        return {'sigma': twofold['sigma'][2:],
-                'uvw': twofold['uvw'][2:], 'hkl': twofold['hkl'][2:],
-                'dv': twofold['dv'][2:], 'rv': twofold['rv'][2:],
-                'dbase': twofold['dbase'],
-                'rbase': twofold['rbase'],
-                'toll': twofold['toll']}
+    def reduce(twofold, n_t):
+        list_red = []
+        for l_n in combinations(range(len(twofold['sigma'])), n_t):
+            list_red.append({'sigma': np.array([twofold['sigma'][i] for i in l_n]),
+                             'uvw': np.array([twofold['uvw'][i] for i in l_n]),
+                             'hkl': np.array([twofold['hkl'][i] for i in l_n]),
+                             'dv': np.array([twofold['dv'][i] for i in l_n]),
+                             'rv': np.array([twofold['rv'][i] for i in l_n]),
+                             'dbase': twofold['dbase'],
+                             'rbase': twofold['rbase'],
+                             'toll': twofold['toll']})
+        return list_red
     out = [twofold]
-    while True:
-        if len(twofold['uvw']) == 1:
-            break
-        else:
-            twofold = reduce(twofold)
-            out.append(twofold)
+    n_twofold = len(twofold['sigma'])
+    for i in range(n_twofold-2, 0, -2):
+        out.extend(reduce(twofold, i))
     return out
 
 
@@ -494,6 +496,16 @@ def search_twofold(cell, toll_angle):
     based on:
     http://legacy.ccp4.ac.uk/newsletters/newsletter44/articles/explore_metric_symmetry.html
     cctbx_sources/cctbx/sgtbx/lattice_symmetry.cpp
+
+    return a dictionary twofold
+    sigma : angular error for the twofold
+    uvw   : Direct indices of two-fold axes
+    hkl   : Reciprocal indices of two-fold axes
+    dv    : Direct Cartesian components of two-fold axes
+    rv    : Reciprocal Cartesian components of two-fold axes
+    dbase : Base of the cell
+    rbase : Base of reciprocal space cell
+    toll  : tollerance angle used for calculation (radiant)
     """
     toll = toll_angle * rpd
 
@@ -504,7 +516,6 @@ def search_twofold(cell, toll_angle):
         r_base = nl.inv(cell)
 
     uvw, hkl, d_v, r_v, sigma = [], [], [], [], []
-
     for i in all_twofold:
         dv = np.dot(d_base, i['uvw'])
         rv = np.dot(i['hkl'], r_base)
@@ -525,7 +536,8 @@ def search_twofold(cell, toll_angle):
             'rbase': r_base,
             'toll': toll}
 
-def get_cell(twofold):
+
+def get_cell(twofold, verbose=False):
     """dtwofold = uvw
        caxes = dv
        maxes = lenght dv
@@ -613,10 +625,11 @@ def get_cell(twofold):
             vi = twofold['dv'][i]
             vj = twofold['dv'][j]
             aij = mt.angle_between_vectors(vi, vj)
-            if abs(aij - (np.pi / 3.0)) < twofold['toll']:
+            if abs(aij - (2*np.pi / 3.0)) < twofold['toll']:
                 if (abs(mv[i] - mv[j]) < tola) and not(hexap):
                     v1 = vi
                     v2 = vj
+                    v1_i, v2_i = i, j
                     hexap = True
                     break
 
@@ -629,14 +642,19 @@ def get_cell(twofold):
                 aik = mt.angle_between_vectors(v2, vi)
                 if check90(aij) and check90(aik):
                     v3 = vi
+                    v3_i = i
                     hexac = True
                     break
             else:
                 ok = False
+                if verbose:
+                    print('no axes 90 to hexagonal')
 
         if hexac:
-            tr = np.array([v1, v2, v3])
-            namina = nl.det(tr)
+            tr = np.array([twofold['uvw'][v1_i],
+                           twofold['uvw'][v2_i],
+                           twofold['uvw'][v3_i]])
+            namina = int(nl.det(tr))
             if (namina < 0):
                 tr[2] *= -1
                 v3 *= -1
@@ -666,11 +684,11 @@ def get_cell(twofold):
                 inp[i] = 1
                 inp[j] = 1
                 ab.append([i, j][np.argmin(mv[[i, j]])])
-
         ab = list(set(ab))
         if len(ab) < 2:
             ok = False
-            print("Basis vectors a-b not found!")
+            if verbose:
+                print("Basis vectors a-b not found!")
             return
         #  !Determination of the c-axis
         #  (that making 90 degree with all the others)
@@ -702,9 +720,7 @@ def get_cell(twofold):
 
     if ntwo == 3:  # Case (3)   !Orthorhombic/Trigonal n-2foldaxes=3
         u = mt.mod(twofold['dv'])
-        a_i = np.argmin(u)
-        c_i = np.argmax(u)
-        b_i = 3 - a_i - c_i
+        a_i, b_i, c_i  = np.argsort(u)
         tr[0, :] = twofold['uvw'][a_i]
         tr[1, :] = twofold['uvw'][b_i]
         tr[2, :] = twofold['uvw'][c_i]
@@ -715,7 +731,7 @@ def get_cell(twofold):
 
         ang = np.array([mt.angle_between_vectors(v3, v2),
                         mt.angle_between_vectors(v1, v3),
-                        mt.angle_between_vectors(v1, v3)])
+                        mt.angle_between_vectors(v1, v2)])
 
         #  Check the system by verifying that the two-fold axes
         #  form 90 (orthorhombic)
@@ -728,7 +744,7 @@ def get_cell(twofold):
 
             if namina == 1:
                 print("Orthorhombic, Primitive cell")
-            if namina == 2:
+            elif namina == 2:
                 vecs = [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]
                 for rw_i, rw in enumerate(vecs):
                     if not(mt.coprime(np.dot(rw, tr))):
@@ -747,62 +763,52 @@ def get_cell(twofold):
             #  the three-fold axis, and valid a,b, vectors can be chosen
             #  among any two two-fold axes forming an angle of 120 degrees
             #  verify that 1 and 2 form 120          
-            c_axis = None
-            if any(abs(ang - (np.pi / 3)) < twofold['toll']):  # search 120
-                c_axis = np.argmin(abs(ang - (np.pi / 6)))
-                dot = 1.0
-                iu = 1
-            elif any(abs(ang - (np.pi / 6)) < twofold['toll']):  # search 60
-                c_axis = np.argmin(abs(ang - (np.pi / 6)))
-                dot = -1.0
-                iu = -1
+            if any(abs(ang - (2 * np.pi / 3)) < twofold['toll']):  # search 120
+                res = np.argmin(abs(ang - (2 * np.pi / 3)))
+                if res == 0:
+                    v1, v2, v3 = v2, v3, v1
+                    tr = tr[[1, 2, 0]]
+                elif res == 1:
+                    v1, v2, v3 = v1, v3, v2
+                    tr = tr[[0, 2, 1]]
+
+            elif any(abs(ang - (np.pi / 3)) < twofold['toll']):  # search 60
+                res = np.argmin(abs(ang - (np.pi / 3)))
+                if res == 0:
+                    v1, v2, v3 = v2, -v3, v1
+                    tr = tr[[1, 2, 0]]
+                elif res == 1:
+                    v1, v2, v3 = v1, -v3, v2
+                    tr = tr[[0, 2, 1]]
+                else:
+                    v2 = -v2
+                tr[1] = -tr[1]
             else:
-                print("Trigonal/Rhombohedral test failed! \
-                       Supply only one two-fold axis")
+                if verbose:
+                    print("Trigonal/Rhombohedral test failed! \
+                           \nSupply only one two-fold axis")
+                ok = False
                 return
-            if c_axis == 0:
-                vi = v2
-                vj = dot * v3
-                h1 = tr[1, :]
-                h2 = iu * tr[2, :]
-                tr[2, :] = tr[0, :]
-                tr[0, :] = h1
-                tr[1, :] = h2
-
-            elif c_axis == 1:
-                vi = v1
-                vj = dot * v3
-                h2 = iu * tr[2, :]
-                tr[2, :] = tr[2, :]
-                tr[1, :] = h2
-
-            elif c_axis == 2:
-                vi = v1
-                vj = dot * v2
-                tr[1, :] = iu * tr[1, :]
 
             ok = False
-
             for uvw in nestedLoop(range(-3, 4), range(-3, 4), range(0, 4)):
                 if not(mt.coprime(uvw)):
                     continue
                 vec = np.dot(d_base, uvw)
-                ang1 = mt.angle_between_vectors(vec, vi)
-                ang2 = mt.angle_between_vectors(vec, vj)
+                ang1 = mt.angle_between_vectors(vec, v1)
+                ang2 = mt.angle_between_vectors(vec, v2)
                 if check90(ang1) and check90(ang2):
                     tr[2, :] = uvw
                     ok = True
                     break
             if ok:
-
                 namina = np.round(nl.det(tr), 4)
-                print(namina, namina == 3)
                 if namina < 0:
                     tr[2, :] *= -1
                     namina *= -1
                 v3 = np.dot(d_base, tr[2])
                 if namina == 1:
-                    print("Primitive hexagonal cell")
+                    print("Rhombohedral Primitive hexagonal cell")
 
                 elif namina == 3:
                     rw = np.dot([2, 1, 1], tr)
