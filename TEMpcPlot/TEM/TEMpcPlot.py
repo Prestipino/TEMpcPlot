@@ -683,7 +683,7 @@ class SeqIm(list):
         if hasattr(self, 'ima'):
             self.ima.Peaks.plot(ax=self.ax)
 
-    def D3_peaks(self, tollerance=15, tol_ang=5, tol_in=0.10):
+    def D3_peaks(self, tollerance=15, tol_ang=5, tol_in=0.10, refine_scale=True):
         """sum and correct the peaks of all images
         Args:
             tollerance () = pixel tollerance to determine if a peak
@@ -710,8 +710,14 @@ class SeqIm(list):
                 shift = out[0] - (out[i] @ mt.zrotm(-self.zangles[i]))
                 shift = shift.sum(axis=0) / len(out[i])
                 all_peaks[i] = peaks + shift
+
+        if refine_scale:
+            for i, peaks in enumerate(all_peaks):
+                if i != 0:
+                    shift = mt.refine_scaleshift_2d(out[0], out[i])
+                    all_peaks[i] = (peaks + shift[:2]) * shift[2]
+
         all_peaks = [np.column_stack((i, np.zeros(len(i)))) for i in all_peaks]
-      
 
         # absolute rotation
         self.__rot__ = np.array([im.info.gon_angles for im in self])
@@ -932,24 +938,25 @@ class SeqIm(list):
                 gui.canvas.draw()
                 return
 
+            gui.lenghBut.setStyleSheet("background-color : lightcyan")
+            gui.lenghBut.clicked.disconnect()
             self.ima.profile_Line(ax=self.ax)
             while not(hasattr(self.ima.line, 'profile')):
                 gui.canvas.start_event_loop(0.3)
-
             axp = fig.add_axes([0.10, .05, .80, .20])
+            gui.canvas.draw()
             at = '\nlengh of the vector'
+            print(self.ima.line.mod)
             le = self.ima.line.mod * self.ima.scale
-            print(f'{at} {10*le: 4.2f} 1/Ang.')
-            print(f'and {0.1/le: 4.2f} Ang. in direct space')
+            print(f'{at} {  le : 4.2f} 1/nm.')
+            print(f'and {10 / le : 4.2f} d-spacing Ang')
             x=np.linspace(0, le, len(self.ima.line.profile))
-            pl,= axp.plot(x, self.ima.line.profile)
+            pl, = axp.plot(x, self.ima.line.profile)
             axp.set_xlabel('1/nm')
             gui.canvas.draw()
             at = 'component of the vector'
             le = self.ima.line.vect * self.ima.scale
             print(f'{at} {le[0]: 4.2f} {le[1]: 4.2f} 1/nm\n\n')
-            gui.lenghBut.setStyleSheet("background-color : lightcyan")
-            gui.lenghBut.clicked.disconnect()
             gui.lenghBut.clicked.connect(endpick)
 
         def angle():
@@ -1218,6 +1225,8 @@ class EwaldPeaks(object):
             val = self.EwPlot.comboBox_abc.currentText()
             n = self.EwPlot.spin_n.value()
             self.graph.define_axis(val[0], n)
+            if len(self.graph.axes) == 3:
+                self.set_cell()
         self.EwPlot.DefineButton.clicked.connect(def_ax)
 
         def rotate(val=False):
@@ -1565,6 +1574,7 @@ class EwaldPeaks(object):
         refine the reciprocal cell basis in respect to data that are
         indexed in the tollerance range.
         """
+        print('\nRefining axes...')
         if axes is None:
             axes = self.axes
         else:

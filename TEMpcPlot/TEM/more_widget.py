@@ -512,7 +512,7 @@ class ToolbarPlusCal():
             else:
                 self.pltim = plt.imshow(self.ima.ima, extent=estensione,
                                         cmap='binary', *self.args, **self.kwds)
-            plt.title(f'Image {self.ima.info.filename}')
+            plt.title(f'Image {self.index} {self.ima.info.filename}')
             #ax.set_frame_on(False)
             ax.set_xlabel(r'$nm^{-1}$')
             ax.set_ylabel(r'$nm^{-1}$')
