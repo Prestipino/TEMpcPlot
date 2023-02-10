@@ -1019,6 +1019,9 @@ class SeqIm(list):
                       'ps_in': i.Peaks.ps_in} for i in self]
         out.filename = self.filenames
         out.filesangle = [i.info.gon_angles for i in self]
+        if hasattr(self, 'zangle'):
+            out.zangle = self.zangle
+
         if hasattr(self, 'EwP'):
             out.EwP = {'positions': self.EwP.pos,
                        'intensity': self.EwP.int}
@@ -1054,6 +1057,8 @@ class SeqIm(list):
             out[i].Peaks = PeakL(Peaksi['pos'])
             out[i].Peaks.int = Peaksi['inte']
             out[i].Peaks.ps_in = Peaksi['ps_in']
+        if hasattr(inn, 'zangle'):
+            out.zangle = inn.zangle
         if hasattr(inn, 'EwP'):
             try:
                 inn.EwP.update({'positions': inn.EwP['pos'],
