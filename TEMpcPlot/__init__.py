@@ -22,3 +22,5 @@ from .TEM import(SeqIm, EwaldPeaks)
 from .tables import pt_p
 
 from . import Symmetry 
+
+from . import Gui
