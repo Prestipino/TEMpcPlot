@@ -716,6 +716,7 @@ class SeqIm(list):
                 if i != 0:
                     shift = mt.refine_scaleshift_2d(out[0], out[i])
                     all_peaks[i] = (peaks + shift[:2]) * shift[2]
+                    print('scale correction', i, shift[2] )
 
         all_peaks = [np.column_stack((i, np.zeros(len(i)))) for i in all_peaks]
 
