@@ -37,7 +37,7 @@ please update with the following command on an anaconda prompt
 conda update -c cprestip --force-reinstall tempcplot
 ```
  alternativelly for small update without complete compile version online, it is possible to dowload the package, and execute
- ```python setup.py ```
+ ```python setup.py install```
 
 * * *
 ## In order to work
