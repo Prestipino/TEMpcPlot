@@ -2,12 +2,10 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.figure import Figure
 
-from matplotlib.backends.qt_compat import QtCore, QtWidgets, is_pyqt5, QtGui
-if is_pyqt5():
-    from matplotlib.backends.backend_qt5agg import (
+from matplotlib.backends.qt_compat import QtCore, QtWidgets,  QtGui
+
+from matplotlib.backends.backend_qt5agg import (
     FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
-else:
-    from matplotlib.backends.backend_qt4agg import FigureCanvas
 
 
 

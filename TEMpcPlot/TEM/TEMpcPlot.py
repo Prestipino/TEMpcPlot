@@ -995,7 +995,13 @@ class SeqIm(list):
         gui.RanBut.clicked.connect(DelR_p)
         gui.lenghBut.clicked.connect(lenght)
         gui.angleBut.clicked.connect(angle)
-        gui.RecBut.clicked.connect(lambda event: self.D3_peaks())
+
+        def D3_set():
+            scale = gui.checkBox_scale.isChecked()
+            tol = gui.spinBox_px.value()
+            self.D3_peaks(tollerance=tol, refine_scale=scale)
+
+        gui.RecBut.clicked.connect(D3_set)
 
         gui.canvas.draw()
 

@@ -174,8 +174,28 @@ class SeqImaPlot(QtWidgets.QMainWindow):
             None, layout_Commands, 'Contrast  ', 0.01, 100, 50)
         layout_Commands.addSpacing(15)
 
+
+
+        layout_D3 = QtWidgets.QHBoxLayout()
+        layout_D3.setSpacing(0)
+        layout_Commands.addLayout(layout_D3)
+
+
         self.RecBut = QtWidgets.QPushButton('Build Reciprocal space')
-        layout_Commands.addWidget(self.RecBut)
+        layout_D3.addWidget(self.RecBut)
+        label_px = QtWidgets.QLabel('px')
+        layout_D3.addWidget(label_px)
+        self.spinBox_px = QtWidgets.QSpinBox()
+        self.spinBox_px.setValue(15)
+        layout_D3.addWidget(self.spinBox_px)
+        self.checkBox_scale = QtWidgets.QCheckBox()
+        layout_D3.addWidget(self.checkBox_scale)
+        self.checkBox_scale.setChecked(True)
+
+
+
+
+
 
 
 
