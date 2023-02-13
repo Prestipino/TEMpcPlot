@@ -768,6 +768,7 @@ class SeqIm(list):
         import matplotlib.pyplot as plt
         fig = plt.figure(figsize=(8, 8))
         ax = plt.axes([0.05, 0.10, 0.75, 0.80])
+
         if axes is None:
             try:
                 axes = self.EwP.axes
@@ -1073,7 +1074,7 @@ class SeqIm(list):
             except:
                 pass
             out.EwP = EwaldPeaks(**inn.EwP)
-        return out
+            return out
 
 
 class EwaldPeaks(object):
@@ -1203,7 +1204,7 @@ class EwaldPeaks(object):
             Attributes:
                 graph  (D3plot.D3plot): graph Ewald peaks 3D set of peaks used to index
         """
-        self.EwPlot = Gui.PEW.EwaldPlot()
+        self.EwPlot = Gui.EwaldPlot()
         self.graph = d3plot.D3plot(self, fig=self.EwPlot.figure)
         self.EwPlot.show()
         self.EwPlot.raise_()
@@ -1412,7 +1413,7 @@ class EwaldPeaks(object):
         self.reduce.rotate_0()
         return
 
-    def create_layer(self, hkl, n, size=0.25, toll=0.15, mir=0, spg=None):
+    def create_layer(self, hkl='h', n=0, size=0.25, toll=0.15, mir=0, spg=None):
         """create a specific layer
         create a reciprocal space layer
 
@@ -1451,7 +1452,12 @@ class EwaldPeaks(object):
         # print(Ort_mat @ np.array([1, 1]))
 
         # create a set of theoretical reflection
-        if spg:
+
+        figure = plt.figure(figsize=(8, 8), dpi=100)
+        ax = figure.add_axes([0.10, 0.20, 0.85, 0.75], aspect='equal')
+        def plot_spg():
+            nonlocal ax
+            nonlocal figure
             # filter the reflection on the plane
             spgo = Symmetry.Spacegroup(spg)
             layer_pos = np.vstack([i for i in self.pos_cal])
@@ -1488,12 +1494,11 @@ class EwaldPeaks(object):
             if np.any(~ext_c):
                 ref_act = Ort_mat @ ref[~ext_c].T
 
-            plt.figure()
             if size > 0:
                 c_size = inte_o / inte_o.max() * size
             else:
                 c_size = inte_o.mean() / inte_o.max() * abs(size) * 2
-            ax = plt.subplot(aspect='equal')
+
             plt_p.circles(pos_o[0], pos_o[1],
                           s=c_size,
                           color='b')
@@ -1505,7 +1510,7 @@ class EwaldPeaks(object):
                 plt_p.rectangles(*ref_ext,
                                  w=inte_o.mean() / inte_o.max() * abs(size * 1.5),
                                  color='r', fc='none')
-            title = '(H K L)'.replace(hkl.upper(), str(n))
+            title = '(h k l)'.replace(hkl.upper(), str(n))
             title += '  %s (%d)' % (spgo.symbol.strip().replace(' ', ''), spgo.no)
             plt.title(title, weight='bold')
             # plt.scatter(*ref_act, s= 0.5 *inte_o.min() * size,
@@ -1515,7 +1520,9 @@ class EwaldPeaks(object):
             #             marker="D",
             #             facecolors='none', edgecolors='r')
 
-        else:
+        def plot_nospg():
+            nonlocal ax
+            nonlocal figure
             # filter the reflections in condition
             inte_o = []     # list with intensity  for image
             pos_o = []      # list with coordinate  for image
@@ -1526,8 +1533,9 @@ class EwaldPeaks(object):
                 max_inte = max(max_inte, inte_i.max())
                 pos_o.append(Ort_mat @ pos_i[cond].T[[o1, o2]])
             layer_pos = np.hstack(pos_o)
-            plt.figure()
-            ax = plt.subplot(aspect='equal')
+            #figure = plt.figure(figsize=(8, 8), dpi=100)
+            #ax = figure.add_axes([0.10, 0.20, 0.85, 0.75], aspect='equal')
+
             cmap = plt.get_cmap('brg')
             colors = [cmap(i) for i in np.linspace(0, 1, len(pos_o))]
             for i, pos_i in enumerate(pos_o):
@@ -1538,8 +1546,12 @@ class EwaldPeaks(object):
                 plt_p.circles(pos_i[0], pos_i[1], s=c_size,
                               color=colors[i])
 
-            plt.title('(H K L)'.replace(hkl.upper(), str(n)), weight='bold')
+            plt.title('(h k l)'.replace(hkl.upper(), str(n)), weight='bold')
 
+        if spg:
+            plot_spg() 
+        else:
+            plot_nospg()             
         def format_coord(x, y):
             hkl_i = np.array([float(n)] * 3)
             hkl_i[o1], hkl_i[o2] = inv_Ort_mat @ np.array([x, y])
@@ -1549,9 +1561,65 @@ class EwaldPeaks(object):
             return f'{z:s}    d_sp={d2:4.4f}nm'
         ax.format_coord = format_coord
 
-        plt.xlabel('%s (1/nm)' % 'HKL'[o1], weight='bold')
-        plt.ylabel('%s (1/nm)' % 'HKL'[o2], weight='bold')
+        plt.xlabel('%s (1/nm)' % 'hkl'[o1], weight='bold')
+        plt.ylabel('%s (1/nm)' % 'hkl'[o2], weight='bold')
+
+
+
+        vbox = QtWidgets.QVBoxLayout()
+        vspace = QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        vbox.addItem(vspace)
+        vbox.addSpacing(10)
+        layer_com = Gui.Bottom_create()
+        vbox.addWidget(layer_com)
+        figure.canvas.setLayout(vbox)
+
+        def plot_create():
+            nonlocal hkl
+            nonlocal n
+            nonlocal size
+            nonlocal mir
+            nonlocal spg
+            nonlocal o1
+            nonlocal o2
+            t_hkl = layer_com.liEd_hkl.text().strip().lower()
+            if t_hkl in 'hkl':
+                hkl = t_hkl
+            t_n = layer_com.liEd_hkln.text().strip()
+            if t_n.isnumeric():
+                n = float(t_n)
+            size = layer_com.dial.get_value()
+            if layer_com.cBox_int.isChecked():
+                size *= -1
+            mir = layer_com.cBox_mir.isChecked()
+            spg = 'P1' if layer_com.cBox_peak.isChecked() else None
+            ax.clear()
+            if spg:
+                plot_spg()
+            else:
+                plot_nospg()
+            o1, o2 = [i for i in [0, 1, 2] if i != 'hkl'.find(hkl)]
+
+            plt.xlabel('%s (1/nm)' % 'hkl'[o1], weight='bold')
+            plt.ylabel('%s (1/nm)' % 'hkl'[o2], weight='bold')
+            plt.draw()
+
+        layer_com.But_hkl.clicked.connect(plot_create)
+
         plt.draw()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def cr_cond(self, operator=None, lim=None):
         """define filtering condition
