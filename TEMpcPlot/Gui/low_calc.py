@@ -86,14 +86,13 @@ class Bottom_create(QtWidgets.QFrame):
         horiLay.addWidget(groupBox)
 
         horLay_hkl = QtWidgets.QHBoxLayout(groupBox)
-        lab1 = QtWidgets.QLabel("h/k/l")
-        horLay_hkl.addWidget(lab1)
-        self.liEd_hkl = QtWidgets.QLineEdit()
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed,
-                                           QtWidgets.QSizePolicy.Fixed)
-        self.liEd_hkl.setMaximumSize(QtCore.QSize(30, 20))
-        self.liEd_hkl.setSizePolicy(sizePolicy)
-        horLay_hkl.addWidget(self.liEd_hkl)
+        self.combo_hkl = QtWidgets.QComboBox()
+        self.combo_hkl.addItem("h")
+        self.combo_hkl.addItem("k")
+        self.combo_hkl.addItem("l")
+        horLay_hkl.addWidget(self.combo_hkl)
+        self.combo_hkl.setMaximumSize(QtCore.QSize(50, 20))
+
 
         lab2 = QtWidgets.QLabel("   n.")
         horLay_hkl.addWidget(lab2)
@@ -102,16 +101,22 @@ class Bottom_create(QtWidgets.QFrame):
         self.liEd_hkln.setMaximumSize(QtCore.QSize(30, 20))
         horLay_hkl.addWidget(self.liEd_hkln)
 
-        self.But_hkl = QtWidgets.QPushButton("Create")
-        horiLay.addWidget(self.But_hkl)
+        label_tol = QtWidgets.QLabel("   tol.")
+        horLay_hkl.addWidget(label_tol)
+        self.TolSpin = QtWidgets.QDoubleSpinBox()
+        self.TolSpin.setProperty("value", 0.15)
+        self.TolSpin.setObjectName("doubleSpinBox")
+        horLay_hkl.addWidget(self.TolSpin)
 
-        self.cBox_peak = QtWidgets.QCheckBox("show peak   \nposition")
+        self.cBox_peak = QtWidgets.QCheckBox("show peaks   \nposition")
         horiLay.addWidget(self.cBox_peak)
-        self.cBox_int = QtWidgets.QCheckBox('show\n intensity')
+        self.cBox_int = QtWidgets.QCheckBox('hide\n intensity')
         horiLay.addWidget(self.cBox_int)
 
         self.cBox_mir = QtWidgets.QCheckBox('mirror')
         horiLay.addWidget(self.cBox_mir)
 
         self.dial = self.Int_sl = C3_slider(None, horiLay, 'spot size', 0.0, 2.0, 0.4)
-        
+
+        self.But_hkl = QtWidgets.QPushButton("Create")
+        horiLay.addWidget(self.But_hkl)

@@ -1350,7 +1350,7 @@ class EwaldPeaks(object):
             layers = list(range(len(self.pos)))
 
         if cond is None:
-            cond = lambda pos, inte: pos
+            cond = lambda pos, inte: np.arange(len(inte))
 
         pos = [self.pos[i][cond(self.pos[i], self.int[i])] for i in layers]
 
@@ -1429,35 +1429,38 @@ class EwaldPeaks(object):
         """
         hkl = hkl.lower()
         o1, o2 = [i for i in [0, 1, 2] if i != 'hkl'.find(hkl)]
-
-        if mir:
-            def app_cond(pos):
-                return np.where(abs(abs(pos['hkl'.find(hkl)]) - abs(n)) < toll)
-        else:
-            def app_cond(pos):
-                return np.where(abs(pos['hkl'.find(hkl)] - n) < toll)
-
-        # creation of a bidimensional orthogonalization matrix
-        mod = np.sqrt(np.sum(self.axes**2, axis=0))
-        cos_a = (self.axes[:, o1]  @ self.axes[:, o2]) / (mod[o1] * mod[o2])
-        print('degree between the axis',
-              np.round(np.arccos(cos_a) / rpd, 2), '\n')
-        sin_a = np.sin(np.arccos(cos_a))
-        Ort_mat = np.array([[mod[o1], mod[o2] * cos_a],
-                            [0, mod[o2] * sin_a]])
-        inv_Ort_mat = inv(Ort_mat)
-
-        # print(Ort_mat @ np.array([1, 0]))
-        # print(Ort_mat @ np.array([0, 1]))
-        # print(Ort_mat @ np.array([1, 1]))
-
-        # create a set of theoretical reflection
-
         figure = plt.figure(figsize=(8, 8), dpi=100)
         ax = figure.add_axes([0.10, 0.20, 0.85, 0.75], aspect='equal')
+
+        app_cond = 0
+        inv_Ort_mat = 0
+        Ort_mat = 0
+
+        def inizialize():
+            nonlocal app_cond
+            nonlocal inv_Ort_mat
+            nonlocal Ort_mat
+            nonlocal o1
+            nonlocal o2
+            o1, o2 = [i for i in [0, 1, 2] if i != 'hkl'.find(hkl)]
+            if mir:
+                def app_cond(pos):
+                    return np.where(abs(abs(pos['hkl'.find(hkl)]) - abs(n)) < toll)
+            else:
+                def app_cond(pos):
+                    return np.where(abs(pos['hkl'.find(hkl)] - n) < toll)
+
+            # creation of a bidimensional orthogonalization matrix
+            mod = np.sqrt(np.sum(self.axes**2, axis=0))
+            cos_a = (self.axes[:, o1]  @ self.axes[:, o2]) / (mod[o1] * mod[o2])
+            print('degree between the axis',
+                  np.round(np.arccos(cos_a) / rpd, 2), '\n')
+            sin_a = np.sin(np.arccos(cos_a))
+            Ort_mat = np.array([[mod[o1], mod[o2] * cos_a],
+                                [0, mod[o2] * sin_a]])
+            inv_Ort_mat = inv(Ort_mat)
+
         def plot_spg():
-            nonlocal ax
-            nonlocal figure
             # filter the reflection on the plane
             spgo = Symmetry.Spacegroup(spg)
             layer_pos = np.vstack([i for i in self.pos_cal])
@@ -1521,8 +1524,6 @@ class EwaldPeaks(object):
             #             facecolors='none', edgecolors='r')
 
         def plot_nospg():
-            nonlocal ax
-            nonlocal figure
             # filter the reflections in condition
             inte_o = []     # list with intensity  for image
             pos_o = []      # list with coordinate  for image
@@ -1548,23 +1549,14 @@ class EwaldPeaks(object):
 
             plt.title('(h k l)'.replace(hkl.upper(), str(n)), weight='bold')
 
-        if spg:
-            plot_spg() 
-        else:
-            plot_nospg()             
         def format_coord(x, y):
             hkl_i = np.array([float(n)] * 3)
             hkl_i[o1], hkl_i[o2] = inv_Ort_mat @ np.array([x, y])
 
             d2 = 1 / np.sqrt(hkl_i @ self.rMT @ hkl_i)
-            z = f'H={hkl_i[0]:4.1f}, K={hkl_i[1]:4.1f}, L={hkl_i[2]:4.1f}'
+            z = f'h={hkl_i[0]:4.1f}, k={hkl_i[1]:4.1f}, l={hkl_i[2]:4.1f}'
             return f'{z:s}    d_sp={d2:4.4f}nm'
         ax.format_coord = format_coord
-
-        plt.xlabel('%s (1/nm)' % 'hkl'[o1], weight='bold')
-        plt.ylabel('%s (1/nm)' % 'hkl'[o2], weight='bold')
-
-
 
         vbox = QtWidgets.QVBoxLayout()
         vspace = QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -1573,6 +1565,10 @@ class EwaldPeaks(object):
         layer_com = Gui.Bottom_create()
         vbox.addWidget(layer_com)
         figure.canvas.setLayout(vbox)
+        layer_com.combo_hkl.itemText('hkl'.find(hkl))
+        layer_com.liEd_hkln.setText(str(n))
+        layer_com.TolSpin.setProperty("value", toll)
+
 
         def plot_create():
             nonlocal hkl
@@ -1580,11 +1576,9 @@ class EwaldPeaks(object):
             nonlocal size
             nonlocal mir
             nonlocal spg
-            nonlocal o1
-            nonlocal o2
-            t_hkl = layer_com.liEd_hkl.text().strip().lower()
-            if t_hkl in 'hkl':
-                hkl = t_hkl
+            nonlocal toll
+            hkl = layer_com.combo_hkl.currentText()
+            toll = layer_com.TolSpin.value()
             t_n = layer_com.liEd_hkln.text().strip()
             if t_n.isnumeric():
                 n = float(t_n)
@@ -1594,32 +1588,20 @@ class EwaldPeaks(object):
             mir = layer_com.cBox_mir.isChecked()
             spg = 'P1' if layer_com.cBox_peak.isChecked() else None
             ax.clear()
+            inizialize()
             if spg:
                 plot_spg()
             else:
                 plot_nospg()
-            o1, o2 = [i for i in [0, 1, 2] if i != 'hkl'.find(hkl)]
 
+            o1, o2 = [i for i in [0, 1, 2] if i != 'hkl'.find(hkl)]
             plt.xlabel('%s (1/nm)' % 'hkl'[o1], weight='bold')
             plt.ylabel('%s (1/nm)' % 'hkl'[o2], weight='bold')
             plt.draw()
 
         layer_com.But_hkl.clicked.connect(plot_create)
 
-        plt.draw()
-
-
-
-
-
-
-
-
-
-
-
-
-
+        plot_create()
 
     def cr_cond(self, operator=None, lim=None):
         """define filtering condition
