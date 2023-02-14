@@ -287,11 +287,14 @@ def Hx2Rh(Hx):
 
 
 def twofold_reduce(twofold):
-    def reduce(twofold, i):
-        n_t = len(twofold['sigma'])
-
+    def reduce(i):
+        
         list_red = []
-        for l_n in combinations(range(i, n_t), n_t-1-i):
+
+        if (n_t - i) % 2:
+            return []
+
+        for l_n in combinations(range(i, n_t), n_t - i -1):
             list_red.append({'sigma': np.array([twofold['sigma'][i] for i in l_n]),
                              'uvw': np.array([twofold['uvw'][i] for i in l_n]),
                              'hkl': np.array([twofold['hkl'][i] for i in l_n]),
@@ -301,10 +304,17 @@ def twofold_reduce(twofold):
                              'rbase': twofold['rbase'],
                              'toll': twofold['toll']})
         return list_red
-    out = [twofold]
+
+    n_t = len(twofold['sigma'])
+    if n_t % 2:
+        out = [twofold]
+        start = 1
+    else:
+        out = []
+        start = 0
     n_twofold = len(twofold['sigma'])
-    for i in range(1, n_twofold-1, 2):
-        out.extend(reduce(twofold, i))
+    for i in range(start, n_twofold):
+        out.extend(reduce(i))
     return out
 
 
@@ -560,6 +570,8 @@ def get_cell(twofold, verbose=False):
 
     from Get_Conventional_Cell(Twofold,Cell,Tr,Message,Ok,lattice,told) in crysfml
     """
+
+
     def check90(angle):
         return abs(angle - (np.pi / 2)) < twofold['toll']
 

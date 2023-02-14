@@ -1377,11 +1377,16 @@ class EwaldPeaks(object):
                 print(twofold['uvw'][i], twofold['hkl'][i], s)
             print('\npossible high symmetry cells:\n')
             sol = []
-            for i, sigma in enumerate(ct.twofold_reduce(twofold)):
-                print(f'\ncell n.{i} angular deviations:', sigma['sigma'][0])
-                sol.append(ct.get_cell(sigma))
+            i = 0
+            for sigma in ct.twofold_reduce(twofold):
+                sol_i = ct.get_cell(sigma)
+                if sol_i:
+                    print(f'cell n.{i} angular deviations:', sigma['sigma'][0])
+                    print('\n')
+                    sol.append(sol_i)
+                    i += 1
             self.standard_setting = [np.dot(self.axes, inv(i[1])) for i in sol]
-        print('\nto define a new cell type seklf.set_cell(n)')
+        print('\nto define a new cell type name_object.set_cell(name_object.standard_setting[n])')
         print('n = cell number')
         return
 
