@@ -26,10 +26,10 @@ requirements:
     - pip
     - python
   run:
-    - python >=3.7
+    - python >=3.8
     - scipy
     - numpy
-    - matplotlib >=3.5
+    - matplotlib >=3.5.3
     - scipy
     - pillow
     - uncertainties 
