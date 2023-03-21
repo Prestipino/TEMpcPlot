@@ -1,3 +1,5 @@
 theme: jekyll-theme-leap-day
 title: TEMpcPlot
 description: Code for the reconstruction of reciprocal space from images acquired by TEM in zone axis
+show_downloads: true
+google_analytics:
