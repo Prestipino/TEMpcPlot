@@ -1,18 +1,32 @@
 # TEMpcPlot
 
 ## Introduction
-The library TEMpcPlot has as object the treatments of a Sequence of electropn diffraction cliches to obtain a three dimensional redcipriocal lattice. The idea behind is to find a way of work for TEM, available on pc, with graphycal approach (TEMpcPlot)
+The determination of the crystallographic structure is the first step in the characterization of crystalline materials and the determination of the crystallographic lattice is the first important step for the determination of the ab initio structure. However, in the absence of suitable single crystals, this task from powder X-ray diffraction (XRD) patterns is often very difficult, especially when the sample is multiphase. In contrast, electron diffraction patterns of individual micro/nanocrystals can be easily obtained by using transmission electron microscopy (TEM), making this technique an indispensable tool, and complementary to XRD, for structural and microstructural characterization of new phases in solid state chemistry.
+Due to the very short electron wavelength (~0.02 Å), a zone axis electron diffraction pattern is an undistorted representation of a 2D cross-section of the 3D reciprocal lattice (RR3D). In an equivalent way to single crystal XRD, RR3D can be obtained by collecting a series of images of the same crystal by progressively tilting it in the microscope. In practice, it is not easy to reconstruct the RR3D and to determine manually the dimensions of the elementary meshes from a series of images. This is why last year, the two project leaders started to develop an original Python library (TEMpcPlot), which uses as input one or more series of diffraction pictures acquired by rotating the crystal around a row of the RR3D and the angles of the goniometer. 
+ 
+The library TEMpcPlot has as object the treatments of a Sequence of electropn diffraction cliches to obtain a three dimensional redcipriocal lattice. The idea behind is to find a way of work for TEM, available on pc, with a graphical approach (TEMpcPlot)
 
 The library is divided in two main class
 ** TEMpcPlot.SeqIm **
-    a sequence of image where each element of the class is an image
+    a sequence of image where each element of the class is an image perform 
+    * the search for peaks
+    * the alignment of the images with respect to the origin and the rotation axis
+    * the calibration of the peaks in the common three-dimensional reciprocal space
+    * plot the calibrated images
 
 ** EwaldPeaks **
     Set of peaks position and intensity
-    this class manages peaks position and intensity and the methods related to
-    lattice indexing and refinement
+    this class manages peaks position and intensity and the methods related to lattice indexing and refinement
     could be created as an attribute EwP of a SeqIm class by using methods D3_peaks
     or by sum with an another EwaldPeaks class with the same first image
+    The Ewald Peaks EwP class which allows:
+    * a 3D graphical representation of the reciprocal space
+    * the indexing of the peaks
+    * the refinement by the least squares method 
+    * the reconstruction of the layers. 
+
+
+
 
 ## Step by step instructions for installation
 - install anaconda or miniconda(https://docs.conda.io/en/latest/miniconda.html)
