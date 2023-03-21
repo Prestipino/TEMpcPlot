@@ -7,14 +7,14 @@ Due to the very short electron wavelength (~0.02 Å), a zone axis electron diffr
 The library TEMpcPlot has as object the treatments of a Sequence of electropn diffraction cliches to obtain a three dimensional redcipriocal lattice. The idea behind is to find a way of work for TEM, available on pc, with a graphical approach (TEMpcPlot)
 
 The library is divided in two main class
-** TEMpcPlot.SeqIm **
+**TEMpcPlot.SeqIm**
     a sequence of image where each element of the class is an image perform 
     - the search for peaks
     - the alignment of the images with respect to the origin and the rotation axis
     - the calibration of the peaks in the common three-dimensional reciprocal space
     - plot the calibrated images
 
-** EwaldPeaks **
+**EwaldPeaks**
     Set of peaks position and intensity
     this class manages peaks position and intensity and the methods related to lattice indexing and refinement
     could be created as an attribute EwP of a SeqIm class by using methods D3_peaks
