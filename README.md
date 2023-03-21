@@ -9,24 +9,22 @@ The library TEMpcPlot has as object the treatments of a Sequence of electropn di
 The library is divided in two main class
 
 **TEMpcPlot.SeqIm**
-
-    a sequence of image where each element of the class is an image perform 
-    - the search for peaks
-    - the alignment of the images with respect to the origin and the rotation axis
-    - the calibration of the peaks in the common three-dimensional reciprocal space
-    - plot the calibrated images
+a sequence of image where each element of the class is an image perform 
+- the search for peaks
+- the alignment of the images with respect to the origin and the rotation axis
+- the calibration of the peaks in the common three-dimensional reciprocal space
+- plot the calibrated images
 
 **EwaldPeaks**
-
-    Set of peaks position and intensity
-    this class manages peaks position and intensity and the methods related to lattice indexing and refinement
-    could be created as an attribute EwP of a SeqIm class by using methods D3_peaks
-    or by sum with an another EwaldPeaks class with the same first image
-    The Ewald Peaks EwP class which allows:
-    - a 3D graphical representation of the reciprocal space
-    - the indexing of the peaks
-    - the refinement by the least squares method 
-    - the reconstruction of the layers. 
+Set of peaks position and intensity
+this class manages peaks position and intensity and the methods related to lattice indexing and refinement
+could be created as an attribute EwP of a SeqIm class by using methods D3_peaks
+or by sum with an another EwaldPeaks class with the same first image
+The Ewald Peaks EwP class which allows:
+- a 3D graphical representation of the reciprocal space
+- the indexing of the peaks
+- the refinement by the least squares method 
+- the reconstruction of the layers. 
 
 
 
