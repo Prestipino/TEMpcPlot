@@ -26,10 +26,21 @@ The Ewald Peaks EwP class which allows:
 - the refinement by the least squares method 
 - the reconstruction of the layers. 
 
+## Screenshot
+**Peak Searching**
+![Peak Searching "nameexp.plot()"](/assets/Figure1.jpg)
 
-![Basic plot](/assets/Figure1.jpg)
+**Indexing procedure**
+![Indexing procedure "nameexp.EwP.plot()"](/assets/Figure2.jpg)
 
+**Reduced Plot**
+![Reduced Plot "nameexp.EwP.plot_reduce()"](/assets/Figure3.jpg)
 
+**Plane Reconstruction**
+![Plane Reconstruction "nameexp.EwP.create_layer()"](/assets/Figure4.jpg)
+
+**Indexed Images Plot**
+![Indexed Images Plot "nameexp.plot_cal()"](/assets/Figure5.jpg)
 
 
 
@@ -104,17 +115,10 @@ construct a seq
 
 > Ex1.D3_peaks(tollerance=15)
 
-### Index automatically 
-> Ex1.EwP.find_cell()   
-find primitive cell with minimal translation\
-
-### Index manually the reciprocal space
 > Ex1.EwP.plot()
 reconstruct reciprocal space and plot in a graph attribute
 more information on the [wiki](https://github.com/Prestipino/TEMpcPlot/wiki/EwaldPeaks)
 
-> Ex1.EwP.set_cell()
-take in account the recipriocal cell
 
 > Ex1.Ewp.create_layer(hkl)
 
