@@ -43,7 +43,9 @@ The Ewald Peaks EwP class which allows:
 ![Indexed Images Plot "nameexp.plot_cal()"](/assets/Figure5.jpg)
 
 
+* * *
 
+* * *
 
 ## Step by step instructions for installation
 - install anaconda or miniconda(https://docs.conda.io/en/latest/miniconda.html)
