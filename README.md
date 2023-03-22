@@ -27,7 +27,7 @@ The Ewald Peaks EwP class which allows:
 - the reconstruction of the layers. 
 
 
-![Basic plot](https://github.com/Prestipino/TEMpcPlot/blob/gh-page/figures/Figure1.jpg)
+![Basic plot](/assets/Figure1.jpg)
 
 
 
