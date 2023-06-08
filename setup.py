@@ -21,13 +21,8 @@ setup(name='TEMpcPlot',
       packages=['TEMpcPlot', 'TEMpcPlot.Symmetry', 'TEMpcPlot.tables',
                 'TEMpcPlot.dm3_lib', 'TEMpcPlot.TEM', 'TEMpcPlot.Gui'],
       install_requires=['numpy', 'matplotlib', 'scipy', 'pillow', 'uncertainties',
-<<<<<<< HEAD
-                        'keyboard', 'mplcursors'],
+                        'keyboard', 'mplcursors', 'PyQt5'],
       package_data={'TEMpcPlot.Symmetry': ['spacegroup.dat'],
-=======
-                        'PyQt5','keyboard', 'mplcursors'],
-      package_data={'TEMpcPlot..Symmetry': ['spacegroup.dat'],
->>>>>>> origin/master
                     'TEMpcPlot.TEM': ['angle.png',
                                       'down.png',
                                       'lenght.png',

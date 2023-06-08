@@ -1028,7 +1028,7 @@ class SeqIm(list):
         out.filename = self.filenames
         out.filesangle = [i.info.gon_angles for i in self]
         if hasattr(self, 'zangles'):
-            out.zangle = self.zangles
+            out.zangles = self.zangles
 
         if hasattr(self, 'EwP'):
             out.EwP = {'positions': self.EwP.pos,
