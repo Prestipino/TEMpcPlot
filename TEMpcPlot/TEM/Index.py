@@ -91,6 +91,8 @@ def sort_LayerCalib(Peaks, vects, toll=0.1):
     """
     # print('vecs\n', repr(vects))
     n_index = []
+    if len(vects) == 1:
+        return vects
     try:
         # z = unit vector perp. to the peaks plane
         z = mt.norm(np.cross(*vects[:2]))
@@ -111,9 +113,10 @@ def sort_LayerCalib(Peaks, vects, toll=0.1):
 def Find_2D_uc(Peaks, toll_angle=5, toll=0.10, maxes=0.5):
     """
     Finds the best fitting unit cell for an image
+    !one image!
 
     Input :
-    SeqIma : sequence of images
+    maxes : max lenght for axis nm
 
     Output :
     - out : array of unit vectors of length : number_of_images_in_sequence*2
