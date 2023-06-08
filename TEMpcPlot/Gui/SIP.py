@@ -90,7 +90,7 @@ class C3_slider():
     def set_value(self, value):
         step = (self.max - self.min) / 1000
         val = (value - self.min) / step
-        self.Slider.setValue(val)
+        self.Slider.setValue(int(val))
 
 
 class SeqImaPlot(QtWidgets.QMainWindow):

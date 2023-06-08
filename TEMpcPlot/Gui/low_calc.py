@@ -51,7 +51,7 @@ class C3_slider():
         layout.addWidget(self.frame)
         self.label.setText(label)
         if value is not None:
-            self.set_value(value)
+            self.set_value(int(value))
         # self.Slider.valueChanged['int'].connect(self.lcdNumber.display)
 
     def update(self, value):
@@ -70,7 +70,7 @@ class C3_slider():
     def set_value(self, value):
         step = (self.max - self.min) / 1000
         val = (value - self.min) / step
-        self.Slider.setValue(val)
+        self.Slider.setValue(int(val))
 
 class Bottom_create(QtWidgets.QFrame):
     def __init__(self):
