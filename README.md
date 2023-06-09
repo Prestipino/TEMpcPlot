@@ -63,6 +63,13 @@ conda install ipython
 conda install -c cprestip tempcplot
 ```
 
+#### if the conda install doesn't work last resource is pip
+```bash
+conda install pip
+pip install git+https://github.com/Prestipino/TEMpcPlot.git
+```
+
+
 ## UPDATE
 The code is still in rapid change and could present several bug
 please update with the following command on an anaconda prompt  
