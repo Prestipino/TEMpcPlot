@@ -48,8 +48,11 @@ The Ewald Peaks EwP class which allows:
 * * *
 
 ## Step by step instructions for installation
-- install anaconda or miniconda(https://docs.conda.io/en/latest/miniconda.html)
+- install anaconda or [miniconda](https://docs.conda.io/en/latest/miniconda.html)
+      direct download for windows [here](https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe)
 - open an anaconda prompt on the start menu
+![how to open anaconda prompt"](/assets/Figure6.jpg)
+
 - type:
 ```bash
 conda config --add channels conda-forge
