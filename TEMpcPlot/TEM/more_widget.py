@@ -90,7 +90,10 @@ class LineBuilder(AxesWidget):
                 if len(self.verts) > 1:
                     self.callback(self.verts)
         if not(self.stay):
-            self.ax.lines.remove(self.line)
+            try:
+                self.ax.lines.remove(self.line)
+            except:
+                self.line.remove()
         self.verts = None
         self.disconnect_events()
 

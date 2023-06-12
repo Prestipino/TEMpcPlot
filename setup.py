@@ -34,5 +34,6 @@ setup(name='TEMpcPlot',
                                       'lenght.png',
                                       'PlotP.png',
                                       'RemP.png',
-                                      'UP.png']},
+                                      'UP.png',
+                                      'RanP.png']},
       zip_safe=False)

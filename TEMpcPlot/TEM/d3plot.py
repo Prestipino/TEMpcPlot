@@ -219,6 +219,8 @@ class D3plot(object):
             axis.rotate(r, store=True)
 
     def __m_rotate(self, event):
+        if event.xdata is None:
+            return
         r = self.__find_rot(event)
         self.__rotate(r)
 

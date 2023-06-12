@@ -1235,8 +1235,6 @@ class EwaldPeaks(object):
                 self.graph.allign_b()
             elif val == "c*":
                 self.graph.allign_c()
-            if len(self.graph.axes) == 3:
-                self.set_cell()
         self.EwPlot.AllignButton.clicked.connect(allign)
 
         def def_ax(event):

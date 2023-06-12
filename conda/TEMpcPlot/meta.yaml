@@ -13,7 +13,7 @@ source:
 build:
   number: 0
   noarch: python
-  script: "{{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv "
+  # script: "{{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv "
 
 extra:
   channels:
@@ -30,7 +30,7 @@ requirements:
     - python >=3.8
     - scipy
     - numpy
-    - matplotlib >=3.5.3
+    - matplotlib >=3.5.3, <3.7
     - scipy
     - pillow
     - uncertainties 
