@@ -137,8 +137,11 @@ more information on the [wiki](https://github.com/Prestipino/TEMpcPlot/wiki/Ewal
 
 ## Few set of data for tutorials
 [Cr2SnS7]](https://Prestipino.github.io/TEMpcPlot/tutorials/Cr2SnS7.zip)
+
 [perovskite]](https://Prestipino.github.io/TEMpcPlot/tutorials/NBC2.zip)
+
 [UPd2S2]](https://Prestipino.github.io/TEMpcPlot/tutorials/UPd2S2.zip)
+
 [URu025Ge2]](https://Prestipino.github.io/TEMpcPlot/tutorials/cr1_URu025Ge2.zip)
          
 
